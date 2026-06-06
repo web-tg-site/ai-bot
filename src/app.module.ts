@@ -1,9 +1,23 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
+import { LoggerModule } from 'nestjs-pino';
+
+import { BotService } from '@services/bot';
+import { pinoFactoryConfig } from './core';
 
 @Module({
-    imports: [ConfigModule.forRoot()],
+    imports: [
+        ConfigModule.forRoot(),
+        LoggerModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) =>
+                pinoFactoryConfig(configService),
+        }),
+        HttpModule,
+    ],
     controllers: [],
-    providers: [],
+    providers: [BotService],
 })
 export class AppModule {}
