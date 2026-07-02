@@ -71,7 +71,7 @@ Inside you'll find the world's best AI models:
 🎨 <b>Image generation & editing</b>
 • Midjourney
 • Nano Banana
-• Seedream 5.0
+• Seedream 4.5
 • Flux
 • GPT Images
 
@@ -140,7 +140,7 @@ Select a tool below.`,
         midjourneyFallback:
             '⚠️ Midjourney via Sharpii is currently unavailable (provider issue). Generating with Flux…',
         videoToAudioPreparing:
-            '⏳ Creating talking video… This may take up to 2 minutes.',
+            '⏳ Creating dub… This may take several minutes.',
         insufficientTokens:
             '❌ Not enough tokens. Upgrade your subscription or wait for the next token allocation.',
         noSubscription:
@@ -285,7 +285,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.GPT_IMAGES]: 'GPT Images',
             [AiToolId.FLUX]: 'Flux',
             [AiToolId.NANO_BANANA]: 'Nano Banana',
-            [AiToolId.SEEDREAM]: 'Seedream 5.0',
+            [AiToolId.SEEDREAM]: 'Seedream 4.5',
             [AiToolId.MIDJOURNEY]: 'Midjourney',
             [AiToolId.KLING]: 'Kling',
             [AiToolId.VEO]: 'Veo',
@@ -325,7 +325,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
                 '<b>Step 1:</b> send a voice message or audio file (voice sample).\n' +
                 '<b>Step 2:</b> send text — the bot will speak it in that voice.',
             [AiToolId.VIDEO_TO_AUDIO]:
-                'Send a <b>photo</b> (portrait) and <b>text</b> in one message (text in the photo caption). The bot will create a talking video with that face.',
+                'Send a video or audio file. The bot will dub it into Russian (or specify a language in the caption: en, es, de…).',
             [AiToolId.SOUND_GENERATOR]:
                 'Describe a sound or effect (e.g. «loud thunder», «footsteps on gravel», «space whoosh»).',
         },

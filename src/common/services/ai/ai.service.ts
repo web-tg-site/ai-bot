@@ -9,7 +9,6 @@ import {
     AiToolId,
 } from './types';
 import {
-    BytePlusProvider,
     ElevenLabsProvider,
     HiggsfieldProvider,
     HeyGenProvider,
@@ -23,7 +22,6 @@ export class AiService {
     constructor(
         private readonly openRouterProvider: OpenRouterProvider,
         private readonly sharpiiProvider: SharpiiProvider,
-        private readonly bytePlusProvider: BytePlusProvider,
         private readonly heyGenProvider: HeyGenProvider,
         private readonly higgsfieldProvider: HiggsfieldProvider,
         private readonly topazProvider: TopazProvider,
@@ -42,15 +40,13 @@ export class AiService {
         switch (tool.provider) {
             case AiProviderId.OPENROUTER:
                 return this.openRouterProvider.generate(toolId, input);
-            case AiProviderId.BYTEPLUS:
-                return this.bytePlusProvider.generateImage(input, tool.model);
             case AiProviderId.SHARPII:
                 return this.sharpiiProvider.generate(toolId, input);
             case AiProviderId.ELEVENLABS:
                 return this.elevenLabsProvider.generate(toolId, input);
             default:
                 throw new Error(
-                    `Sync generation not supported for provider ${tool.provider}`,
+                    `Sync generation not supported for provider ${String(tool.provider)}`,
                 );
         }
     }
@@ -69,6 +65,8 @@ export class AiService {
                 return this.openRouterProvider.createJob(toolId, input);
             case AiProviderId.SHARPII:
                 return this.sharpiiProvider.createJob(toolId, input);
+            case AiProviderId.ELEVENLABS:
+                return this.elevenLabsProvider.createJob(toolId, input);
             case AiProviderId.HEYGEN:
                 return this.heyGenProvider.createJob(toolId, input);
             case AiProviderId.HIGGSFIELD:
@@ -77,7 +75,7 @@ export class AiService {
                 return this.topazProvider.createJob(input);
             default:
                 throw new Error(
-                    `Async generation not supported for provider ${tool.provider}`,
+                    `Async generation not supported for provider ${String(tool.provider)}`,
                 );
         }
     }
@@ -96,6 +94,8 @@ export class AiService {
                 return this.openRouterProvider.getJobStatus(providerJobId);
             case AiProviderId.SHARPII:
                 return this.sharpiiProvider.getJobStatus(providerJobId, toolId);
+            case AiProviderId.ELEVENLABS:
+                return this.elevenLabsProvider.getJobStatus(providerJobId);
             case AiProviderId.HEYGEN:
                 return this.heyGenProvider.getJobStatus(providerJobId);
             case AiProviderId.HIGGSFIELD:
@@ -104,7 +104,7 @@ export class AiService {
                 return this.topazProvider.getJobStatus(providerJobId);
             default:
                 throw new Error(
-                    `Job status not supported for provider ${tool.provider}`,
+                    `Job status not supported for provider ${String(tool.provider)}`,
                 );
         }
     }

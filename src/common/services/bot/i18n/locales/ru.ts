@@ -71,7 +71,7 @@ export const ru: I18nBundle = {
 🎨 <b>Генерация и редактирование изображений</b>
 • Midjourney
 • Nano Banana
-• Seedream 5.0
+• Seedream 4.5
 • Flux
 • GPT Images
 
@@ -140,7 +140,7 @@ export const ru: I18nBundle = {
         midjourneyFallback:
             '⚠️ Midjourney через Sharpii сейчас недоступен (сбой на стороне провайдера). Генерирую через Flux…',
         videoToAudioPreparing:
-            '⏳ Создаём говорящее видео… Это может занять до 2 минут.',
+            '⏳ Создаём дубляж… Это может занять несколько минут.',
         insufficientTokens:
             '❌ Недостаточно токенов. Пополните подписку или дождитесь начисления токенов.',
         noSubscription:
@@ -285,7 +285,7 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.GPT_IMAGES]: 'GPT Images',
             [AiToolId.FLUX]: 'Flux',
             [AiToolId.NANO_BANANA]: 'Nano Banana',
-            [AiToolId.SEEDREAM]: 'Seedream 5.0',
+            [AiToolId.SEEDREAM]: 'Seedream 4.5',
             [AiToolId.MIDJOURNEY]: 'Midjourney',
             [AiToolId.KLING]: 'Kling',
             [AiToolId.VEO]: 'Veo',
@@ -331,7 +331,7 @@ ${getTariffIncludesText(type, plan, ru)}
                 '<b>Шаг 1:</b> отправьте голосовое или аудиофайл (образец голоса).\n' +
                 '<b>Шаг 2:</b> отправьте текст — бот озвучит его этим голосом.',
             [AiToolId.VIDEO_TO_AUDIO]:
-                'Отправьте <b>фото</b> (портрет) и <b>текст</b> в одном сообщении (текст — в подписи к фото). Бот сделает говорящее видео с этим лицом.',
+                'Отправьте видео или аудиофайл. Бот сделает дубляж на русский (или укажите язык в подписи: en, es, de…).',
             [AiToolId.SOUND_GENERATOR]:
                 'Опишите звук или звуковой эффект (например: «громкий гром», «шаги по гравию», «космический whoosh»).',
         },

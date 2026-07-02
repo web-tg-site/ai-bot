@@ -5,7 +5,6 @@ import { UserModule } from '@/common/models/user';
 import { AiService } from './ai.service';
 import { TokenBillingService } from './billing/token-billing.service';
 import {
-    BytePlusProvider,
     ElevenLabsProvider,
     HiggsfieldProvider,
     HeyGenProvider,
@@ -23,7 +22,6 @@ import { AiJobCron } from './jobs/ai-job.cron';
         TokenBillingService,
         OpenRouterProvider,
         SharpiiProvider,
-        BytePlusProvider,
         HeyGenProvider,
         HiggsfieldProvider,
         TopazProvider,

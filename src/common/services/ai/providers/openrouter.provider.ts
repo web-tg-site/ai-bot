@@ -12,7 +12,6 @@ import {
 import { getToolById } from '@/common/config/ai-tools.registry';
 import { AiToolId } from '../types';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
-import { pcm16ToWav } from '@/common/utils/pcm16-to-wav';
 
 type OpenRouterMessageContent =
     | string
@@ -25,8 +24,6 @@ type OpenRouterMessageContent =
 export class OpenRouterProvider {
     private readonly apiKey: string;
     private readonly baseUrl = 'https://openrouter.ai/api/v1';
-    private readonly ttsModel: string;
-    private readonly ttsVoice: string;
 
     constructor(
         private readonly httpService: HttpService,
@@ -35,11 +32,6 @@ export class OpenRouterProvider {
         private readonly logger: PinoLogger,
     ) {
         this.apiKey = configService.get<string>('OPENROUTER_API_KEY') ?? '';
-        this.ttsModel =
-            configService.get<string>('OPENROUTER_TTS_MODEL') ??
-            'openai/gpt-audio-mini';
-        this.ttsVoice =
-            configService.get<string>('OPENROUTER_TTS_VOICE') ?? 'alloy';
     }
 
     async generate(
@@ -51,11 +43,10 @@ export class OpenRouterProvider {
         switch (toolId) {
             case AiToolId.GPT:
                 return this.chatUnified(input);
-            case AiToolId.ELEVENLABS_VOICE:
-                return this.generateSpeech(input);
             case AiToolId.GPT_IMAGES:
             case AiToolId.FLUX:
-            case AiToolId.NANO_BANANA: {
+            case AiToolId.NANO_BANANA:
+            case AiToolId.SEEDREAM: {
                 const tool = getToolById(toolId);
                 if (!tool?.model) {
                     throw new Error(`Model not configured for ${toolId}`);
@@ -185,134 +176,6 @@ export class OpenRouterProvider {
                 frame_type: 'first_frame',
             },
         ];
-    }
-
-    private async generateSpeech(
-        input: AiGenerationInput,
-    ): Promise<AiGenerationResult> {
-        const text = (input.prompt ?? '').trim().slice(0, 5000);
-        if (!text) {
-            throw new Error('Отправьте текст для озвучки');
-        }
-
-        const response = await fetch(`${this.baseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: this.getHeaders(),
-            body: JSON.stringify({
-                model: this.ttsModel,
-                stream: true,
-                messages: [
-                    {
-                        role: 'system',
-                        content:
-                            'You are a text-to-speech engine. Speak ONLY the value of TEXT_TO_SPEAK. No greetings, no follow-up, no commentary, no questions.',
-                    },
-                    {
-                        role: 'user',
-                        content: `TEXT_TO_SPEAK=${JSON.stringify(text)}`,
-                    },
-                ],
-                modalities: ['text', 'audio'],
-                audio: { voice: this.ttsVoice, format: 'pcm16' },
-            }),
-        });
-
-        if (!response.ok || !response.body) {
-            const errorText = await response.text();
-            this.logger.error(
-                `OpenRouter TTS failed: ${errorText.slice(0, 300)}`,
-            );
-            throw new Error(this.extractFetchError(errorText));
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let sseBuffer = '';
-        let audioBase64 = '';
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-                break;
-            }
-
-            sseBuffer += decoder.decode(value, { stream: true });
-            const lines = sseBuffer.split('\n');
-            sseBuffer = lines.pop() ?? '';
-
-            for (const line of lines) {
-                if (!line.startsWith('data: ')) {
-                    continue;
-                }
-
-                const payload = line.slice(6).trim();
-                if (!payload || payload === '[DONE]') {
-                    continue;
-                }
-
-                try {
-                    const chunk = JSON.parse(payload) as {
-                        choices?: Array<{
-                            delta?: { audio?: { data?: string } };
-                        }>;
-                    };
-                    const data = chunk.choices?.[0]?.delta?.audio?.data;
-                    if (data) {
-                        audioBase64 += data;
-                    }
-                } catch {
-                    // skip malformed SSE chunk
-                }
-            }
-        }
-
-        if (sseBuffer.startsWith('data: ')) {
-            const payload = sseBuffer.slice(6).trim();
-            if (payload && payload !== '[DONE]') {
-                try {
-                    const chunk = JSON.parse(payload) as {
-                        choices?: Array<{
-                            delta?: { audio?: { data?: string } };
-                        }>;
-                    };
-                    const data = chunk.choices?.[0]?.delta?.audio?.data;
-                    if (data) {
-                        audioBase64 += data;
-                    }
-                } catch {
-                    // ignore trailing partial chunk
-                }
-            }
-        }
-
-        if (!audioBase64) {
-            this.logger.error(
-                'OpenRouter TTS stream completed without audio chunks',
-            );
-            throw new Error('OpenRouter TTS did not return audio data');
-        }
-
-        const pcm = Buffer.from(audioBase64, 'base64');
-        return {
-            type: 'audio',
-            buffer: pcm16ToWav(pcm),
-            mimeType: 'audio/wav',
-        };
-    }
-
-    private extractFetchError(errorText: string): string {
-        try {
-            const parsed = JSON.parse(errorText) as {
-                error?: { message?: string };
-            };
-            if (parsed.error?.message) {
-                return parsed.error.message;
-            }
-        } catch {
-            // ignore
-        }
-
-        return 'OpenRouter TTS error';
     }
 
     private async chatUnified(
@@ -474,7 +337,10 @@ export class OpenRouterProvider {
     }
 
     private usesDedicatedImagesApi(model: string): boolean {
-        return model.startsWith('black-forest-labs/flux.');
+        return (
+            model.startsWith('black-forest-labs/flux.') ||
+            model.startsWith('bytedance-seed/seedream')
+        );
     }
 
     private buildUserContent(

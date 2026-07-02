@@ -21,7 +21,6 @@ export enum AiToolId {
 export enum AiProviderId {
     OPENROUTER = 'openrouter',
     SHARPII = 'sharpii',
-    BYTEPLUS = 'byteplus',
     ELEVENLABS = 'elevenlabs',
     HEYGEN = 'heygen',
     HIGGSFIELD = 'higgsfield',
