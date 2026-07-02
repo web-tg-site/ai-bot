@@ -4,6 +4,8 @@ WORKDIR /app
 ENV HUSKY=0
 RUN apt-get update && apt-get install -y openssl
 COPY package.json yarn.lock ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
 RUN yarn install --frozen-lockfile
 
 # Сборка
@@ -16,7 +18,7 @@ COPY . .
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/mydb"
 RUN npx prisma generate
 RUN yarn build
-RUN yarn install --production --frozen-lockfile && yarn cache clean
+RUN yarn install --production --frozen-lockfile --ignore-scripts && yarn cache clean
 
 # Запуск
 FROM node:22-slim AS runner
