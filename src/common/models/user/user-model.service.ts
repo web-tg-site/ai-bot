@@ -1,5 +1,5 @@
 import { PrismaService } from '@/common/services/prisma';
-import { UserUpdateInput } from '@/generated/prisma/models';
+import { Prisma } from '@/generated/prisma/client';
 import { Injectable } from '@nestjs/common';
 import { SubscribeType, UserLanguage } from '@/generated/prisma/enums';
 import {
@@ -293,7 +293,7 @@ export class UserModelService {
     // Обновления
     public async updateUserByTelegramId(
         telegramId: string,
-        data: UserUpdateInput,
+        data: Prisma.UserUpdateInput,
     ) {
         await this.prismaService.user.update({
             where: {
