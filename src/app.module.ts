@@ -11,7 +11,10 @@ import { UserModule } from '@/common/models/user';
 import { SubscriptionCron } from '@/common/crons/subscription';
 import { AiModule } from '@/common/services/ai';
 import { RedisService } from '@/common/services/redis';
-import { ApayVerificationController } from '@/common/controllers';
+import {
+    ApayVerificationController,
+    HealthController,
+} from '@/common/controllers';
 
 @Module({
     imports: [
@@ -28,7 +31,7 @@ import { ApayVerificationController } from '@/common/controllers';
         UserModule,
         AiModule,
     ],
-    controllers: [ApayVerificationController],
+    controllers: [HealthController, ApayVerificationController],
     providers: [RedisService, BotService, SubscriptionCron],
 })
 export class AppModule {}

@@ -22,6 +22,7 @@ RUN yarn install --production --frozen-lockfile && yarn cache clean
 FROM node:22-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+ENV HUSKY=0
 RUN apt-get update && apt-get install -y openssl
 
 USER node
