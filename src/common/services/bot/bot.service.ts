@@ -78,12 +78,18 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         const me = await this.bot.telegram.getMe();
         this.logger.info({ username: me.username }, 'Bot starting');
 
-        await this.bot.launch({
-            dropPendingUpdates: true,
-            allowedUpdates: [...ALLOWED_UPDATES],
-        });
+        void this.bot
+            .launch({
+                dropPendingUpdates: true,
+                allowedUpdates: [...ALLOWED_UPDATES],
+            })
+            .catch((err: unknown) => {
+                this.logger.error(
+                    `Bot launch failed: ${err instanceof Error ? err.message : String(err)}`,
+                );
+            });
 
-        this.logger.info('Bot started');
+        this.logger.info('Bot launch initiated');
     }
 
     public onModuleDestroy() {
