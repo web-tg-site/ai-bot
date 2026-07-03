@@ -1,1 +1,1 @@
-export const BOT_NAME = 'PROJECT AI';
+export const BOT_NAME = 'Endora AI';
