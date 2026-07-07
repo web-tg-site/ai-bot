@@ -381,9 +381,26 @@ export class SharpiiProvider {
         input: AiGenerationInput,
         isVideo: boolean,
     ): Record<string, unknown> {
+        const images =
+            input.files?.filter((file) => file.mimeType.startsWith('image/')) ??
+            [];
+        const prompt = this.resolveGenerationPrompt(
+            input.prompt,
+            images.length > 0,
+            isVideo ? 'video' : 'image',
+        );
+
+        if (!prompt) {
+            throw new Error(
+                isVideo
+                    ? 'Отправьте текстовый промпт или фото для генерации видео'
+                    : 'Отправьте текстовый промпт для генерации изображения',
+            );
+        }
+
         const body: Record<string, unknown> = {
             model,
-            prompt: input.prompt ?? '',
+            prompt,
         };
 
         if (isVideo) {
@@ -393,9 +410,12 @@ export class SharpiiProvider {
             );
             body.aspect_ratio = '16:9';
 
-            const firstFrameUrl = this.resolveFirstFrameUrl(input);
-            if (firstFrameUrl) {
-                body.first_frame_url = firstFrameUrl;
+            if (images[0]) {
+                body.first_frame_url = this.toDataUrl(images[0]);
+            }
+
+            if (images.length >= 2) {
+                body.last_frame_url = this.toDataUrl(images[images.length - 1]);
             }
 
             if (toolId === AiToolId.SEEDANCE) {
@@ -406,6 +426,25 @@ export class SharpiiProvider {
         }
 
         return body;
+    }
+
+    private resolveGenerationPrompt(
+        prompt: string | undefined,
+        hasImages: boolean,
+        mode: 'image' | 'video',
+    ): string {
+        const trimmed = prompt?.trim();
+        if (trimmed) {
+            return trimmed;
+        }
+
+        if (!hasImages) {
+            return '';
+        }
+
+        return mode === 'video'
+            ? 'Создай плавное видео с переходом между кадрами'
+            : 'Создай изображение по референсу';
     }
 
     private resolveVideoDuration(
@@ -421,17 +460,6 @@ export class SharpiiProvider {
         }
 
         return durationSeconds;
-    }
-
-    private resolveFirstFrameUrl(input: AiGenerationInput): string | undefined {
-        const image = input.files?.find((file) =>
-            file.mimeType.startsWith('image/'),
-        );
-        if (!image) {
-            return undefined;
-        }
-
-        return this.toDataUrl(image);
     }
 
     private findVoiceSample(input: AiGenerationInput) {
@@ -524,6 +552,11 @@ export class SharpiiProvider {
             const code = data?.error?.code;
             const message = data?.error?.message ?? data?.message;
             const requestId = data?.meta?.request_id;
+
+            if (axiosError.response?.status === 502) {
+                const suffix = requestId ? `\n\nID запроса: ${requestId}` : '';
+                return `Sharpii временно недоступен (HTTP 502). Попробуйте позже.${suffix}`;
+            }
 
             if (message) {
                 return this.formatSharpiiApiMessage(message, code, requestId);

@@ -4,6 +4,7 @@ import { ModuleRef } from '@nestjs/core';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { JobStatus } from '@/generated/prisma/enums';
 import { BotService } from '@/common/services/bot';
+import { getToolById } from '@/common/config/ai-tools.registry';
 import { AiService } from '../ai.service';
 import { AiJobService } from './ai-job.service';
 import { AiGenerationInput, AiToolId } from '../types';
@@ -64,26 +65,46 @@ export class AiJobCron {
                     }
 
                     if (status.status === 'completed' && status.result) {
-                        await this.sendResult(
-                            botService,
-                            job.user.telegramId,
-                            status.result.type,
-                            status.result,
-                        );
+                        try {
+                            await this.sendResult(
+                                botService,
+                                job.user.telegramId,
+                                status.result.type,
+                                status.result,
+                            );
 
-                        await this.aiJobService.updateJobStatus(
-                            job.id,
-                            JobStatus.COMPLETED,
-                            {
-                                resultUrl: status.result.url,
-                            },
-                        );
+                            await this.aiJobService.updateJobStatus(
+                                job.id,
+                                JobStatus.COMPLETED,
+                                {
+                                    resultUrl: status.result.url,
+                                },
+                            );
 
-                        await botService.sendMessage(
-                            job.user.telegramId,
-                            AI_JOB_COMPLETED_TEXT,
-                            { parse_mode: 'HTML' },
-                        );
+                            await botService.sendMessage(
+                                job.user.telegramId,
+                                AI_JOB_COMPLETED_TEXT,
+                                { parse_mode: 'HTML' },
+                            );
+                        } catch (error) {
+                            const message =
+                                error instanceof Error
+                                    ? error.message
+                                    : 'Не удалось отправить результат';
+                            this.logJobError(job, 'delivery', error);
+
+                            await this.aiJobService.updateJobStatus(
+                                job.id,
+                                JobStatus.FAILED,
+                                { errorMessage: message },
+                            );
+
+                            await botService.sendMessage(
+                                job.user.telegramId,
+                                AI_JOB_FAILED_TEXT(message),
+                                { parse_mode: 'HTML' },
+                            );
+                        }
                         continue;
                     }
 
@@ -118,14 +139,36 @@ export class AiJobCron {
                         );
                     }
                 } catch (error) {
-                    this.logger.error(
-                        `Failed to poll job ${job.id}: ${error instanceof Error ? error.message : String(error)}`,
-                    );
+                    this.logJobError(job, 'poll', error);
                 }
             }
         } finally {
             this.isProcessing = false;
         }
+    }
+
+    private logJobError(
+        job: Awaited<ReturnType<AiJobService['getPendingJobs']>>[number],
+        phase: 'poll' | 'delivery',
+        error: unknown,
+    ) {
+        const tool = getToolById(job.toolId as AiToolId);
+        const toolLabel = tool?.label ?? job.toolId;
+        const provider = tool?.provider ?? 'unknown';
+        const message = error instanceof Error ? error.message : String(error);
+
+        this.logger.error(
+            {
+                jobId: job.id,
+                toolId: job.toolId,
+                toolLabel,
+                provider,
+                providerJobId: job.providerJobId,
+                phase,
+                err: error,
+            },
+            `AI job ${phase} failed [${toolLabel}/${provider}]: ${message}`,
+        );
     }
 
     private async handleMidjourneyFluxFallback(

@@ -18,6 +18,7 @@ import {
     getMessageText,
     bufferToInputFile,
 } from '../utils/download-telegram-file';
+import { collectMediaGroupMessage } from '../utils/media-group-collector';
 import {
     mimeTypeToExtension,
     parseDataUrl,
@@ -193,6 +194,40 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
 
     if (!text && files.length === 0) {
         await ctx.reply(i18n.aiResult.sendTextOrFile);
+        return;
+    }
+
+    const message = ctx.message;
+    const mediaGroupId =
+        message && 'media_group_id' in message && message.media_group_id
+            ? String(message.media_group_id)
+            : undefined;
+
+    if (mediaGroupId && files.length > 0) {
+        collectMediaGroupMessage({
+            mediaGroupId,
+            files,
+            prompt: text,
+            finalize: async (batch) => {
+                const batchInput: AiGenerationInput = {
+                    prompt: batch.prompt,
+                    files: batch.files,
+                    durationSeconds: tool.defaultDurationSeconds,
+                    chatHistory: session.ai?.chatHistory,
+                };
+
+                await runGeneration(
+                    ctx,
+                    deps,
+                    toolId,
+                    tool,
+                    batchInput,
+                    session,
+                    batch.prompt,
+                    i18n,
+                );
+            },
+        });
         return;
     }
 

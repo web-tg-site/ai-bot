@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import type { AxiosResponse } from 'axios';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import {
     AiGenerationInput,
@@ -63,23 +64,29 @@ export class TopazProvider {
         const form = new FormData();
         form.append('model', 'Standard V2');
         form.append('output_format', 'jpeg');
-        form.append('output_width', '2048');
         form.append(
             'image',
             new Blob([new Uint8Array(file.buffer)], { type: file.mimeType }),
-            file.fileName ?? 'image.jpg',
+            this.resolveImageFileName(file),
         );
 
-        const response = await firstValueFrom(
-            this.httpService.post<{ process_id?: string }>(
-                `${IMAGE_BASE}/enhance/async`,
-                form,
-                {
-                    headers: this.getHeaders(),
-                    timeout: 120000,
-                },
-            ),
-        );
+        let response: AxiosResponse<{ process_id?: string }>;
+        try {
+            response = await firstValueFrom(
+                this.httpService.post<{ process_id?: string }>(
+                    `${IMAGE_BASE}/enhance/async`,
+                    form,
+                    {
+                        headers: this.getHeaders(),
+                        timeout: 120000,
+                    },
+                ),
+            );
+        } catch (error) {
+            const message = this.formatError(error);
+            this.logger.error(`Topaz image enhance failed: ${message}`);
+            throw new Error(message);
+        }
 
         const processId =
             response.data.process_id ??
@@ -170,36 +177,41 @@ export class TopazProvider {
     private async getImageJobStatus(
         processId: string,
     ): Promise<AiJobStatusResult> {
-        const statusResponse = await this.get<{ status: string }>(
-            `${IMAGE_BASE}/status/${processId}`,
-        );
+        const statusResponse = await this.get<{
+            status: string;
+            message?: string;
+        }>(`${IMAGE_BASE}/status/${processId}`);
 
         const status = this.mapImageStatus(statusResponse.status);
 
         if (status === 'failed') {
-            return { status, errorMessage: 'Topaz image enhancement failed' };
+            return {
+                status,
+                errorMessage:
+                    statusResponse.message ?? 'Topaz image enhancement failed',
+            };
         }
 
         if (status !== 'completed') {
             return { status };
         }
 
-        const downloadResponse = await firstValueFrom(
-            this.httpService.get<ArrayBuffer>(
-                `${IMAGE_BASE}/download/${processId}`,
-                {
-                    headers: this.getHeaders(),
-                    responseType: 'arraybuffer',
-                    timeout: 120000,
-                },
-            ),
-        );
+        const downloadMeta = await this.get<{
+            download_url?: string;
+        }>(`${IMAGE_BASE}/download/${processId}`);
+
+        if (!downloadMeta.download_url) {
+            return {
+                status: 'failed',
+                errorMessage: 'Topaz did not return image download URL',
+            };
+        }
 
         return {
             status: 'completed',
             result: {
                 type: 'image',
-                buffer: Buffer.from(downloadResponse.data),
+                url: downloadMeta.download_url,
                 mimeType: 'image/jpeg',
             },
         };
@@ -232,6 +244,22 @@ export class TopazProvider {
         }
 
         return { status };
+    }
+
+    private resolveImageFileName(file: AiFileInput): string {
+        if (file.fileName) {
+            return file.fileName;
+        }
+
+        if (file.mimeType.includes('png')) {
+            return 'image.png';
+        }
+
+        if (file.mimeType.includes('webp')) {
+            return 'image.webp';
+        }
+
+        return 'image.jpg';
     }
 
     private resolveVideoContainer(file: AiFileInput): 'mp4' | 'mov' | 'mkv' {

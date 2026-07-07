@@ -71,9 +71,24 @@ export class OpenRouterProvider {
             throw new Error(`Model not configured for ${toolId}`);
         }
 
+        const images =
+            input.files?.filter((file) => file.mimeType.startsWith('image/')) ??
+            [];
+        const prompt = this.resolveGenerationPrompt(
+            input.prompt,
+            images.length > 0,
+            'video',
+        );
+
+        if (!prompt) {
+            throw new Error(
+                'Отправьте текстовый промпт или фото для генерации видео',
+            );
+        }
+
         const body: Record<string, unknown> = {
             model: tool.model,
-            prompt: input.prompt ?? '',
+            prompt,
             aspect_ratio: '16:9',
             duration: this.resolveVideoDuration(
                 toolId,
@@ -81,9 +96,13 @@ export class OpenRouterProvider {
             ),
         };
 
-        const frameImages = this.buildFrameImages(input);
-        if (frameImages.length) {
-            body.frame_images = frameImages;
+        const { frame_images, input_references } =
+            this.buildVideoImagePayload(input);
+        if (frame_images.length) {
+            body.frame_images = frame_images;
+        }
+        if (input_references.length) {
+            body.input_references = input_references;
         }
 
         const response = await this.post<{
@@ -157,25 +176,80 @@ export class OpenRouterProvider {
         return durationSeconds;
     }
 
-    private buildFrameImages(input: AiGenerationInput): Array<{
-        image_url: { url: string };
-        frame_type: 'first_frame';
-    }> {
-        const imageFile = input.files?.find((file) =>
-            file.mimeType.startsWith('image/'),
-        );
-        if (!imageFile) {
-            return [];
+    private buildVideoImagePayload(input: AiGenerationInput): {
+        frame_images: Array<{
+            type: 'image_url';
+            image_url: { url: string };
+            frame_type: 'first_frame' | 'last_frame';
+        }>;
+        input_references: Array<{
+            type: 'image_url';
+            image_url: { url: string };
+        }>;
+    } {
+        const images =
+            input.files?.filter((file) => file.mimeType.startsWith('image/')) ??
+            [];
+
+        if (!images.length) {
+            return { frame_images: [], input_references: [] };
         }
 
-        return [
-            {
-                image_url: {
-                    url: `data:${imageFile.mimeType};base64,${imageFile.buffer.toString('base64')}`,
-                },
-                frame_type: 'first_frame',
+        const toFrame = (
+            file: NonNullable<AiGenerationInput['files']>[number],
+            frame_type: 'first_frame' | 'last_frame',
+        ) => ({
+            type: 'image_url' as const,
+            image_url: {
+                url: `data:${file.mimeType};base64,${file.buffer.toString('base64')}`,
             },
-        ];
+            frame_type,
+        });
+
+        const toReference = (
+            file: NonNullable<AiGenerationInput['files']>[number],
+        ) => ({
+            type: 'image_url' as const,
+            image_url: {
+                url: `data:${file.mimeType};base64,${file.buffer.toString('base64')}`,
+            },
+        });
+
+        if (images.length === 1) {
+            return {
+                frame_images: [toFrame(images[0], 'first_frame')],
+                input_references: [],
+            };
+        }
+
+        const middle = images.slice(1, -1);
+
+        return {
+            frame_images: [
+                toFrame(images[0], 'first_frame'),
+                toFrame(images[images.length - 1], 'last_frame'),
+            ],
+            input_references: middle.map(toReference),
+        };
+    }
+
+    private resolveGenerationPrompt(
+        prompt: string | undefined,
+        hasImages: boolean,
+        mode: 'image' | 'video',
+    ): string {
+        const trimmed = prompt?.trim();
+        if (trimmed) {
+            return trimmed;
+        }
+
+        if (!hasImages) {
+            return '';
+        }
+
+        return mode === 'video'
+            ? 'Создай плавное видео с переходом между кадрами'
+            : 'Создай изображение по референсу';
     }
 
     private async chatUnified(
@@ -245,14 +319,26 @@ export class OpenRouterProvider {
         model: string,
         input: AiGenerationInput,
     ): Promise<AiGenerationResult> {
-        if (this.usesDedicatedImagesApi(model)) {
-            return this.generateImageViaImagesApi(model, input);
+        const images =
+            input.files?.filter((file) => file.mimeType.startsWith('image/')) ??
+            [];
+        const prompt = this.resolveGenerationPrompt(
+            input.prompt,
+            images.length > 0,
+            'image',
+        );
+
+        if (!prompt) {
+            throw new Error(
+                'Отправьте текстовый промпт или фото для генерации изображения',
+            );
         }
 
-        const userContent = this.buildUserContent(
-            input.prompt ?? 'Generate an image',
-            input.files,
-        );
+        if (this.usesDedicatedImagesApi(model)) {
+            return this.generateImageViaImagesApi(model, input, prompt);
+        }
+
+        const userContent = this.buildUserContent(prompt, input.files);
 
         const response = await this.post<{
             choices: Array<{
@@ -274,10 +360,11 @@ export class OpenRouterProvider {
     private async generateImageViaImagesApi(
         model: string,
         input: AiGenerationInput,
+        prompt: string,
     ): Promise<AiGenerationResult> {
         const body: Record<string, unknown> = {
             model,
-            prompt: input.prompt ?? 'Generate an image',
+            prompt,
         };
 
         const imageFiles = input.files?.filter((file) =>
@@ -483,13 +570,13 @@ export class OpenRouterProvider {
             const axiosError = error as {
                 response?: {
                     status?: number;
-                    data?: { error?: { message?: string } };
+                    data?: unknown;
                 };
             };
 
-            const message = axiosError.response?.data?.error?.message;
-            if (message) {
-                return message;
+            const humanized = this.humanizeApiError(axiosError.response?.data);
+            if (humanized) {
+                return humanized;
             }
 
             if (axiosError.response?.status) {
@@ -498,5 +585,75 @@ export class OpenRouterProvider {
         }
 
         return error instanceof Error ? error.message : 'OpenRouter API error';
+    }
+
+    private humanizeApiError(data: unknown): string | undefined {
+        if (!data) {
+            return undefined;
+        }
+
+        if (Array.isArray(data)) {
+            return this.humanizeValidationErrors(
+                data as Array<{ path?: unknown[]; message?: string }>,
+            );
+        }
+
+        if (typeof data !== 'object') {
+            return undefined;
+        }
+
+        if ('error' in data) {
+            const nested = (data as { error?: unknown }).error;
+            if (typeof nested === 'string') {
+                return this.humanizeValidationMessage(nested);
+            }
+            if (nested && typeof nested === 'object' && 'message' in nested) {
+                const message = (nested as { message?: unknown }).message;
+                if (typeof message === 'string') {
+                    return this.humanizeValidationMessage(message);
+                }
+            }
+        }
+
+        if ('message' in data && typeof data.message === 'string') {
+            return this.humanizeValidationMessage(data.message);
+        }
+
+        return undefined;
+    }
+
+    private humanizeValidationMessage(message: string): string {
+        try {
+            const parsed: unknown = JSON.parse(message);
+            if (Array.isArray(parsed)) {
+                return this.humanizeValidationErrors(
+                    parsed as Array<{ path?: unknown[]; message?: string }>,
+                );
+            }
+        } catch {
+            // not JSON
+        }
+
+        return message;
+    }
+
+    private humanizeValidationErrors(
+        errors: Array<{ path?: unknown[]; message?: string }>,
+    ): string {
+        const lines = errors
+            .map((entry) => {
+                const path = Array.isArray(entry.path)
+                    ? entry.path.join('.')
+                    : '';
+                if (path && entry.message) {
+                    return `${path}: ${entry.message}`;
+                }
+                return entry.message;
+            })
+            .filter(Boolean);
+
+        return lines.length
+            ? lines.join('\n')
+            : 'Ошибка валидации запроса к OpenRouter';
     }
 }
