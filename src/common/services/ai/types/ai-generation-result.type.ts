@@ -26,6 +26,7 @@ export type AiGenerationInput = {
     gptReplyMode?: GptReplyMode;
     chatHistory?: AiChatMessage[];
     customVoiceId?: string;
+    elevenLabsVoiceId?: string;
     localeTag?: 'ru-RU' | 'en-US';
     aspectRatio?: string;
     resolution?: string;

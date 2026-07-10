@@ -3,5 +3,6 @@ export * from './ai.service';
 export * from './billing/token-billing.service';
 export * from './image-capabilities.service';
 export * from './video-capabilities.service';
+export * from '../elevenlabs-voice-preview';
 export * from './jobs';
 export * from './types';

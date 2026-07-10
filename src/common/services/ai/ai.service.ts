@@ -29,6 +29,10 @@ export class AiService {
         private readonly elevenLabsProvider: ElevenLabsProvider,
     ) {}
 
+    async listAccessibleElevenLabsVoices() {
+        return this.elevenLabsProvider.listAccessibleVoices();
+    }
+
     async generate(
         toolId: AiToolId,
         input: AiGenerationInput,

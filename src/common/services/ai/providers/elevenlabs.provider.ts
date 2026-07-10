@@ -12,6 +12,12 @@ import {
 } from '../types';
 import { AiToolId } from '../types';
 import { OpenRouterProvider } from './openrouter.provider';
+import {
+    ELEVENLABS_VOICE_CATALOG,
+    ElevenLabsVoiceOption,
+} from '@/common/config/elevenlabs-voices.config';
+
+export type { ElevenLabsVoiceOption };
 
 export const ELEVENLABS_DUBBING_RESULT_PREFIX = 'elevenlabs-dubbing://';
 
@@ -43,6 +49,11 @@ export class ElevenLabsProvider {
     private readonly sfxPromptInfluence: number;
     private readonly sfxDurationSeconds: number;
     private readonly baseUrl: string;
+    private voicesCache: {
+        fetchedAt: number;
+        voices: ElevenLabsVoiceOption[];
+    } | null = null;
+    private readonly voicesCacheTtlMs = 30 * 60 * 1000;
 
     constructor(
         private readonly httpService: HttpService,
@@ -109,6 +120,53 @@ export class ElevenLabsProvider {
                     `ElevenLabs sync generate not supported for ${toolId}`,
                 );
         }
+    }
+
+    async listAccessibleVoices(): Promise<ElevenLabsVoiceOption[]> {
+        if (
+            this.voicesCache &&
+            Date.now() - this.voicesCache.fetchedAt < this.voicesCacheTtlMs
+        ) {
+            return this.voicesCache.voices;
+        }
+
+        try {
+            this.ensureApiKey();
+            const response = await this.get<{
+                voices?: Array<{
+                    voice_id: string;
+                    name: string;
+                }>;
+            }>('/voices');
+
+            const voices = (response.voices ?? [])
+                .filter((voice) => voice.voice_id && voice.name)
+                .map((voice) => ({
+                    id: voice.voice_id,
+                    labelRu: voice.name,
+                    labelEn: voice.name,
+                }))
+                .sort((left, right) =>
+                    left.labelRu.localeCompare(right.labelRu, 'ru'),
+                );
+
+            if (voices.length) {
+                this.voicesCache = {
+                    fetchedAt: Date.now(),
+                    voices,
+                };
+                return voices;
+            }
+        } catch (error) {
+            this.logger.warn(
+                {
+                    err: error instanceof Error ? error.message : String(error),
+                },
+                'Failed to fetch ElevenLabs voices, using fallback catalog',
+            );
+        }
+
+        return [...ELEVENLABS_VOICE_CATALOG];
     }
 
     async createJob(
@@ -221,10 +279,23 @@ export class ElevenLabsProvider {
             throw new Error('Отправьте текст для озвучки');
         }
 
-        const buffer = await this.postBinary(
-            `/text-to-speech/${this.voiceId}`,
+        const voiceId = input.elevenLabsVoiceId ?? this.voiceId;
+        const buffer = await this.synthesizeSpeech(voiceId, text);
+
+        return {
+            type: 'audio',
+            buffer,
+            mimeType: 'audio/mpeg',
+        };
+    }
+
+    async synthesizeSpeech(voiceId: string, text: string): Promise<Buffer> {
+        this.ensureApiKey();
+
+        return this.postBinary(
+            `/text-to-speech/${voiceId}`,
             {
-                text,
+                text: text.slice(0, MAX_TEXT_LENGTH),
                 model_id: this.modelId,
             },
             {
@@ -235,12 +306,6 @@ export class ElevenLabsProvider {
                 timeout: 120000,
             },
         );
-
-        return {
-            type: 'audio',
-            buffer,
-            mimeType: 'audio/mpeg',
-        };
     }
 
     private async voiceClone(

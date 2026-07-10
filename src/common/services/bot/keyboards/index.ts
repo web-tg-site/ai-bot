@@ -8,4 +8,5 @@ export * from './language.keyboard';
 export * from './gpt.keyboard';
 export * from './image.keyboard';
 export * from './video.keyboard';
+export * from './voice.keyboard';
 export * from './subs.keyboard';

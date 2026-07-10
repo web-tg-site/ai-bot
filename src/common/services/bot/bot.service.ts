@@ -20,6 +20,7 @@ import {
     VideoCapabilitiesService,
     TokenBillingService,
     BotSession,
+    ElevenLabsVoicePreviewService,
 } from '@/common/services/ai';
 import { RedisService } from '@/common/services/redis';
 import { CryptoPayService } from '@/common/services/crypto-pay';
@@ -51,6 +52,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         private readonly aiJobService: AiJobService,
         private readonly redisService: RedisService,
         private readonly cryptoPayService: CryptoPayService,
+        private readonly elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService,
     ) {
         const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
 
@@ -199,6 +201,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
             tokenBillingService: this.tokenBillingService,
             aiJobService: this.aiJobService,
             cryptoPayService: this.cryptoPayService,
+            elevenLabsVoicePreviewService: this.elevenLabsVoicePreviewService,
         });
     }
 }

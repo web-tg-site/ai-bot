@@ -7,6 +7,7 @@ import {
     ImageCapabilitiesService,
     VideoCapabilitiesService,
     TokenBillingService,
+    ElevenLabsVoicePreviewService,
 } from '@/common/services/ai';
 import { CryptoPayService } from '@/common/services/crypto-pay';
 
@@ -20,4 +21,5 @@ export type BotHandlerDeps = {
     tokenBillingService: TokenBillingService;
     aiJobService: AiJobService;
     cryptoPayService: CryptoPayService;
+    elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService;
 };

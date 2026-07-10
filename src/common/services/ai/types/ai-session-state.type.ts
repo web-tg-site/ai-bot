@@ -2,6 +2,7 @@ import { AiToolId, AiToolCategory } from './ai-tool-id.enum';
 import { GptReplyMode } from './ai-generation-result.type';
 import { ImageToolSettings } from '@/common/types/image-tool-settings.type';
 import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
+import { VoiceToolSettings } from '@/common/types/voice-tool-settings.type';
 
 export type { GptReplyMode };
 
@@ -36,6 +37,7 @@ export type BotSession = {
         customVoiceId?: string;
         referenceFiles?: StoredReference[];
         toolSettings?: ToolSettings;
+        voiceToolSettings?: VoiceToolSettings;
         activeCategory?: AiToolCategory;
         imageKeyboardMode?: 'main' | 'settings' | 'aspect' | 'resolution';
         videoKeyboardMode?:
@@ -45,5 +47,12 @@ export type BotSession = {
             | 'resolution'
             | 'duration'
             | 'style';
+        voiceKeyboardMode?: 'main' | 'settings' | 'preview';
+        pendingElevenLabsVoiceId?: string;
+        accessibleElevenLabsVoices?: Array<{
+            id: string;
+            labelRu: string;
+            labelEn: string;
+        }>;
     };
 };

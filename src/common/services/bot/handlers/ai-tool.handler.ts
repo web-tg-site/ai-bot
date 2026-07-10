@@ -25,8 +25,8 @@ import {
     isVideoFlowTool,
 } from '@/common/config/video-editor-capabilities.config';
 import { MAX_IMAGE_REFERENCES } from '@/common/types/image-tool-settings.type';
-import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
 import { ImageToolSettings } from '@/common/types/image-tool-settings.type';
+import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
 import { SubscribeType } from '@/generated/prisma/enums';
 import { Context, Telegraf } from 'telegraf';
 import { generateAiKeyboard } from '../keyboards';
@@ -97,6 +97,20 @@ import {
     goToVideoPromptStep,
     getVideoKeyboardMode,
 } from '../utils/video-tool-session';
+import {
+    loadVoiceToolSettings,
+    getVoiceKeyboardMode,
+    ensureAccessibleElevenLabsVoices,
+    getSessionAccessibleVoices,
+} from '../utils/elevenlabs-voice-tool-session';
+import {
+    isElevenLabsVoiceControlButton,
+    resolveElevenLabsVoiceButtonAction,
+} from '../utils/elevenlabs-voice-tool-buttons';
+import {
+    generateElevenLabsVoiceReplyKeyboard,
+    getVoiceLabelById,
+} from '../keyboards/voice.keyboard';
 
 type BotContext = Context & { session: BotSession };
 
@@ -162,6 +176,14 @@ export const registerAiToolHandlers = (bot: Telegraf, deps: AiHandlerDeps) => {
                 session.ai?.activeToolId &&
                 isVideoFlowTool(session.ai.activeToolId)
             ) {
+                await processAiInput(asBotContext(ctx), deps);
+                return;
+            }
+        }
+
+        if (text && session.ai?.activeToolId === AiToolId.ELEVENLABS_VOICE) {
+            const voiceMode = session.ai.voiceKeyboardMode ?? 'main';
+            if (voiceMode !== 'main' || isElevenLabsVoiceControlButton(text)) {
                 await processAiInput(asBotContext(ctx), deps);
                 return;
             }
@@ -277,6 +299,26 @@ async function selectTool(
             videoKeyboardMode: 'main',
             activeCategory: session.ai?.activeCategory,
         };
+    } else if (toolId === AiToolId.ELEVENLABS_VOICE) {
+        const toolSettings = await loadVoiceToolSettings(
+            user.id,
+            toolId,
+            deps.userAiToolSettingsModelService,
+        );
+        const accessibleVoices =
+            await deps.aiService.listAccessibleElevenLabsVoices();
+
+        session.ai = {
+            activeToolId: toolId,
+            step: 'awaiting_input',
+            activeConversationId: session.ai?.activeConversationId,
+            gptWebSearch: gptDefaults.gptWebSearch,
+            gptReplyMode: gptDefaults.gptReplyMode,
+            voiceToolSettings: toolSettings,
+            voiceKeyboardMode: 'main',
+            accessibleElevenLabsVoices: accessibleVoices,
+            activeCategory: session.ai?.activeCategory,
+        };
     } else {
         session.ai = {
             activeToolId: toolId,
@@ -361,6 +403,28 @@ async function selectTool(
                 step: session.ai.step,
                 keyboardMode: 'main',
                 localeTag: i18n.localeTag,
+            }),
+            parse_mode: 'HTML',
+        });
+    } else if (toolId === AiToolId.ELEVENLABS_VOICE) {
+        const settings = session.ai.voiceToolSettings ?? {};
+        const voices = getSessionAccessibleVoices(session);
+        const voiceName = getVoiceLabelById(
+            settings.elevenLabsVoiceId ?? '',
+            i18n.localeTag,
+            voices,
+        );
+        const parts = [
+            i18n.aiResult.toolSelected(label, instruction),
+            i18n.voiceTool.voiceLine(voiceName),
+        ];
+
+        await ctx.reply(parts.join('\n\n'), {
+            ...generateElevenLabsVoiceReplyKeyboard(i18n, {
+                settings,
+                keyboardMode: 'main',
+                localeTag: i18n.localeTag,
+                voices,
             }),
             parse_mode: 'HTML',
         });
@@ -1209,6 +1273,146 @@ async function handleVideoToolButtonPress(
     return false;
 }
 
+async function handleElevenLabsVoiceButtonPress(
+    ctx: BotContext,
+    deps: AiHandlerDeps,
+    session: BotSession,
+    text: string,
+    i18n: ReturnType<typeof getI18nForUser>,
+    user: NonNullable<
+        Awaited<ReturnType<typeof deps.userModelService.getUserByTelegramId>>
+    >,
+): Promise<boolean> {
+    if (!session.ai) {
+        return false;
+    }
+
+    const keyboardMode = getVoiceKeyboardMode(session);
+    const settings = session.ai.voiceToolSettings ?? {};
+    const voices = await ensureAccessibleElevenLabsVoices(
+        session,
+        deps.aiService,
+    );
+    const action = resolveElevenLabsVoiceButtonAction(text, i18n, {
+        keyboardMode,
+        localeTag: i18n.localeTag,
+        voices,
+    });
+
+    if (!action) {
+        return false;
+    }
+
+    const replyKeyboard = (
+        mode: typeof keyboardMode,
+        nextSettings = settings,
+    ) =>
+        generateElevenLabsVoiceReplyKeyboard(i18n, {
+            settings: nextSettings,
+            keyboardMode: mode,
+            localeTag: i18n.localeTag,
+            voices,
+        });
+
+    if (action.type === 'open_settings') {
+        session.ai.voiceKeyboardMode = 'settings';
+        await ctx.reply(i18n.voiceTool.settingsMenuTitle, {
+            ...replyKeyboard('settings'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'back_to_settings') {
+        session.ai.voiceKeyboardMode = 'settings';
+        session.ai.pendingElevenLabsVoiceId = undefined;
+        await ctx.reply(i18n.voiceTool.settingsMenuTitle, {
+            ...replyKeyboard('settings'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'back_to_editor') {
+        session.ai.voiceKeyboardMode = 'main';
+        session.ai.pendingElevenLabsVoiceId = undefined;
+        await ctx.reply(
+            i18n.voiceTool.keyboardUpdated(
+                getToolLabel(AiToolId.ELEVENLABS_VOICE, user.language),
+            ),
+            replyKeyboard('main'),
+        );
+        return true;
+    }
+
+    if (action.type === 'select_voice') {
+        session.ai.pendingElevenLabsVoiceId = action.voiceId;
+        session.ai.voiceKeyboardMode = 'preview';
+
+        const voiceName = getVoiceLabelById(
+            action.voiceId,
+            i18n.localeTag,
+            voices,
+        );
+        await ctx.reply(i18n.voiceTool.previewGenerating, {
+            ...replyKeyboard('preview'),
+            parse_mode: 'HTML',
+        });
+
+        const previewBuffer =
+            await deps.elevenLabsVoicePreviewService.getOrCreatePreview(
+                action.voiceId,
+                i18n.localeTag,
+            );
+
+        await ctx.replyWithVoice(
+            bufferToInputFile(previewBuffer, 'voice-preview.mp3'),
+        );
+        await ctx.reply(i18n.voiceTool.previewCaption(voiceName), {
+            ...replyKeyboard('preview'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'confirm_voice') {
+        const voiceId =
+            session.ai.pendingElevenLabsVoiceId ?? settings.elevenLabsVoiceId;
+        if (!voiceId) {
+            return true;
+        }
+
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVoiceSettings(
+                user.id,
+                AiToolId.ELEVENLABS_VOICE,
+                { elevenLabsVoiceId: voiceId },
+            );
+        session.ai.voiceToolSettings = nextSettings;
+        session.ai.voiceKeyboardMode = 'main';
+        session.ai.pendingElevenLabsVoiceId = undefined;
+
+        const voiceName = getVoiceLabelById(voiceId, i18n.localeTag, voices);
+        await ctx.reply(i18n.voiceTool.voiceConfirmed(voiceName), {
+            ...replyKeyboard('main', nextSettings),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'reject_voice') {
+        session.ai.voiceKeyboardMode = 'settings';
+        session.ai.pendingElevenLabsVoiceId = undefined;
+        await ctx.reply(i18n.voiceTool.voiceRejected, {
+            ...replyKeyboard('settings'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    return false;
+}
+
 async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
     if (!ctx.from) return;
 
@@ -1253,6 +1457,21 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
             deps,
             session,
             toolId,
+            text,
+            i18n,
+            user,
+        ))
+    ) {
+        return;
+    }
+
+    if (
+        text &&
+        toolId === AiToolId.ELEVENLABS_VOICE &&
+        (await handleElevenLabsVoiceButtonPress(
+            ctx,
+            deps,
+            session,
             text,
             i18n,
             user,
@@ -1465,6 +1684,7 @@ async function buildAiGenerationInput(
     }
 
     const settings = session.ai?.toolSettings;
+    const voiceSettingsFromSession = session.ai?.voiceToolSettings;
     const referenceCount = files.filter((file) =>
         file.mimeType.startsWith('image/'),
     ).length;
@@ -1501,6 +1721,10 @@ async function buildAiGenerationInput(
     const imageSettings = isImageFlowTool(toolId)
         ? ((settings ?? {}) as ImageToolSettings)
         : undefined;
+    const voiceSettings =
+        toolId === AiToolId.ELEVENLABS_VOICE
+            ? voiceSettingsFromSession
+            : undefined;
     const styleOption =
         videoSettings?.styleId && isVideoFlowTool(toolId)
             ? deps.videoCapabilitiesService.resolveStyleOption(
@@ -1518,6 +1742,7 @@ async function buildAiGenerationInput(
         gptWebSearch: session.ai?.gptWebSearch,
         gptReplyMode: session.ai?.gptReplyMode,
         localeTag: i18n.localeTag,
+        elevenLabsVoiceId: voiceSettings?.elevenLabsVoiceId,
         aspectRatio: videoSettings?.aspectRatio ?? imageSettings?.aspectRatio,
         resolution: videoSettings?.resolution ?? imageSettings?.resolution,
         topazScale: imageSettings?.topazScale,

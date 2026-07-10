@@ -220,4 +220,20 @@ export type I18nBundle = {
         }) => string;
         durationLabel: (seconds: number) => string;
     };
+    voiceTool: {
+        selectVoiceButton: string;
+        confirmVoiceButton: string;
+        rejectVoiceButton: string;
+        backToVoiceList: string;
+        backToEditor: string;
+        settingsMenuTitle: string;
+        previewGenerating: string;
+        previewCaption: (voiceName: string) => string;
+        voiceConfirmed: (voiceName: string) => string;
+        voiceRejected: string;
+        voiceLine: (voiceName: string) => string;
+        voicePickerOption: (voiceName: string) => string;
+        voicePickerSelected: (voiceName: string) => string;
+        keyboardUpdated: (toolName: string) => string;
+    };
 };

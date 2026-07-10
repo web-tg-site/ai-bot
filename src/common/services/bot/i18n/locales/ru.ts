@@ -534,4 +534,21 @@ ${getTariffIncludesText(type, plan, ru)}
             return parts.join(' · ');
         },
     },
+    voiceTool: {
+        selectVoiceButton: '🎙 Доступные голоса',
+        confirmVoiceButton: '✓ Подтвердить',
+        rejectVoiceButton: '✗ Нет',
+        backToVoiceList: '◀️ К списку',
+        backToEditor: '◀️ К редактору',
+        settingsMenuTitle: 'Доступные голоса',
+        previewGenerating: '⏳ Генерирую пример голоса...',
+        previewCaption: (voiceName) =>
+            `Пример голоса: <b>${voiceName}</b>\n\nПодтвердите или выберите другой.`,
+        voiceConfirmed: (voiceName) => `✅ Голос выбран: <b>${voiceName}</b>`,
+        voiceRejected: 'Выберите другой голос из списка.',
+        voiceLine: (voiceName) => `Голос: <b>${voiceName}</b>`,
+        voicePickerOption: (voiceName) => voiceName,
+        voicePickerSelected: (voiceName) => `✓ ${voiceName}`,
+        keyboardUpdated: (toolName) => toolName,
+    },
 };

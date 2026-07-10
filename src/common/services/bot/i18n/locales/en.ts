@@ -532,4 +532,21 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             return parts.join(' · ');
         },
     },
+    voiceTool: {
+        selectVoiceButton: '🎙 Available voices',
+        confirmVoiceButton: '✓ Confirm',
+        rejectVoiceButton: '✗ No',
+        backToVoiceList: '◀️ Back to list',
+        backToEditor: '◀️ Back to editor',
+        settingsMenuTitle: 'Available voices',
+        previewGenerating: '⏳ Generating voice sample...',
+        previewCaption: (voiceName) =>
+            `Voice sample: <b>${voiceName}</b>\n\nConfirm or pick another one.`,
+        voiceConfirmed: (voiceName) => `✅ Voice selected: <b>${voiceName}</b>`,
+        voiceRejected: 'Pick another voice from the list.',
+        voiceLine: (voiceName) => `Voice: <b>${voiceName}</b>`,
+        voicePickerOption: (voiceName) => voiceName,
+        voicePickerSelected: (voiceName) => `✓ ${voiceName}`,
+        keyboardUpdated: (toolName) => toolName,
+    },
 };

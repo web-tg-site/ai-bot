@@ -16,6 +16,7 @@ import {
 } from './providers';
 import { AiJobService } from './jobs/ai-job.service';
 import { AiJobCron } from './jobs/ai-job.cron';
+import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/elevenlabs-voice-preview.service';
 
 @Module({
     imports: [HttpModule, ConfigModule, UserModule],
@@ -30,6 +31,7 @@ import { AiJobCron } from './jobs/ai-job.cron';
         HiggsfieldProvider,
         TopazProvider,
         ElevenLabsProvider,
+        ElevenLabsVoicePreviewService,
         AiJobService,
         AiJobCron,
     ],
@@ -39,6 +41,7 @@ import { AiJobCron } from './jobs/ai-job.cron';
         AiJobService,
         ImageCapabilitiesService,
         VideoCapabilitiesService,
+        ElevenLabsVoicePreviewService,
     ],
 })
 export class AiModule {}
