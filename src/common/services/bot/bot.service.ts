@@ -9,15 +9,20 @@ import { Redis } from '@telegraf/session/redis';
 import { ALLOWED_UPDATES } from './consts';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserModelService } from '@/common/models/user';
+import { GptConversationModelService } from '@/common/models/gpt-conversation';
+import { UserAiToolSettingsModelService } from '@/common/models/user-ai-tool-settings';
 import { registerGlobalHandler } from './handlers';
 import { ExtraReplyMessage } from 'node_modules/telegraf/typings/telegram-types';
 import {
     AiService,
     AiJobService,
+    ImageCapabilitiesService,
+    VideoCapabilitiesService,
     TokenBillingService,
     BotSession,
 } from '@/common/services/ai';
 import { RedisService } from '@/common/services/redis';
+import { CryptoPayService } from '@/common/services/crypto-pay';
 import { bufferToInputFile } from './utils/download-telegram-file';
 import {
     mimeTypeToExtension,
@@ -37,10 +42,15 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         private readonly logger: PinoLogger,
         private readonly configService: ConfigService,
         private readonly userModelService: UserModelService,
+        private readonly gptConversationModelService: GptConversationModelService,
+        private readonly userAiToolSettingsModelService: UserAiToolSettingsModelService,
+        private readonly imageCapabilitiesService: ImageCapabilitiesService,
+        private readonly videoCapabilitiesService: VideoCapabilitiesService,
         private readonly aiService: AiService,
         private readonly tokenBillingService: TokenBillingService,
         private readonly aiJobService: AiJobService,
         private readonly redisService: RedisService,
+        private readonly cryptoPayService: CryptoPayService,
     ) {
         const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
 
@@ -76,6 +86,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         this.registerHandlers();
 
         const me = await this.bot.telegram.getMe();
+        this.cryptoPayService.setBotUsername(me.username);
         this.logger.info({ username: me.username }, 'Bot starting');
 
         void this.bot
@@ -180,9 +191,14 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
     private registerHandlers() {
         registerGlobalHandler(this.bot, {
             userModelService: this.userModelService,
+            gptConversationModelService: this.gptConversationModelService,
+            userAiToolSettingsModelService: this.userAiToolSettingsModelService,
+            imageCapabilitiesService: this.imageCapabilitiesService,
+            videoCapabilitiesService: this.videoCapabilitiesService,
             aiService: this.aiService,
             tokenBillingService: this.tokenBillingService,
             aiJobService: this.aiJobService,
+            cryptoPayService: this.cryptoPayService,
         });
     }
 }

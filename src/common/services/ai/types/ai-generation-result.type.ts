@@ -11,16 +11,27 @@ export type AiGenerationResult = {
     url?: string;
     buffer?: Buffer;
     mimeType?: string;
+    voiceBuffer?: Buffer;
+    voiceMimeType?: string;
     actualTokenCost?: number;
 };
+
+export type GptReplyMode = 'text' | 'audio' | 'both';
 
 export type AiGenerationInput = {
     prompt?: string;
     files?: AiFileInput[];
     durationSeconds?: number;
-    gptMode?: 'search';
+    gptWebSearch?: boolean;
+    gptReplyMode?: GptReplyMode;
     chatHistory?: AiChatMessage[];
     customVoiceId?: string;
+    localeTag?: 'ru-RU' | 'en-US';
+    aspectRatio?: string;
+    resolution?: string;
+    topazScale?: number;
+    videoStyleId?: string;
+    videoStylePassthrough?: Record<string, string | number | boolean>;
 };
 
 export type AiFileInput = {
@@ -32,6 +43,7 @@ export type AiFileInput = {
 export type AiChatMessage = {
     role: 'user' | 'assistant' | 'system';
     content: string;
+    files?: AiFileInput[];
 };
 
 export type AiJobCreateResult = {

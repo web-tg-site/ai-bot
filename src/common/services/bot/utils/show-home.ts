@@ -1,4 +1,5 @@
 import { UserModelService } from '@/common/models/user';
+import { BotSession } from '@/common/services/ai';
 import { SubscribeType } from '@/generated/prisma/enums';
 import { Context } from 'telegraf';
 import { getI18nForUser } from '../i18n';
@@ -6,12 +7,20 @@ import {
     generateHomeKeyboardNotRegistered,
     getHomeKeyboardRegistered,
 } from '../keyboards';
+import { resetAiSessionPreservingGpt } from './gpt-session';
+
+type BotContext = Context & { session: BotSession };
 
 export async function showHome(
     ctx: Context,
     userModelService: UserModelService,
 ) {
     if (!ctx.from) return;
+
+    const botCtx = ctx as BotContext;
+    if (botCtx.session?.ai) {
+        resetAiSessionPreservingGpt(botCtx.session);
+    }
 
     const user = await userModelService.getUserByTelegramId(
         ctx.from.id.toString(),

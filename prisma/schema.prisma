@@ -31,6 +31,12 @@ enum UserLanguage {
   EN
 }
 
+enum PaymentStatus {
+  PENDING
+  PAID
+  EXPIRED
+}
+
 datasource db {
   provider = "postgresql"
 }
@@ -65,11 +71,44 @@ model User {
 
   nextSubscription NextSubscriptionOfUser?
   aiGenerationJobs AiGenerationJob[]
+  payments Payment[]
+  gptConversations GptConversation[]
+  aiToolSettings UserAiToolSettings[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("users")
+}
+
+model UserAiToolSettings {
+  id       String @id @default(uuid())
+  userId   String
+  toolId   String
+  settings Json
+  user     User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, toolId])
+  @@map("user_ai_tool_settings")
+}
+
+model Payment {
+  id                 String        @id @default(uuid())
+  userId             String
+  user               User          @relation(fields: [userId], references: [id])
+  cryptoPayInvoiceId BigInt        @unique
+  subscribeType      SubscribeType
+  subscribePlan      SubscribePlan
+  amountUsd          String
+  status             PaymentStatus @default(PENDING)
+  payload            String        @unique
+  paidAt             DateTime?
+  createdAt          DateTime      @default(now())
+
+  @@map("payments")
 }
 
 model NextSubscriptionOfUser {
@@ -97,10 +136,40 @@ model AiGenerationJob {
   inputJson     Json
   resultUrl     String?
   errorMessage  String?
+  pollAttempts  Int       @default(0)
+  pollErrorCount Int      @default(0)
+  lastPolledAt  DateTime?
+  staleReminderSent Boolean @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 
+  @@index([status, createdAt])
   @@map("ai_generation_jobs")
+}
+
+model GptConversation {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages  GptMessage[]
+
+  @@index([userId, updatedAt])
+  @@map("gpt_conversations")
+}
+
+model GptMessage {
+  id             String          @id @default(uuid())
+  conversationId String
+  conversation   GptConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  content        String          @db.Text
+  createdAt      DateTime        @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("gpt_messages")
 }

@@ -6,6 +6,7 @@ import { getI18n, getI18nForUser } from '../i18n';
 import { registerLocalizedHears } from '../i18n/register-localized-hears';
 import { getSettingsLanguageKeyboard } from '../keyboards/language.keyboard';
 import { showHome } from '../utils/show-home';
+import { resetAiSessionPreservingGpt } from '../utils/gpt-session';
 
 type BotContext = Context & { session: BotSession };
 
@@ -53,7 +54,7 @@ export const registerSettingsHandler = (
 
             const botCtx = ctx as unknown as BotContext;
             if (botCtx.session?.ai) {
-                botCtx.session.ai = { step: 'idle' };
+                resetAiSessionPreservingGpt(botCtx.session);
             }
         }
 

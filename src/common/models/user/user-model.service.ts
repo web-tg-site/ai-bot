@@ -1,7 +1,11 @@
 import { PrismaService } from '@/common/services/prisma';
 import { Prisma } from '@/generated/prisma/client';
 import { Injectable } from '@nestjs/common';
-import { SubscribeType, UserLanguage } from '@/generated/prisma/enums';
+import {
+    SubscribeType,
+    SubscribePlan,
+    UserLanguage,
+} from '@/generated/prisma/enums';
 import {
     LONG_STANDING_ACTIVITY_DAYS,
     LongStandingActivityUsers,
@@ -12,7 +16,10 @@ import {
     UsersWithoutFreeSubscription,
 } from './types';
 import { WHERE_FOR_GET_USER_WITH_NEED_TO_GET_SUBS_AND_UPDATE_CONFIG } from './config';
-import { TOKENS_NUMBER_BY_SUB_NAME } from '@/common/config';
+import {
+    TOKENS_NUMBER_BY_SUB_NAME,
+    getSubscriptionDurationDays,
+} from '@/common/config';
 
 @Injectable()
 export class UserModelService {
@@ -384,6 +391,63 @@ export class UserModelService {
                 tokenLeft: TOKENS_NUMBER_BY_SUB_NAME[user.subscribeType],
             };
         });
+    }
+
+    public async activatePaidSubscription(
+        userId: string,
+        subscribeType: SubscribeType,
+        subscribePlan: SubscribePlan,
+    ): Promise<{ subscriptionEndsAt: Date }> {
+        return this.prismaService.$transaction((tx) =>
+            this.activatePaidSubscriptionInTransaction(
+                tx,
+                userId,
+                subscribeType,
+                subscribePlan,
+            ),
+        );
+    }
+
+    public async activatePaidSubscriptionInTransaction(
+        tx: Prisma.TransactionClient,
+        userId: string,
+        subscribeType: SubscribeType,
+        subscribePlan: SubscribePlan,
+    ): Promise<{ subscriptionEndsAt: Date }> {
+        const user = await tx.user.findUniqueOrThrow({
+            where: { id: userId },
+        });
+
+        const now = new Date();
+        const durationDays = getSubscriptionDurationDays(subscribePlan);
+
+        const hasActiveSubscription =
+            user.isSubscriptionActive &&
+            user.subscriptionEndsAt &&
+            user.subscriptionEndsAt > now;
+
+        const subscriptionEndsAt = new Date(
+            hasActiveSubscription ? user.subscriptionEndsAt! : now,
+        );
+        subscriptionEndsAt.setDate(subscriptionEndsAt.getDate() + durationDays);
+
+        await tx.user.update({
+            where: { id: userId },
+            data: {
+                subscribeType,
+                subscribePlan,
+                subscriptionStartsAt: hasActiveSubscription
+                    ? (user.subscriptionStartsAt ?? now)
+                    : now,
+                subscriptionEndsAt,
+                isSubscriptionActive: true,
+                lastSubscriptionType: user.subscribeType,
+                tokenLeft: TOKENS_NUMBER_BY_SUB_NAME[subscribeType],
+                lastTokenIssueAt: now,
+            },
+        });
+
+        return { subscriptionEndsAt };
     }
 
     // Хелперы

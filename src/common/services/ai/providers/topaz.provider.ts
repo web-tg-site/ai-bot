@@ -4,12 +4,16 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import type { AxiosResponse } from 'axios';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import imageSize from 'image-size';
 import {
     AiGenerationInput,
     AiJobCreateResult,
     AiJobStatusResult,
     AiFileInput,
 } from '../types';
+import { calculateTopazTokenCost } from '@/common/config/image-editor-capabilities.config';
+import { getToolById } from '@/common/config/ai-tools.registry';
+import { AiToolId } from '../types';
 
 const IMAGE_BASE = 'https://api.topazlabs.com/image/v1';
 const VIDEO_BASE = 'https://api.topazlabs.com';
@@ -36,11 +40,11 @@ export class TopazProvider {
         }
 
         if (file.mimeType.startsWith('image/')) {
-            return this.createImageJob(file);
+            return this.createImageJob(file, input.topazScale ?? 2);
         }
 
         if (file.mimeType.startsWith('video/')) {
-            return this.createVideoJob(file);
+            return this.createVideoJob(file, input.topazScale ?? 2);
         }
 
         throw new Error('Поддерживаются только фото и видео');
@@ -60,10 +64,19 @@ export class TopazProvider {
 
     private async createImageJob(
         file: AiFileInput,
+        topazScale: number,
     ): Promise<AiJobCreateResult> {
+        const dimensions = imageSize(file.buffer);
+        const width = dimensions.width;
+        const height = dimensions.height;
+
         const form = new FormData();
         form.append('model', 'Standard V2');
         form.append('output_format', 'jpeg');
+        if (width && height) {
+            form.append('output_width', String(width * topazScale));
+            form.append('output_height', String(height * topazScale));
+        }
         form.append(
             'image',
             new Blob([new Uint8Array(file.buffer)], { type: file.mimeType }),
@@ -98,12 +111,13 @@ export class TopazProvider {
 
         return {
             providerJobId: `image:${processId}`,
-            estimatedTokenCost: 40,
+            estimatedTokenCost: this.resolveTopazTokenCost(topazScale),
         };
     }
 
     private async createVideoJob(
         file: AiFileInput,
+        topazScale: number,
     ): Promise<AiJobCreateResult> {
         const container = this.resolveVideoContainer(file);
         const { width, height } = this.guessVideoResolution(file.buffer.length);
@@ -126,7 +140,10 @@ export class TopazProvider {
                     frameCount,
                 },
                 output: {
-                    resolution: { width: width * 2, height: height * 2 },
+                    resolution: {
+                        width: width * topazScale,
+                        height: height * topazScale,
+                    },
                     audioCodec: 'AAC',
                     audioTransfer: 'Copy',
                     frameRate,
@@ -170,8 +187,13 @@ export class TopazProvider {
 
         return {
             providerJobId: `video:${requestId}`,
-            estimatedTokenCost: 40,
+            estimatedTokenCost: this.resolveTopazTokenCost(topazScale),
         };
+    }
+
+    private resolveTopazTokenCost(topazScale: number): number {
+        const tool = getToolById(AiToolId.TOPAZ);
+        return calculateTopazTokenCost(tool?.baseTokenCost ?? 40, topazScale);
     }
 
     private async getImageJobStatus(

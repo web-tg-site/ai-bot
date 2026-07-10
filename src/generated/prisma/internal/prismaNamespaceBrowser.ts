@@ -52,8 +52,12 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   Admin: 'Admin',
   User: 'User',
+  UserAiToolSettings: 'UserAiToolSettings',
+  Payment: 'Payment',
   NextSubscriptionOfUser: 'NextSubscriptionOfUser',
-  AiGenerationJob: 'AiGenerationJob'
+  AiGenerationJob: 'AiGenerationJob',
+  GptConversation: 'GptConversation',
+  GptMessage: 'GptMessage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -104,6 +108,34 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+export const UserAiToolSettingsScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  toolId: 'toolId',
+  settings: 'settings',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserAiToolSettingsScalarFieldEnum = (typeof UserAiToolSettingsScalarFieldEnum)[keyof typeof UserAiToolSettingsScalarFieldEnum]
+
+
+export const PaymentScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  cryptoPayInvoiceId: 'cryptoPayInvoiceId',
+  subscribeType: 'subscribeType',
+  subscribePlan: 'subscribePlan',
+  amountUsd: 'amountUsd',
+  status: 'status',
+  payload: 'payload',
+  paidAt: 'paidAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeof PaymentScalarFieldEnum]
+
+
 export const NextSubscriptionOfUserScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -127,11 +159,37 @@ export const AiGenerationJobScalarFieldEnum = {
   inputJson: 'inputJson',
   resultUrl: 'resultUrl',
   errorMessage: 'errorMessage',
+  pollAttempts: 'pollAttempts',
+  pollErrorCount: 'pollErrorCount',
+  lastPolledAt: 'lastPolledAt',
+  staleReminderSent: 'staleReminderSent',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type AiGenerationJobScalarFieldEnum = (typeof AiGenerationJobScalarFieldEnum)[keyof typeof AiGenerationJobScalarFieldEnum]
+
+
+export const GptConversationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  title: 'title',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GptConversationScalarFieldEnum = (typeof GptConversationScalarFieldEnum)[keyof typeof GptConversationScalarFieldEnum]
+
+
+export const GptMessageScalarFieldEnum = {
+  id: 'id',
+  conversationId: 'conversationId',
+  role: 'role',
+  content: 'content',
+  createdAt: 'createdAt'
+} as const
+
+export type GptMessageScalarFieldEnum = (typeof GptMessageScalarFieldEnum)[keyof typeof GptMessageScalarFieldEnum]
 
 
 export const SortOrder = {

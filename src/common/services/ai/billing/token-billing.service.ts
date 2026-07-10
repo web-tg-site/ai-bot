@@ -13,8 +13,11 @@ export type TokenReserveResult = {
 export class TokenBillingService {
     constructor(private readonly userModelService: UserModelService) {}
 
-    calculateCost(tool: AiToolConfig, durationSeconds?: number): number {
-        return calculateToolTokenCost(tool, durationSeconds);
+    calculateCost(
+        tool: AiToolConfig,
+        options?: { durationSeconds?: number; topazScale?: number } | number,
+    ): number {
+        return calculateToolTokenCost(tool, options);
     }
 
     async checkBalance(

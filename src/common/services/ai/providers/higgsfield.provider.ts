@@ -29,7 +29,7 @@ export class HiggsfieldProvider {
         const response = await this.post<{ id: string }>('/generations/video', {
             prompt: input.prompt,
             duration: input.durationSeconds ?? 5,
-            resolution: '720p',
+            resolution: input.resolution ?? '720p',
             image: input.files?.[0]
                 ? `data:${input.files[0].mimeType};base64,${input.files[0].buffer.toString('base64')}`
                 : undefined,

@@ -1,11 +1,21 @@
-import { AiToolId } from './ai-tool-id.enum';
-import { AiChatMessage } from './ai-generation-result.type';
+import { AiToolId, AiToolCategory } from './ai-tool-id.enum';
+import { GptReplyMode } from './ai-generation-result.type';
+import { ImageToolSettings } from '@/common/types/image-tool-settings.type';
+import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
+
+export type { GptReplyMode };
+
+export type ToolSettings = ImageToolSettings | VideoToolSettings;
 
 export type AiSessionStep =
     | 'idle'
     | 'awaiting_input'
     | 'awaiting_voice_sample'
-    | 'awaiting_voice_text';
+    | 'awaiting_voice_text'
+    | 'awaiting_image_references'
+    | 'awaiting_image_prompt'
+    | 'awaiting_video_references'
+    | 'awaiting_video_prompt';
 
 export type StoredVoiceSample = {
     data: string;
@@ -13,13 +23,27 @@ export type StoredVoiceSample = {
     fileName?: string;
 };
 
+export type StoredReference = StoredVoiceSample;
+
 export type BotSession = {
     ai?: {
         activeToolId?: AiToolId;
         step: AiSessionStep;
-        gptMode?: 'search';
-        chatHistory?: AiChatMessage[];
+        activeConversationId?: string;
+        gptWebSearch?: boolean;
+        gptReplyMode?: GptReplyMode;
         voiceSample?: StoredVoiceSample;
         customVoiceId?: string;
+        referenceFiles?: StoredReference[];
+        toolSettings?: ToolSettings;
+        activeCategory?: AiToolCategory;
+        imageKeyboardMode?: 'main' | 'settings' | 'aspect' | 'resolution';
+        videoKeyboardMode?:
+            | 'main'
+            | 'settings'
+            | 'aspect'
+            | 'resolution'
+            | 'duration'
+            | 'style';
     };
 };

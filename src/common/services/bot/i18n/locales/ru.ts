@@ -9,6 +9,14 @@ import { SUB_PLAN_TYPE_TO_TARIFF_INFO } from '@/common/services/bot/records/sub-
 import { formatNumber as formatNum } from '@/common/services/bot/utils/format-number';
 import { I18nBundle } from '../types';
 import { formatDate, formatNumber } from '../format';
+import {
+    formatAspectRatioLabel,
+    formatAspectRatioToolbarLabel,
+    getAspectRatioLabel,
+} from '@/common/config/aspect-ratio.config';
+
+const formatAspectRatioLabelRu = (ratio: string) =>
+    formatAspectRatioLabel(ratio, 'ru-RU');
 
 const getTariffIncludesText = (
     type: SubscribeType,
@@ -71,7 +79,7 @@ export const ru: I18nBundle = {
 🎨 <b>Генерация и редактирование изображений</b>
 • Midjourney
 • Nano Banana
-• Seedream 4.5
+• Seedream
 • Flux
 • GPT Images
 
@@ -80,7 +88,7 @@ export const ru: I18nBundle = {
 • Veo
 • Higgsfield
 • HeyGen
-• Seedance 2.0
+• Seedance
 • Topaz AI
 
 🎙️ <b>Работа с голосом и аудио</b>
@@ -237,6 +245,31 @@ ${getTariffIncludesText(type, plan, ru)}
 
 Нажмите «Начать», чтобы перейти к работе.`,
     },
+    payment: {
+        invoiceCreated: (amountUsd, tariffName, periodName) =>
+            `💳 <b>Оплата подписки</b>
+
+Тариф: ${tariffName}
+Период: ${periodName}
+Сумма: ~${amountUsd} USDT (можно оплатить любой криптовалютой)
+
+Нажмите кнопку ниже, чтобы перейти к оплате в @send.
+Ссылка действительна 1 час.`,
+        payButton: 'Оплатить',
+        success: (tariffName, periodName, endsAt) =>
+            `✅ <b>Оплата получена, подписка активирована</b>
+
+Тариф: ${tariffName}
+Период: ${periodName}
+Действует до: ${endsAt}
+
+Доступ ко всем AI-инструментам платформы открыт.`,
+        error: 'Не удалось создать счёт на оплату. Попробуйте позже или обратитесь в поддержку.',
+        sbpComingSoon:
+            'Оплата через СБП скоро будет доступна. Пока вы можете оплатить криптовалютой через кнопку USDT.',
+        notConfigured:
+            'Оплата через @send временно недоступна. Обратитесь в поддержку.',
+    },
     support: {
         text: `💬 <b>Поддержка ${BOT_NAME}</b>
 
@@ -285,12 +318,12 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.GPT_IMAGES]: 'GPT Images',
             [AiToolId.FLUX]: 'Flux',
             [AiToolId.NANO_BANANA]: 'Nano Banana',
-            [AiToolId.SEEDREAM]: 'Seedream 4.5',
+            [AiToolId.SEEDREAM]: 'Seedream',
             [AiToolId.MIDJOURNEY]: 'Midjourney',
             [AiToolId.KLING]: 'Kling',
             [AiToolId.VEO]: 'Veo',
             [AiToolId.SORA]: 'Sora',
-            [AiToolId.SEEDANCE]: 'Seedance 2.0',
+            [AiToolId.SEEDANCE]: 'Seedance',
             [AiToolId.HIGGSFIELD]: 'Higgsfield',
             [AiToolId.HEYGEN]: 'HeyGen',
             [AiToolId.TOPAZ]: 'Topaz AI',
@@ -302,29 +335,28 @@ ${getTariffIncludesText(type, plan, ru)}
         instructions: {
             [AiToolId.GPT]: 'Отправьте текст, фото, файл или видео.',
             [AiToolId.GPT_IMAGES]:
-                'Отправьте текстовый промпт для генерации изображения.',
+                'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу. В промпте можно указать роли: «с 1-го фото внешность, со 2-го — локацию».',
             [AiToolId.FLUX]:
-                'Отправьте текстовый промпт или фото с описанием для генерации изображения.',
+                'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу. В промпте можно указать роли: «с 1-го фото внешность, со 2-го — локацию».',
             [AiToolId.NANO_BANANA]:
-                'Отправьте текстовый промпт для генерации изображения.',
+                'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу. В промпте можно указать роли: «с 1-го фото внешность, со 2-го — локацию».',
             [AiToolId.SEEDREAM]:
-                'Отправьте текстовый промпт для генерации изображения.',
+                'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу. В промпте можно указать роли: «с 1-го фото внешность, со 2-го — локацию».',
             [AiToolId.MIDJOURNEY]:
-                'Отправьте текстовый промпт для генерации изображения.',
+                'Отправьте промпт для генерации изображения.',
             [AiToolId.KLING]:
-                'Отправьте текстовый промпт или фото для генерации видео (5 сек).',
+                'Загрузите референсы (можно пропустить), настройте параметры и опишите сцену.',
             [AiToolId.VEO]:
-                'Отправьте текстовый промпт или фото для генерации видео (6 сек).',
+                'Загрузите референсы (можно пропустить), настройте параметры и опишите сцену.',
             [AiToolId.SORA]:
-                'Отправьте текстовый промпт для генерации видео (10 сек).',
+                'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
             [AiToolId.SEEDANCE]:
-                'Отправьте текстовый промпт для генерации видео (5 сек).',
+                'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
             [AiToolId.HIGGSFIELD]:
-                'Отправьте текстовый промпт для генерации видео (5 сек).',
+                'Загрузите референс (можно пропустить), настройте параметры и опишите сцену.',
             [AiToolId.HEYGEN]:
-                'Отправьте текст сценария для генерации видео с аватаром (5 сек).',
-            [AiToolId.TOPAZ]:
-                'Отправьте видео или фото для улучшения качества (апскейл).',
+                'Настройте параметры и отправьте текст сценария для видео с аватаром.',
+            [AiToolId.TOPAZ]: 'Отправьте фото или видео для апскейла.',
             [AiToolId.ELEVENLABS_VOICE]:
                 'Отправьте текст — бот озвучит его дословно (до 5000 символов).',
             [AiToolId.VOICE_CLONE]:
@@ -334,6 +366,172 @@ ${getTariffIncludesText(type, plan, ru)}
                 'Отправьте видео или аудиофайл. Бот сделает дубляж на русский (или укажите язык в подписи: en, es, de…).',
             [AiToolId.SOUND_GENERATOR]:
                 'Опишите звук или звуковой эффект (например: «громкий гром», «шаги по гравию», «космический whoosh»).',
+        },
+    },
+    gptChat: {
+        newChat: '➕ Новый чат',
+        myChats: '📂 Мои чаты',
+        clearHistory: '🗑 Очистить историю',
+        webSearchOn: '🌐 Поиск: вкл',
+        webSearchOff: '🌐 Поиск: выкл',
+        replyModeLabel: (mode) => {
+            if (mode === 'audio') return '🔊 Ответ: аудио';
+            if (mode === 'both') return '🔊 Ответ: текст + аудио';
+            return '💬 Ответ: текст';
+        },
+        newChatCreated: '✅ Создан новый чат. Можете начинать диалог.',
+        chatListTitle: '📂 <b>Ваши чаты</b>\n\nВыберите диалог:',
+        noChats: 'Пока нет сохранённых чатов',
+        chatNotFound: 'Чат не найден',
+        chatOpened: (title, lastMessage) => {
+            const preview = lastMessage
+                ? `\n\n<i>Последнее сообщение:</i>\n${lastMessage.slice(0, 200)}${lastMessage.length > 200 ? '…' : ''}`
+                : '\n\n<i>История пуста — напишите первое сообщение.</i>';
+            return `💬 <b>${title}</b>${preview}`;
+        },
+        clearConfirm:
+            '⚠️ <b>Очистить историю текущего чата?</b>\n\nСообщения будут удалены без возможности восстановления.',
+        confirmClear: '✅ Да, очистить',
+        cancelClear: '❌ Отмена',
+        noActiveChat: 'Нет активного чата',
+        historyCleared: '✅ История чата очищена',
+        clearCancelled: 'Очистка отменена',
+        webSearchEnabled: 'Поиск в интернете включён',
+        webSearchDisabled: 'Поиск в интернете выключен',
+        replyModeChanged: (mode) => {
+            if (mode === 'audio') return 'Режим ответа: только аудио';
+            if (mode === 'both') return 'Режим ответа: текст и аудио';
+            return 'Режим ответа: только текст';
+        },
+        controlsHint:
+            'Управление чатом:\n• Новый чат — начать отдельный диалог\n• Мои чаты — переключиться между диалогами\n• Поиск — актуальные данные из интернета',
+    },
+    imageTool: {
+        promptHint: 'Опишите задачу.',
+        refAdded: (count, max) => `✅ Референс добавлен: ${count}/${max}`,
+        refLimitReached: (max) =>
+            `⚠️ Лимит референсов (${max}). Нажмите «К промпту».`,
+        needPhotoOnRefStep:
+            'Отправьте фото-референсы или нажмите «Пропустить» / «К промпту».',
+        needPrompt: 'Отправьте промпт для генерации.',
+        aspectRatioButton: (ratio) => `📐 Формат: ${ratio}`,
+        resolutionButton: (resolution) => `🖼 Разрешение: ${resolution}`,
+        formatToolbarButton: (ratio) =>
+            formatAspectRatioToolbarLabel(ratio, 'ru-RU'),
+        changeFormatButton: '📐 Изменить формат',
+        changeResolutionButton: '🖼 Изменить разрешение',
+        resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
+        selectAspectRatioTitle: 'Выберите формат:',
+        selectResolutionTitle: 'Выберите разрешение:',
+        aspectRatioPickerOption: (ratio) => formatAspectRatioLabelRu(ratio),
+        aspectRatioPickerSelected: (ratio) =>
+            `✓ ${formatAspectRatioLabelRu(ratio)}`,
+        resolutionPickerOption: (resolution) => resolution,
+        resolutionPickerSelected: (resolution) => `✓ ${resolution}`,
+        aspectRatioChanged: (ratio) =>
+            `Формат: ${formatAspectRatioLabelRu(ratio)}`,
+        resolutionChanged: (resolution) =>
+            `Разрешение: ${resolution} (чем выше — тем детальнее картинка)`,
+        topazScaleButton: (scale, tokens, selected) =>
+            `${selected ? '✓ ' : ''}×${scale} (${tokens} ток.)`,
+        topazScaleChanged: (scale, tokens) =>
+            `Масштаб апскейла: ×${scale} (${tokens} токенов)`,
+        continueToPrompt: '➡️ К промпту',
+        skipRefs: '⏭ Пропустить',
+        settingsButton: '⚙️ Параметры',
+        backToSettings: '◀️ Назад',
+        backToEditor: '◀️ К редактору',
+        settingsMenuTitle: 'Настройки генерации',
+        keyboardUpdated: (toolName) => toolName,
+        formatLine: (format, resolution) =>
+            resolution
+                ? `Формат: <b>${getAspectRatioLabel(format, 'ru-RU')}</b> · <b>${format}</b> · <b>${resolution}</b>`
+                : `Формат: <b>${getAspectRatioLabel(format, 'ru-RU')}</b> · <b>${format}</b>`,
+    },
+    videoTool: {
+        promptHint: 'Опишите сцену и движение камеры.',
+        refAdded: (count, max) => `✅ Референс добавлен: ${count}/${max}`,
+        refLimitReached: (max) =>
+            `⚠️ Лимит референсов (${max}). Нажмите «К промпту».`,
+        needPhotoOnRefStep:
+            'Отправьте фото-референсы или нажмите «Пропустить» / «К промпту».',
+        needPrompt: 'Отправьте промпт для генерации видео.',
+        aspectRatioButton: (ratio) => `📐 Формат: ${ratio}`,
+        resolutionButton: (resolution) => `🖼 Разрешение: ${resolution}`,
+        formatToolbarButton: (ratio) =>
+            formatAspectRatioToolbarLabel(ratio, 'ru-RU'),
+        changeFormatButton: '📐 Изменить формат',
+        changeResolutionButton: '🖼 Изменить разрешение',
+        changeDurationButton: '⏱ Изменить длительность',
+        changeStyleButton: '🎨 Изменить стиль',
+        resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
+        selectAspectRatioTitle: 'Выберите формат:',
+        selectResolutionTitle: 'Выберите разрешение:',
+        selectDurationTitle: 'Выберите длительность:',
+        selectStyleTitle: 'Выберите стиль:',
+        aspectRatioPickerOption: (ratio) => formatAspectRatioLabelRu(ratio),
+        aspectRatioPickerSelected: (ratio) =>
+            `✓ ${formatAspectRatioLabelRu(ratio)}`,
+        resolutionPickerOption: (resolution) => resolution,
+        resolutionPickerSelected: (resolution) => `✓ ${resolution}`,
+        aspectRatioChanged: (ratio) =>
+            `Формат: ${formatAspectRatioLabelRu(ratio)}`,
+        resolutionChanged: (resolution) => `Разрешение: ${resolution}`,
+        durationToolbarButton: (seconds, credits) =>
+            `⏱ ${seconds} сек · ${credits} ток.`,
+        durationPickerOption: (seconds, credits) =>
+            `${seconds} сек · ${credits} ток.`,
+        durationPickerSelected: (seconds, credits) =>
+            `✓ ${seconds} сек · ${credits} ток.`,
+        durationChanged: (seconds, credits) =>
+            `Длительность: ${seconds} сек (${credits} токенов)`,
+        styleToolbarButton: (styleLabel) => `🎨 ${styleLabel}`,
+        stylePickerOption: (styleLabel) => styleLabel,
+        stylePickerSelected: (styleLabel) => `✓ ${styleLabel}`,
+        styleChanged: (styleLabel) => `Стиль: ${styleLabel}`,
+        continueToPrompt: '➡️ К промпту',
+        skipRefs: '⏭ Пропустить',
+        settingsButton: '⚙️ Параметры',
+        backToSettings: '◀️ Назад',
+        backToEditor: '◀️ К редактору',
+        settingsMenuTitle: 'Настройки видео',
+        keyboardUpdated: (toolName) => toolName,
+        formatLine: (format, resolution) =>
+            resolution
+                ? `Формат: <b>${getAspectRatioLabel(format, 'ru-RU')}</b> · <b>${format}</b> · <b>${resolution}</b>`
+                : `Формат: <b>${getAspectRatioLabel(format, 'ru-RU')}</b> · <b>${format}</b>`,
+        durationLabel: (seconds) =>
+            seconds >= 60 ? '1 мин' : `${seconds} сек`,
+        summaryLine: ({
+            format,
+            resolution,
+            durationSeconds,
+            styleLabel,
+            credits,
+        }) => {
+            const parts: string[] = [];
+            if (format) {
+                parts.push(
+                    `<b>${getAspectRatioLabel(format, 'ru-RU')}</b> · <b>${format}</b>`,
+                );
+            }
+            if (resolution) {
+                parts.push(`<b>${resolution}</b>`);
+            }
+            if (durationSeconds) {
+                parts.push(
+                    durationSeconds >= 60
+                        ? '<b>1 мин</b>'
+                        : `<b>${durationSeconds} сек</b>`,
+                );
+            }
+            if (styleLabel) {
+                parts.push(`<b>${styleLabel}</b>`);
+            }
+            if (credits) {
+                parts.push(`~<b>${credits}</b> токенов`);
+            }
+            return parts.join(' · ');
         },
     },
 };

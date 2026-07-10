@@ -4,6 +4,7 @@ import {
     AiToolCategory,
     AiToolId,
 } from '@/common/services/ai/types';
+import { calculateTopazTokenCost } from '@/common/config/image-editor-capabilities.config';
 import { ru } from '@/common/services/bot/i18n/locales/ru';
 import { en } from '@/common/services/bot/i18n/locales/en';
 
@@ -39,9 +40,10 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         provider: AiProviderId.OPENROUTER,
         model: 'openai/gpt-5-image-mini',
         baseTokenCost: 40,
-        accepts: ['text'],
+        accepts: ['text', 'photo'],
         isAsync: false,
-        instruction: 'Отправьте текстовый промпт для генерации изображения.',
+        instruction:
+            'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу.',
     },
     {
         id: AiToolId.FLUX,
@@ -53,7 +55,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         accepts: ['text', 'photo'],
         isAsync: false,
         instruction:
-            'Отправьте текстовый промпт или фото с описанием для генерации изображения.',
+            'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу.',
     },
     {
         id: AiToolId.NANO_BANANA,
@@ -64,18 +66,20 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         baseTokenCost: 20,
         accepts: ['text', 'photo'],
         isAsync: false,
-        instruction: 'Отправьте текстовый промпт для генерации изображения.',
+        instruction:
+            'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу.',
     },
     {
         id: AiToolId.SEEDREAM,
-        label: 'Seedream 4.5',
+        label: 'Seedream',
         category: 'image',
         provider: AiProviderId.OPENROUTER,
         model: 'bytedance-seed/seedream-4.5',
         baseTokenCost: 20,
         accepts: ['text', 'photo'],
         isAsync: false,
-        instruction: 'Отправьте текстовый промпт для генерации изображения.',
+        instruction:
+            'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу.',
     },
     {
         id: AiToolId.MIDJOURNEY,
@@ -86,7 +90,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         baseTokenCost: 30,
         accepts: ['text'],
         isAsync: true,
-        instruction: 'Отправьте текстовый промпт для генерации изображения.',
+        instruction: 'Отправьте промпт для генерации изображения.',
     },
     {
         id: AiToolId.KLING,
@@ -100,7 +104,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         accepts: ['text', 'photo'],
         isAsync: true,
         instruction:
-            'Отправьте текстовый промпт или фото для генерации видео (5 сек).',
+            'Загрузите референсы (можно пропустить), настройте параметры и опишите сцену.',
     },
     {
         id: AiToolId.VEO,
@@ -114,7 +118,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         accepts: ['text', 'photo'],
         isAsync: true,
         instruction:
-            'Отправьте текстовый промпт или фото для генерации видео (6 сек).',
+            'Загрузите референсы (можно пропустить), настройте параметры и опишите сцену.',
     },
     {
         id: AiToolId.SORA,
@@ -127,11 +131,12 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         defaultDurationSeconds: 10,
         accepts: ['text', 'photo'],
         isAsync: true,
-        instruction: 'Отправьте текстовый промпт для генерации видео (10 сек).',
+        instruction:
+            'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
     },
     {
         id: AiToolId.SEEDANCE,
-        label: 'Seedance 2.0',
+        label: 'Seedance',
         category: 'video',
         provider: AiProviderId.SHARPII,
         model: 'seedance-2.0-720p',
@@ -140,7 +145,8 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         defaultDurationSeconds: 5,
         accepts: ['text', 'photo'],
         isAsync: true,
-        instruction: 'Отправьте текстовый промпт для генерации видео (5 сек).',
+        instruction:
+            'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
     },
     {
         id: AiToolId.HIGGSFIELD,
@@ -152,7 +158,8 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         defaultDurationSeconds: 5,
         accepts: ['text', 'photo'],
         isAsync: true,
-        instruction: 'Отправьте текстовый промпт для генерации видео (5 сек).',
+        instruction:
+            'Загрузите референс (можно пропустить), настройте параметры и опишите сцену.',
     },
     {
         id: AiToolId.HEYGEN,
@@ -165,7 +172,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         accepts: ['text'],
         isAsync: true,
         instruction:
-            'Отправьте текст сценария для генерации видео с аватаром (5 сек).',
+            'Настройте параметры и отправьте текст сценария для видео с аватаром.',
     },
     {
         id: AiToolId.TOPAZ,
@@ -243,14 +250,34 @@ export const getToolByLabel = (label: string): AiToolConfig | undefined => {
 };
 
 export const getToolsByCategory = (category: AiToolCategory): AiToolConfig[] =>
-    AI_TOOLS_REGISTRY.filter((t) => t.category === category);
+    AI_TOOLS_REGISTRY.filter(
+        (tool) =>
+            tool.category === category ||
+            (category === 'image' && tool.id === AiToolId.TOPAZ),
+    );
+
+export type ToolCostOptions = {
+    durationSeconds?: number;
+    topazScale?: number;
+};
 
 export const calculateToolTokenCost = (
     tool: AiToolConfig,
-    durationSeconds?: number,
+    options?: ToolCostOptions | number,
 ): number => {
+    const normalized: ToolCostOptions =
+        typeof options === 'number'
+            ? { durationSeconds: options }
+            : (options ?? {});
+
+    if (tool.id === AiToolId.TOPAZ) {
+        const scale = normalized.topazScale ?? 2;
+        return calculateTopazTokenCost(tool.baseTokenCost, scale);
+    }
+
     if (tool.perSecondCost) {
-        const duration = durationSeconds ?? tool.defaultDurationSeconds ?? 5;
+        const duration =
+            normalized.durationSeconds ?? tool.defaultDurationSeconds ?? 5;
         return tool.baseTokenCost + tool.perSecondCost * duration;
     }
     return tool.baseTokenCost;

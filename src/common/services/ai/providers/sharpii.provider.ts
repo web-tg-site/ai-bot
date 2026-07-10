@@ -19,6 +19,16 @@ export function isSharpiiMidjourneyUpstreamError(message: string): boolean {
     );
 }
 
+export function isSharpiiMidjourneyGenericFailure(message: string): boolean {
+    return (
+        message === 'Sharpii generation failed' ||
+        /Sharpii завершил задачу без результата/i.test(message)
+    );
+}
+
+/** Max total base64 payload for Sharpii video frame uploads (~8 MB raw images). */
+const SHARPII_MAX_FRAME_PAYLOAD_BYTES = 8 * 1024 * 1024;
+
 type SharpiiTaskSubmitResponse = {
     data?: {
         task?: {
@@ -35,6 +45,7 @@ type SharpiiTaskStatusResponse = {
         status: string;
         outputs?: Array<{ type: string; url: string }>;
         error?: { message?: string; code?: string };
+        meta?: { request_id?: string };
     };
 };
 
@@ -79,12 +90,17 @@ export class SharpiiProvider {
 
         const isVideo = tool.category === 'video';
         const path = isVideo ? '/v1/videos/generate' : '/v1/images/generate';
+        const model = isVideo
+            ? this.resolveSharpiiVideoModel(toolId, tool.model, input)
+            : tool.model;
         const body = this.buildVideoImageRequestBody(
             toolId,
-            tool.model,
+            model,
             input,
             isVideo,
         );
+
+        this.validateSharpiiPayload(body, isVideo);
 
         const response = await this.post<SharpiiTaskSubmitResponse>(path, body);
         const taskId = response.data?.task?.id;
@@ -131,16 +147,51 @@ export class SharpiiProvider {
             };
         }
 
+        if (status === 'completed') {
+            this.logger.warn(
+                {
+                    providerJobId,
+                    toolId,
+                    taskStatus: task.status,
+                    outputs: task.outputs,
+                    requestId: task.meta?.request_id,
+                },
+                'Sharpii task completed without output URL',
+            );
+
+            return {
+                status: 'failed',
+                errorMessage: this.formatSharpiiApiMessage(
+                    'Sharpii завершил задачу без результата',
+                    task.error?.code,
+                    task.meta?.request_id,
+                ),
+            };
+        }
+
         if (status === 'failed') {
             const rawMessage =
                 task.error?.message ??
                 task.error?.code ??
                 'Sharpii generation failed';
+
+            this.logger.warn(
+                {
+                    providerJobId,
+                    toolId,
+                    taskStatus: task.status,
+                    error: task.error,
+                    requestId: task.meta?.request_id,
+                },
+                `Sharpii task failed: ${rawMessage}`,
+            );
+
             return {
                 status,
                 errorMessage: this.formatSharpiiApiMessage(
                     rawMessage,
                     task.error?.code,
+                    task.meta?.request_id,
                 ),
             };
         }
@@ -408,7 +459,7 @@ export class SharpiiProvider {
                 toolId,
                 input.durationSeconds ?? 5,
             );
-            body.aspect_ratio = '16:9';
+            body.aspect_ratio = input.aspectRatio ?? '16:9';
 
             if (images[0]) {
                 body.first_frame_url = this.toDataUrl(images[0]);
@@ -421,8 +472,12 @@ export class SharpiiProvider {
             if (toolId === AiToolId.SEEDANCE) {
                 body.audio_sync = false;
             }
+
+            if (input.videoStylePassthrough) {
+                Object.assign(body, input.videoStylePassthrough);
+            }
         } else {
-            body.aspect_ratio = '1:1';
+            body.aspect_ratio = input.aspectRatio ?? '1:1';
         }
 
         return body;
@@ -443,8 +498,46 @@ export class SharpiiProvider {
         }
 
         return mode === 'video'
-            ? 'Создай плавное видео с переходом между кадрами'
-            : 'Создай изображение по референсу';
+            ? 'Создай плавное видео, строго следуя прикреплённым кадрам: первый кадр — начало сцены, последний — финал. Сохрани объекты, стиль и композицию референсов.'
+            : 'Создай изображение, строго следуя прикреплённому референсу по стилю, объектам и композиции.';
+    }
+
+    private validateSharpiiPayload(
+        body: Record<string, unknown>,
+        isVideo: boolean,
+    ): void {
+        if (!isVideo) {
+            return;
+        }
+
+        const frameUrls = [body.first_frame_url, body.last_frame_url].filter(
+            (value): value is string => typeof value === 'string',
+        );
+
+        const totalBytes = frameUrls.reduce(
+            (sum, url) => sum + Buffer.byteLength(url, 'utf8'),
+            0,
+        );
+
+        if (totalBytes > SHARPII_MAX_FRAME_PAYLOAD_BYTES) {
+            throw new Error(
+                'Референсные кадры слишком большие для Sharpii. Отправьте изображения меньшего размера или сожмите их.',
+            );
+        }
+    }
+
+    private resolveSharpiiVideoModel(
+        toolId: AiToolId,
+        defaultModel: string,
+        input: AiGenerationInput,
+    ): string {
+        if (toolId === AiToolId.SEEDANCE) {
+            return input.resolution === '1080p'
+                ? 'seedance-2.0-1080p'
+                : 'seedance-2.0-720p';
+        }
+
+        return defaultModel;
     }
 
     private resolveVideoDuration(

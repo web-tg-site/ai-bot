@@ -4,6 +4,8 @@ import { ConfigModule } from '@nestjs/config';
 import { UserModule } from '@/common/models/user';
 import { AiService } from './ai.service';
 import { TokenBillingService } from './billing/token-billing.service';
+import { ImageCapabilitiesService } from './image-capabilities.service';
+import { VideoCapabilitiesService } from './video-capabilities.service';
 import {
     ElevenLabsProvider,
     HiggsfieldProvider,
@@ -20,6 +22,8 @@ import { AiJobCron } from './jobs/ai-job.cron';
     providers: [
         AiService,
         TokenBillingService,
+        ImageCapabilitiesService,
+        VideoCapabilitiesService,
         OpenRouterProvider,
         SharpiiProvider,
         HeyGenProvider,
@@ -29,6 +33,12 @@ import { AiJobCron } from './jobs/ai-job.cron';
         AiJobService,
         AiJobCron,
     ],
-    exports: [AiService, TokenBillingService, AiJobService],
+    exports: [
+        AiService,
+        TokenBillingService,
+        AiJobService,
+        ImageCapabilitiesService,
+        VideoCapabilitiesService,
+    ],
 })
 export class AiModule {}

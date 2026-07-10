@@ -1,6 +1,7 @@
 import { SubscribePlan, SubscribeType } from '@/generated/prisma/enums';
 import { UserLanguage } from '@/generated/prisma/enums';
 import { AiToolId } from '@/common/services/ai/types';
+import { GptReplyMode } from '@/common/services/ai/types/ai-generation-result.type';
 
 export { UserLanguage };
 
@@ -81,6 +82,22 @@ export type I18nBundle = {
         telegram: string;
         email: string;
     };
+    payment: {
+        invoiceCreated: (
+            amountUsd: number,
+            tariffName: string,
+            periodName: string,
+        ) => string;
+        payButton: string;
+        success: (
+            tariffName: string,
+            periodName: string,
+            endsAt: string,
+        ) => string;
+        error: string;
+        sbpComingSoon: string;
+        notConfigured: string;
+    };
     records: {
         subPlanToPeriod: Record<SubscribePlan, string>;
         subTypeToText: Record<SubscribeType, string>;
@@ -95,5 +112,112 @@ export type I18nBundle = {
     tools: {
         labels: Record<AiToolId, string>;
         instructions: Record<AiToolId, string>;
+    };
+    gptChat: {
+        newChat: string;
+        myChats: string;
+        clearHistory: string;
+        webSearchOn: string;
+        webSearchOff: string;
+        replyModeLabel: (mode: GptReplyMode) => string;
+        newChatCreated: string;
+        chatListTitle: string;
+        noChats: string;
+        chatNotFound: string;
+        chatOpened: (title: string, lastMessage?: string) => string;
+        clearConfirm: string;
+        confirmClear: string;
+        cancelClear: string;
+        noActiveChat: string;
+        historyCleared: string;
+        clearCancelled: string;
+        webSearchEnabled: string;
+        webSearchDisabled: string;
+        replyModeChanged: (mode: GptReplyMode) => string;
+        controlsHint: string;
+    };
+    imageTool: {
+        promptHint: string;
+        refAdded: (count: number, max: number) => string;
+        refLimitReached: (max: number) => string;
+        needPhotoOnRefStep: string;
+        needPrompt: string;
+        aspectRatioButton: (ratio: string) => string;
+        resolutionButton: (resolution: string) => string;
+        formatToolbarButton: (ratio: string) => string;
+        changeFormatButton: string;
+        changeResolutionButton: string;
+        resolutionToolbarButton: (resolution: string) => string;
+        selectAspectRatioTitle: string;
+        selectResolutionTitle: string;
+        aspectRatioPickerOption: (ratio: string) => string;
+        aspectRatioPickerSelected: (ratio: string) => string;
+        resolutionPickerOption: (resolution: string) => string;
+        resolutionPickerSelected: (resolution: string) => string;
+        aspectRatioChanged: (ratio: string) => string;
+        resolutionChanged: (resolution: string) => string;
+        topazScaleButton: (
+            scale: number,
+            tokens: number,
+            selected: boolean,
+        ) => string;
+        topazScaleChanged: (scale: number, tokens: number) => string;
+        continueToPrompt: string;
+        skipRefs: string;
+        settingsButton: string;
+        backToSettings: string;
+        backToEditor: string;
+        settingsMenuTitle: string;
+        keyboardUpdated: (toolName: string) => string;
+        formatLine: (format: string, resolution?: string) => string;
+    };
+    videoTool: {
+        promptHint: string;
+        refAdded: (count: number, max: number) => string;
+        refLimitReached: (max: number) => string;
+        needPhotoOnRefStep: string;
+        needPrompt: string;
+        aspectRatioButton: (ratio: string) => string;
+        resolutionButton: (resolution: string) => string;
+        formatToolbarButton: (ratio: string) => string;
+        changeFormatButton: string;
+        changeResolutionButton: string;
+        changeDurationButton: string;
+        changeStyleButton: string;
+        resolutionToolbarButton: (resolution: string) => string;
+        selectAspectRatioTitle: string;
+        selectResolutionTitle: string;
+        selectDurationTitle: string;
+        selectStyleTitle: string;
+        aspectRatioPickerOption: (ratio: string) => string;
+        aspectRatioPickerSelected: (ratio: string) => string;
+        resolutionPickerOption: (resolution: string) => string;
+        resolutionPickerSelected: (resolution: string) => string;
+        aspectRatioChanged: (ratio: string) => string;
+        resolutionChanged: (resolution: string) => string;
+        durationToolbarButton: (seconds: number, credits: number) => string;
+        durationPickerOption: (seconds: number, credits: number) => string;
+        durationPickerSelected: (seconds: number, credits: number) => string;
+        durationChanged: (seconds: number, credits: number) => string;
+        styleToolbarButton: (styleLabel: string) => string;
+        stylePickerOption: (styleLabel: string) => string;
+        stylePickerSelected: (styleLabel: string) => string;
+        styleChanged: (styleLabel: string) => string;
+        continueToPrompt: string;
+        skipRefs: string;
+        settingsButton: string;
+        backToSettings: string;
+        backToEditor: string;
+        settingsMenuTitle: string;
+        keyboardUpdated: (toolName: string) => string;
+        formatLine: (format: string, resolution?: string) => string;
+        summaryLine: (options: {
+            format?: string;
+            resolution?: string;
+            durationSeconds?: number;
+            styleLabel?: string;
+            credits?: number;
+        }) => string;
+        durationLabel: (seconds: number) => string;
     };
 };

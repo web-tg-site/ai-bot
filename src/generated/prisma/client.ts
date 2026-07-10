@@ -49,6 +49,16 @@ export type Admin = Prisma.AdminModel
  */
 export type User = Prisma.UserModel
 /**
+ * Model UserAiToolSettings
+ * 
+ */
+export type UserAiToolSettings = Prisma.UserAiToolSettingsModel
+/**
+ * Model Payment
+ * 
+ */
+export type Payment = Prisma.PaymentModel
+/**
  * Model NextSubscriptionOfUser
  * 
  */
@@ -58,3 +68,13 @@ export type NextSubscriptionOfUser = Prisma.NextSubscriptionOfUserModel
  * 
  */
 export type AiGenerationJob = Prisma.AiGenerationJobModel
+/**
+ * Model GptConversation
+ * 
+ */
+export type GptConversation = Prisma.GptConversationModel
+/**
+ * Model GptMessage
+ * 
+ */
+export type GptMessage = Prisma.GptMessageModel

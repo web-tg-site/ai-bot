@@ -9,6 +9,14 @@ import { SUB_PLAN_TYPE_TO_TARIFF_INFO } from '@/common/services/bot/records/sub-
 import { formatNumber as formatNum } from '@/common/services/bot/utils/format-number';
 import { I18nBundle } from '../types';
 import { formatDate, formatNumber } from '../format';
+import {
+    formatAspectRatioLabel,
+    formatAspectRatioToolbarLabel,
+    getAspectRatioLabel,
+} from '@/common/config/aspect-ratio.config';
+
+const formatAspectRatioLabelEn = (ratio: string) =>
+    formatAspectRatioLabel(ratio, 'en-US');
 
 const getTariffIncludesText = (
     type: SubscribeType,
@@ -71,7 +79,7 @@ Inside you'll find the world's best AI models:
 🎨 <b>Image generation & editing</b>
 • Midjourney
 • Nano Banana
-• Seedream 4.5
+• Seedream
 • Flux
 • GPT Images
 
@@ -80,7 +88,7 @@ Inside you'll find the world's best AI models:
 • Veo
 • Higgsfield
 • HeyGen
-• Seedance 2.0
+• Seedance
 • Topaz AI
 
 🎙️ <b>Voice & audio</b>
@@ -237,6 +245,31 @@ All platform AI tools are now available.
 
 Tap «Start» to begin.`,
     },
+    payment: {
+        invoiceCreated: (amountUsd, tariffName, periodName) =>
+            `💳 <b>Subscription payment</b>
+
+Plan: ${tariffName}
+Period: ${periodName}
+Amount: ~${amountUsd} USDT (pay with any supported cryptocurrency)
+
+Tap the button below to pay via @send.
+The link is valid for 1 hour.`,
+        payButton: 'Pay',
+        success: (tariffName, periodName, endsAt) =>
+            `✅ <b>Payment received, subscription activated</b>
+
+Plan: ${tariffName}
+Period: ${periodName}
+Valid until: ${endsAt}
+
+All platform AI tools are now available.`,
+        error: 'Could not create a payment invoice. Please try again later or contact support.',
+        sbpComingSoon:
+            'SBP payments are coming soon. You can pay with cryptocurrency using the USDT button for now.',
+        notConfigured:
+            '@send payments are temporarily unavailable. Please contact support.',
+    },
     support: {
         text: `💬 <b>${BOT_NAME} support</b>
 
@@ -285,12 +318,12 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.GPT_IMAGES]: 'GPT Images',
             [AiToolId.FLUX]: 'Flux',
             [AiToolId.NANO_BANANA]: 'Nano Banana',
-            [AiToolId.SEEDREAM]: 'Seedream 4.5',
+            [AiToolId.SEEDREAM]: 'Seedream',
             [AiToolId.MIDJOURNEY]: 'Midjourney',
             [AiToolId.KLING]: 'Kling',
             [AiToolId.VEO]: 'Veo',
             [AiToolId.SORA]: 'Sora',
-            [AiToolId.SEEDANCE]: 'Seedance 2.0',
+            [AiToolId.SEEDANCE]: 'Seedance',
             [AiToolId.HIGGSFIELD]: 'Higgsfield',
             [AiToolId.HEYGEN]: 'HeyGen',
             [AiToolId.TOPAZ]: 'Topaz AI',
@@ -301,24 +334,28 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         },
         instructions: {
             [AiToolId.GPT]: 'Send text, a photo, file, or video.',
-            [AiToolId.GPT_IMAGES]: 'Send a text prompt to generate an image.',
+            [AiToolId.GPT_IMAGES]:
+                'Attach up to 10 references (optional), then describe the task. In the prompt you can assign roles: "appearance from photo 1, location from photo 2".',
             [AiToolId.FLUX]:
-                'Send a text prompt or photo with a description to generate an image.',
-            [AiToolId.NANO_BANANA]: 'Send a text prompt to generate an image.',
-            [AiToolId.SEEDREAM]: 'Send a text prompt to generate an image.',
-            [AiToolId.MIDJOURNEY]: 'Send a text prompt to generate an image.',
+                'Attach up to 10 references (optional), then describe the task. In the prompt you can assign roles: "appearance from photo 1, location from photo 2".',
+            [AiToolId.NANO_BANANA]:
+                'Attach up to 10 references (optional), then describe the task. In the prompt you can assign roles: "appearance from photo 1, location from photo 2".',
+            [AiToolId.SEEDREAM]:
+                'Attach up to 10 references (optional), then describe the task. In the prompt you can assign roles: "appearance from photo 1, location from photo 2".',
+            [AiToolId.MIDJOURNEY]: 'Send a prompt to generate an image.',
             [AiToolId.KLING]:
-                'Send a text prompt or photo to generate video (5 sec).',
+                'Upload references (optional), adjust settings, then describe the scene.',
             [AiToolId.VEO]:
-                'Send a text prompt or photo to generate video (6 sec).',
-            [AiToolId.SORA]: 'Send a text prompt to generate video (10 sec).',
+                'Upload references (optional), adjust settings, then describe the scene.',
+            [AiToolId.SORA]:
+                'Upload up to 2 frames for a transition, adjust settings, then describe the scene.',
             [AiToolId.SEEDANCE]:
-                'Send a text prompt to generate video (5 sec).',
+                'Upload up to 2 frames for a transition, adjust settings, then describe the scene.',
             [AiToolId.HIGGSFIELD]:
-                'Send a text prompt to generate video (5 sec).',
+                'Upload a reference (optional), adjust settings, then describe the scene.',
             [AiToolId.HEYGEN]:
-                'Send a script to generate avatar video (5 sec).',
-            [AiToolId.TOPAZ]: 'Send a video or photo to upscale quality.',
+                'Adjust settings and send a script for avatar video.',
+            [AiToolId.TOPAZ]: 'Send a photo or video to upscale.',
             [AiToolId.ELEVENLABS_VOICE]:
                 'Send text — the bot will read it aloud (up to 5000 characters).',
             [AiToolId.VOICE_CLONE]:
@@ -328,6 +365,171 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
                 'Send a video or audio file. The bot will dub it into Russian (or specify a language in the caption: en, es, de…).',
             [AiToolId.SOUND_GENERATOR]:
                 'Describe a sound or effect (e.g. «loud thunder», «footsteps on gravel», «space whoosh»).',
+        },
+    },
+    gptChat: {
+        newChat: '➕ New chat',
+        myChats: '📂 My chats',
+        clearHistory: '🗑 Clear history',
+        webSearchOn: '🌐 Search: on',
+        webSearchOff: '🌐 Search: off',
+        replyModeLabel: (mode) => {
+            if (mode === 'audio') return '🔊 Reply: audio';
+            if (mode === 'both') return '🔊 Reply: text + audio';
+            return '💬 Reply: text';
+        },
+        newChatCreated: '✅ New chat created. You can start messaging.',
+        chatListTitle: '📂 <b>Your chats</b>\n\nSelect a conversation:',
+        noChats: 'No saved chats yet',
+        chatNotFound: 'Chat not found',
+        chatOpened: (title, lastMessage) => {
+            const preview = lastMessage
+                ? `\n\n<i>Last message:</i>\n${lastMessage.slice(0, 200)}${lastMessage.length > 200 ? '…' : ''}`
+                : '\n\n<i>History is empty — send your first message.</i>';
+            return `💬 <b>${title}</b>${preview}`;
+        },
+        clearConfirm:
+            '⚠️ <b>Clear the current chat history?</b>\n\nMessages will be deleted permanently.',
+        confirmClear: '✅ Yes, clear',
+        cancelClear: '❌ Cancel',
+        noActiveChat: 'No active chat',
+        historyCleared: '✅ Chat history cleared',
+        clearCancelled: 'Clear cancelled',
+        webSearchEnabled: 'Web search enabled',
+        webSearchDisabled: 'Web search disabled',
+        replyModeChanged: (mode) => {
+            if (mode === 'audio') return 'Reply mode: audio only';
+            if (mode === 'both') return 'Reply mode: text and audio';
+            return 'Reply mode: text only';
+        },
+        controlsHint:
+            'Chat controls:\n• New chat — start a separate conversation\n• My chats — switch between conversations\n• Search — up-to-date data from the web',
+    },
+    imageTool: {
+        promptHint: 'Describe the task.',
+        refAdded: (count, max) => `✅ Reference added: ${count}/${max}`,
+        refLimitReached: (max) =>
+            `⚠️ Reference limit (${max}). Tap "Continue to prompt".`,
+        needPhotoOnRefStep:
+            'Send reference photos or tap "Skip" / "Continue to prompt".',
+        needPrompt: 'Send a prompt to generate.',
+        aspectRatioButton: (ratio) => `📐 Aspect: ${ratio}`,
+        resolutionButton: (resolution) => `🖼 Resolution: ${resolution}`,
+        formatToolbarButton: (ratio) =>
+            formatAspectRatioToolbarLabel(ratio, 'en-US'),
+        changeFormatButton: '📐 Change format',
+        changeResolutionButton: '🖼 Change resolution',
+        resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
+        selectAspectRatioTitle: 'Choose aspect ratio:',
+        selectResolutionTitle: 'Choose resolution:',
+        aspectRatioPickerOption: (ratio) => formatAspectRatioLabelEn(ratio),
+        aspectRatioPickerSelected: (ratio) =>
+            `✓ ${formatAspectRatioLabelEn(ratio)}`,
+        resolutionPickerOption: (resolution) => resolution,
+        resolutionPickerSelected: (resolution) => `✓ ${resolution}`,
+        aspectRatioChanged: (ratio) =>
+            `Aspect: ${formatAspectRatioLabelEn(ratio)}`,
+        resolutionChanged: (resolution) =>
+            `Resolution: ${resolution} (higher = more detail)`,
+        topazScaleButton: (scale, tokens, selected) =>
+            `${selected ? '✓ ' : ''}×${scale} (${tokens} tok.)`,
+        topazScaleChanged: (scale, tokens) =>
+            `Upscale scale: ×${scale} (${tokens} tokens)`,
+        continueToPrompt: '➡️ Continue to prompt',
+        skipRefs: '⏭ Skip',
+        settingsButton: '📐 Parameters',
+        backToSettings: '◀️ Back',
+        backToEditor: '◀️ Back to editor',
+        settingsMenuTitle: 'Generation settings',
+        keyboardUpdated: (toolName) => toolName,
+        formatLine: (format, resolution) =>
+            resolution
+                ? `Format: <b>${getAspectRatioLabel(format, 'en-US')}</b> · <b>${format}</b> · <b>${resolution}</b>`
+                : `Format: <b>${getAspectRatioLabel(format, 'en-US')}</b> · <b>${format}</b>`,
+    },
+    videoTool: {
+        promptHint: 'Describe the scene and camera movement.',
+        refAdded: (count, max) => `✅ Reference added: ${count}/${max}`,
+        refLimitReached: (max) =>
+            `⚠️ Reference limit (${max}). Tap "Continue to prompt".`,
+        needPhotoOnRefStep:
+            'Send reference photos or tap "Skip" / "Continue to prompt".',
+        needPrompt: 'Send a prompt to generate video.',
+        aspectRatioButton: (ratio) => `📐 Aspect: ${ratio}`,
+        resolutionButton: (resolution) => `🖼 Resolution: ${resolution}`,
+        formatToolbarButton: (ratio) =>
+            formatAspectRatioToolbarLabel(ratio, 'en-US'),
+        changeFormatButton: '📐 Change format',
+        changeResolutionButton: '🖼 Change resolution',
+        changeDurationButton: '⏱ Change duration',
+        changeStyleButton: '🎨 Change style',
+        resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
+        selectAspectRatioTitle: 'Choose aspect ratio:',
+        selectResolutionTitle: 'Choose resolution:',
+        selectDurationTitle: 'Choose duration:',
+        selectStyleTitle: 'Choose style:',
+        aspectRatioPickerOption: (ratio) => formatAspectRatioLabelEn(ratio),
+        aspectRatioPickerSelected: (ratio) =>
+            `✓ ${formatAspectRatioLabelEn(ratio)}`,
+        resolutionPickerOption: (resolution) => resolution,
+        resolutionPickerSelected: (resolution) => `✓ ${resolution}`,
+        aspectRatioChanged: (ratio) =>
+            `Aspect: ${formatAspectRatioLabelEn(ratio)}`,
+        resolutionChanged: (resolution) => `Resolution: ${resolution}`,
+        durationToolbarButton: (seconds, credits) =>
+            `⏱ ${seconds}s · ${credits} tok.`,
+        durationPickerOption: (seconds, credits) =>
+            `${seconds}s · ${credits} tok.`,
+        durationPickerSelected: (seconds, credits) =>
+            `✓ ${seconds}s · ${credits} tok.`,
+        durationChanged: (seconds, credits) =>
+            `Duration: ${seconds}s (${credits} tokens)`,
+        styleToolbarButton: (styleLabel) => `🎨 ${styleLabel}`,
+        stylePickerOption: (styleLabel) => styleLabel,
+        stylePickerSelected: (styleLabel) => `✓ ${styleLabel}`,
+        styleChanged: (styleLabel) => `Style: ${styleLabel}`,
+        continueToPrompt: '➡️ Continue to prompt',
+        skipRefs: '⏭ Skip',
+        settingsButton: '⚙️ Parameters',
+        backToSettings: '◀️ Back',
+        backToEditor: '◀️ Back to editor',
+        settingsMenuTitle: 'Video settings',
+        keyboardUpdated: (toolName) => toolName,
+        formatLine: (format, resolution) =>
+            resolution
+                ? `Format: <b>${getAspectRatioLabel(format, 'en-US')}</b> · <b>${format}</b> · <b>${resolution}</b>`
+                : `Format: <b>${getAspectRatioLabel(format, 'en-US')}</b> · <b>${format}</b>`,
+        durationLabel: (seconds) => (seconds >= 60 ? '1 min' : `${seconds}s`),
+        summaryLine: ({
+            format,
+            resolution,
+            durationSeconds,
+            styleLabel,
+            credits,
+        }) => {
+            const parts: string[] = [];
+            if (format) {
+                parts.push(
+                    `<b>${getAspectRatioLabel(format, 'en-US')}</b> · <b>${format}</b>`,
+                );
+            }
+            if (resolution) {
+                parts.push(`<b>${resolution}</b>`);
+            }
+            if (durationSeconds) {
+                parts.push(
+                    durationSeconds >= 60
+                        ? '<b>1 min</b>'
+                        : `<b>${durationSeconds}s</b>`,
+                );
+            }
+            if (styleLabel) {
+                parts.push(`<b>${styleLabel}</b>`);
+            }
+            if (credits) {
+                parts.push(`~<b>${credits}</b> tokens`);
+            }
+            return parts.join(' · ');
         },
     },
 };

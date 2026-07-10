@@ -64,8 +64,8 @@ export class HeyGenProvider {
             type: 'avatar',
             avatar_id: avatarId,
             script: input.prompt.trim(),
-            resolution: '720p',
-            aspect_ratio: '16:9',
+            resolution: input.resolution ?? '720p',
+            aspect_ratio: input.aspectRatio ?? '16:9',
         };
 
         if (voiceId) {

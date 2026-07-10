@@ -12,6 +12,7 @@ import {
 import { getToolById } from '@/common/config/ai-tools.registry';
 import { AiToolId } from '../types';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
+import { pcm16ToWav } from '@/common/utils/pcm16-to-wav';
 
 type OpenRouterMessageContent =
     | string
@@ -42,7 +43,7 @@ export class OpenRouterProvider {
 
         switch (toolId) {
             case AiToolId.GPT:
-                return this.chatUnified(input);
+                return this.chatGpt(input);
             case AiToolId.GPT_IMAGES:
             case AiToolId.FLUX:
             case AiToolId.NANO_BANANA:
@@ -89,7 +90,8 @@ export class OpenRouterProvider {
         const body: Record<string, unknown> = {
             model: tool.model,
             prompt,
-            aspect_ratio: '16:9',
+            aspect_ratio: input.aspectRatio ?? '16:9',
+            resolution: input.resolution ?? '720p',
             duration: this.resolveVideoDuration(
                 toolId,
                 input.durationSeconds ?? tool.defaultDurationSeconds ?? 5,
@@ -103,6 +105,10 @@ export class OpenRouterProvider {
         }
         if (input_references.length) {
             body.input_references = input_references;
+        }
+
+        if (input.videoStylePassthrough) {
+            Object.assign(body, input.videoStylePassthrough);
         }
 
         const response = await this.post<{
@@ -252,20 +258,54 @@ export class OpenRouterProvider {
             : 'Создай изображение по референсу';
     }
 
+    private async chatGpt(
+        input: AiGenerationInput,
+    ): Promise<AiGenerationResult> {
+        const replyMode = input.gptReplyMode ?? 'text';
+
+        if (replyMode === 'audio') {
+            const textResult = await this.chatUnified(input);
+            const speech = await this.synthesizeSpeech(textResult.text ?? '');
+            return {
+                type: 'audio',
+                buffer: speech.buffer,
+                mimeType: speech.mimeType,
+                text: textResult.text,
+                actualTokenCost:
+                    (textResult.actualTokenCost ?? 0) + speech.tokenCost,
+            };
+        }
+
+        const textResult = await this.chatUnified(input);
+
+        if (replyMode === 'both' && textResult.text) {
+            const speech = await this.synthesizeSpeech(textResult.text);
+            return {
+                ...textResult,
+                voiceBuffer: speech.buffer,
+                voiceMimeType: speech.mimeType,
+                actualTokenCost:
+                    (textResult.actualTokenCost ?? 0) + speech.tokenCost,
+            };
+        }
+
+        return textResult;
+    }
+
     private async chatUnified(
         input: AiGenerationInput,
     ): Promise<AiGenerationResult> {
         const hasMedia = (input.files?.length ?? 0) > 0;
         const prompt = input.prompt ?? '';
-        const wantsSearch =
-            input.gptMode === 'search' || this.detectSearchIntent(prompt);
+        const webSearchEnabled = input.gptWebSearch !== false;
+        const wantsSearch = webSearchEnabled || this.detectSearchIntent(prompt);
 
         let model: string;
         let tokenCost: number;
 
         if (wantsSearch) {
             model = 'openai/gpt-4o';
-            tokenCost = 15;
+            tokenCost = webSearchEnabled ? 8 : 15;
         } else if (hasMedia) {
             model = 'openai/gpt-4o';
             tokenCost = 8;
@@ -280,21 +320,49 @@ export class OpenRouterProvider {
         const messages: Array<{
             role: string;
             content: OpenRouterMessageContent;
-        }> = [];
+        }> = [
+            {
+                role: 'system',
+                content: this.buildSystemPrompt(input.localeTag),
+            },
+        ];
 
         if (input.chatHistory?.length) {
             for (const msg of input.chatHistory.slice(-10)) {
+                if (msg.role === 'system') {
+                    continue;
+                }
+
+                if (msg.role === 'user' && msg.files?.length) {
+                    messages.push({
+                        role: msg.role,
+                        content: this.buildUserContent(
+                            msg.content,
+                            msg.files,
+                            input.localeTag,
+                        ),
+                    });
+                    continue;
+                }
+
                 messages.push({ role: msg.role, content: msg.content });
             }
         }
 
-        const userContent = this.buildUserContent(prompt, input.files);
+        const userContent = this.buildUserContent(
+            prompt,
+            input.files,
+            input.localeTag,
+        );
         messages.push({ role: 'user', content: userContent });
 
         const body: Record<string, unknown> = { model, messages };
 
         if (wantsSearch) {
-            body.plugins = [{ id: 'web', max_results: 5 }];
+            body.tools = [
+                { type: 'openrouter:web_search', max_results: 5 },
+                { type: 'openrouter:datetime' },
+            ];
         }
 
         const response = await this.post<{
@@ -313,6 +381,123 @@ export class OpenRouterProvider {
             text: message?.content ?? 'Пустой ответ от модели.',
             actualTokenCost: tokenCost,
         };
+    }
+
+    private buildSystemPrompt(localeTag?: 'ru-RU' | 'en-US'): string {
+        const date = new Date().toLocaleDateString(localeTag ?? 'ru-RU', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        });
+
+        if (localeTag === 'en-US') {
+            return (
+                `Today is ${date}. ` +
+                'If the question is about current events, prices, weather, news, or anything time-sensitive, use web search. ' +
+                'Do not invent up-to-date facts. Answer in the same language as the user.'
+            );
+        }
+
+        return (
+            `Сегодня ${date}. ` +
+            'Если вопрос касается текущих событий, цен, погоды, новостей или другой актуальной информации — используй поиск в интернете. ' +
+            'Не выдумывай актуальные факты. Отвечай на том же языке, что и пользователь.'
+        );
+    }
+
+    private async synthesizeSpeech(
+        text: string,
+    ): Promise<{ buffer: Buffer; mimeType: string; tokenCost: number }> {
+        const trimmed = text.trim().slice(0, 2000);
+        if (!trimmed) {
+            throw new Error('Пустой текст для озвучки');
+        }
+
+        const messages = [
+            {
+                role: 'system',
+                content:
+                    'You are a TTS engine. Speak ONLY the value of TEXT_TO_SPEAK. No greetings, no follow-up, no commentary.',
+            },
+            {
+                role: 'user',
+                content: `TEXT_TO_SPEAK=${JSON.stringify(trimmed)}`,
+            },
+        ];
+
+        const pcm = await this.streamAudioPcm(messages);
+        const wav = pcm16ToWav(pcm);
+
+        return {
+            buffer: wav,
+            mimeType: 'audio/wav',
+            tokenCost: Math.max(3, Math.ceil(trimmed.length / 250)),
+        };
+    }
+
+    private async streamAudioPcm(
+        messages: Array<{ role: string; content: string }>,
+    ): Promise<Buffer> {
+        const response = await firstValueFrom(
+            this.httpService.post(
+                `${this.baseUrl}/chat/completions`,
+                {
+                    model: 'openai/gpt-audio-mini',
+                    stream: true,
+                    messages,
+                    modalities: ['text', 'audio'],
+                    audio: { voice: 'alloy', format: 'pcm16' },
+                },
+                {
+                    headers: this.getHeaders(),
+                    responseType: 'stream',
+                    timeout: 120000,
+                },
+            ),
+        );
+
+        const stream = response.data as NodeJS.ReadableStream;
+        const chunks: Buffer[] = [];
+        let buffer = '';
+
+        for await (const chunk of stream) {
+            buffer += chunk.toString();
+            const lines = buffer.split('\n');
+            buffer = lines.pop() ?? '';
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) {
+                    continue;
+                }
+
+                const payload = line.slice(6).trim();
+                if (!payload || payload === '[DONE]') {
+                    continue;
+                }
+
+                try {
+                    const json = JSON.parse(payload) as {
+                        choices?: Array<{
+                            delta?: {
+                                audio?: { data?: string };
+                            };
+                        }>;
+                    };
+                    const data = json.choices?.[0]?.delta?.audio?.data;
+                    if (data) {
+                        chunks.push(Buffer.from(data, 'base64'));
+                    }
+                } catch {
+                    // skip malformed chunk
+                }
+            }
+        }
+
+        if (!chunks.length) {
+            throw new Error('Не удалось получить аудио от модели');
+        }
+
+        return Buffer.concat(chunks);
     }
 
     private async generateImage(
@@ -338,7 +523,11 @@ export class OpenRouterProvider {
             return this.generateImageViaImagesApi(model, input, prompt);
         }
 
-        const userContent = this.buildUserContent(prompt, input.files);
+        const userContent = this.buildUserContent(
+            prompt,
+            input.files,
+            input.localeTag,
+        );
 
         const response = await this.post<{
             choices: Array<{
@@ -366,6 +555,14 @@ export class OpenRouterProvider {
             model,
             prompt,
         };
+
+        if (input.aspectRatio) {
+            body.aspect_ratio = input.aspectRatio;
+        }
+
+        if (input.resolution) {
+            body.resolution = input.resolution;
+        }
 
         const imageFiles = input.files?.filter((file) =>
             file.mimeType.startsWith('image/'),
@@ -426,13 +623,16 @@ export class OpenRouterProvider {
     private usesDedicatedImagesApi(model: string): boolean {
         return (
             model.startsWith('black-forest-labs/flux.') ||
-            model.startsWith('bytedance-seed/seedream')
+            model.startsWith('bytedance-seed/seedream') ||
+            model.startsWith('openai/gpt-') ||
+            (model.includes('gemini') && model.includes('image'))
         );
     }
 
     private buildUserContent(
         prompt: string,
         files?: AiGenerationInput['files'],
+        localeTag: 'ru-RU' | 'en-US' = 'ru-RU',
     ): OpenRouterMessageContent {
         if (!files?.length) {
             return prompt;
@@ -447,9 +647,16 @@ export class OpenRouterProvider {
             parts.push({ type: 'text', text: prompt });
         }
 
+        let imageIndex = 0;
         for (const file of files) {
             if (file.mimeType.startsWith('image/')) {
                 const base64 = file.buffer.toString('base64');
+                const label =
+                    localeTag === 'en-US'
+                        ? `[Reference ${imageIndex + 1}]`
+                        : `[Референс ${imageIndex + 1}]`;
+                imageIndex += 1;
+                parts.push({ type: 'text', text: label });
                 parts.push({
                     type: 'image_url',
                     image_url: {
@@ -459,7 +666,21 @@ export class OpenRouterProvider {
             } else if (file.mimeType.startsWith('video/')) {
                 parts.push({
                     type: 'text',
-                    text: `[Прикреплено видео: ${file.fileName ?? 'video'}]`,
+                    text:
+                        localeTag === 'en-US'
+                            ? `[Attached video: ${file.fileName ?? 'video'} — video analysis is not supported in this chat]`
+                            : `[Прикреплено видео: ${file.fileName ?? 'video'} — анализ видео в этом чате не поддерживается]`,
+                });
+            } else if (
+                file.mimeType.startsWith('audio/') ||
+                file.mimeType.startsWith('voice/')
+            ) {
+                parts.push({
+                    type: 'text',
+                    text:
+                        localeTag === 'en-US'
+                            ? `[Attached audio: ${file.fileName ?? 'audio'} — audio analysis is not supported in this chat]`
+                            : `[Прикреплено аудио: ${file.fileName ?? 'audio'} — анализ аудио в этом чате не поддерживается]`,
                 });
             } else {
                 const textContent = file.buffer

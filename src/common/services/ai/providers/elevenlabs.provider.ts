@@ -12,6 +12,20 @@ import {
 } from '../types';
 import { AiToolId } from '../types';
 
+export const ELEVENLABS_DUBBING_RESULT_PREFIX = 'elevenlabs-dubbing://';
+
+export function buildElevenLabsDubbingResultUrl(
+    dubbingId: string,
+    languageCode: string,
+    contentType: string,
+): string {
+    return `${ELEVENLABS_DUBBING_RESULT_PREFIX}${dubbingId}/${languageCode}/${encodeURIComponent(contentType)}`;
+}
+
+export function isElevenLabsDubbingResultUrl(url?: string): boolean {
+    return !!url?.startsWith(ELEVENLABS_DUBBING_RESULT_PREFIX);
+}
+
 const MAX_TEXT_LENGTH = 5000;
 const DUBBING_JOB_SEPARATOR = '::';
 const GEO_BLOCK_MESSAGE =
@@ -132,7 +146,6 @@ export class ElevenLabsProvider {
                 targetLang ||
                 response.target_languages?.[0] ||
                 this.dubbingTargetLang;
-            const buffer = await this.downloadDubbedMedia(dubbingId, lang);
             const contentType =
                 response.media_metadata?.content_type ?? 'audio/mpeg';
             const isVideo = contentType.startsWith('video/');
@@ -141,13 +154,32 @@ export class ElevenLabsProvider {
                 status,
                 result: {
                     type: isVideo ? 'video' : 'audio',
-                    buffer,
+                    url: buildElevenLabsDubbingResultUrl(
+                        dubbingId,
+                        lang,
+                        contentType,
+                    ),
                     mimeType: contentType,
                 },
             };
         }
 
         return { status };
+    }
+
+    async downloadDubbingResult(
+        providerJobId: string,
+        result: AiGenerationResult,
+    ): Promise<AiGenerationResult> {
+        const [dubbingId, targetLang] = this.parseDubbingJobId(providerJobId);
+        const lang = targetLang || this.dubbingTargetLang;
+        const buffer = await this.downloadDubbedMedia(dubbingId, lang);
+
+        return {
+            type: result.type,
+            buffer,
+            mimeType: result.mimeType,
+        };
     }
 
     private async textToSpeech(

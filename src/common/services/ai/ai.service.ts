@@ -15,6 +15,7 @@ import {
     OpenRouterProvider,
     SharpiiProvider,
     TopazProvider,
+    isElevenLabsDubbingResultUrl,
 } from './providers';
 
 @Injectable()
@@ -107,5 +108,24 @@ export class AiService {
                     `Job status not supported for provider ${String(tool.provider)}`,
                 );
         }
+    }
+
+    async resolveResultForDelivery(
+        toolId: AiToolId,
+        providerJobId: string,
+        result: AiGenerationResult,
+    ): Promise<AiGenerationResult> {
+        const tool = getToolById(toolId);
+        if (
+            tool?.provider === AiProviderId.ELEVENLABS &&
+            isElevenLabsDubbingResultUrl(result.url)
+        ) {
+            return this.elevenLabsProvider.downloadDubbingResult(
+                providerJobId,
+                result,
+            );
+        }
+
+        return result;
     }
 }

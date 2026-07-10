@@ -23,3 +23,6 @@ export const getHomeKeyboardRegistered = (i18n: I18nBundle) =>
         [i18n.buttons.mySub],
         [i18n.buttons.settings, i18n.buttons.support],
     ]).resize();
+
+export const getMySubKeyboard = (i18n: I18nBundle) =>
+    Markup.keyboard([[i18n.buttons.subsTariffs], [i18n.buttons.back]]).resize();

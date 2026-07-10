@@ -5,4 +5,7 @@ export * from './ai.keyboard';
 export * from './support.keyboard';
 export * from './renew-sub.keyboard';
 export * from './language.keyboard';
+export * from './gpt.keyboard';
+export * from './image.keyboard';
+export * from './video.keyboard';
 export * from './subs.keyboard';

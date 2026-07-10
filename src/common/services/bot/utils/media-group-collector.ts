@@ -19,8 +19,24 @@ export function collectMediaGroupMessage(params: {
         files: AiFileInput[];
         prompt?: string;
     }) => Promise<void>;
+    onError?: (error: unknown) => Promise<void>;
 }): void {
     const existing = batches.get(params.mediaGroupId);
+
+    const wrapFinalize = (batch: MediaGroupBatch) => async () => {
+        try {
+            await params.finalize({
+                files: batch.files,
+                prompt: batch.prompt,
+            });
+        } catch (error) {
+            if (params.onError) {
+                await params.onError(error);
+            } else {
+                throw error;
+            }
+        }
+    };
 
     if (existing) {
         clearTimeout(existing.timer);
@@ -37,17 +53,13 @@ export function collectMediaGroupMessage(params: {
     const batch: MediaGroupBatch = {
         files: [...params.files],
         prompt: params.prompt?.trim() || undefined,
-        finalize: async () => {
-            await params.finalize({
-                files: batch.files,
-                prompt: batch.prompt,
-            });
-        },
+        finalize: async () => {},
         timer: setTimeout(() => {
             void flushMediaGroup(params.mediaGroupId);
         }, MEDIA_GROUP_DEBOUNCE_MS),
     };
 
+    batch.finalize = wrapFinalize(batch);
     batches.set(params.mediaGroupId, batch);
 }
 
