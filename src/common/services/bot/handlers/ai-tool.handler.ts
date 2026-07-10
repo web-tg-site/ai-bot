@@ -1701,7 +1701,11 @@ async function runGeneration(
                         return;
                     }
 
-                    await sendGenerationResult(ctx, generationResult);
+                    await sendGenerationResult(
+                        ctx,
+                        generationResult,
+                        AiToolId.FLUX,
+                    );
                     return;
                 }
 
@@ -1736,7 +1740,7 @@ async function runGeneration(
             return;
         }
 
-        await sendGenerationResult(ctx, generationResult);
+        await sendGenerationResult(ctx, generationResult, toolId);
 
         if (
             toolId === AiToolId.GPT &&
@@ -1782,6 +1786,7 @@ async function runGeneration(
 async function sendGenerationResult(
     ctx: BotContext,
     result: Awaited<ReturnType<AiService['generate']>>,
+    toolId: AiToolId,
 ) {
     if (result.type === 'text' && result.text) {
         await replyFormattedText(ctx, result.text);
@@ -1794,7 +1799,15 @@ async function sendGenerationResult(
     }
 
     if (result.type === 'audio' && result.buffer) {
-        await ctx.replyWithVoice(bufferToInputFile(result.buffer, 'voice.wav'));
+        const ext = mimeTypeToExtension(result.mimeType ?? 'audio/mpeg', 'mp3');
+        const inputFile = bufferToInputFile(result.buffer, `audio.${ext}`);
+        if (toolId === AiToolId.SOUND_GENERATOR) {
+            await ctx.replyWithAudio(inputFile);
+        } else {
+            await ctx.replyWithVoice(
+                bufferToInputFile(result.buffer, `voice.${ext}`),
+            );
+        }
         return;
     }
 
