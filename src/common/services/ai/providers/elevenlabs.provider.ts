@@ -11,6 +11,7 @@ import {
     AiJobStatusResult,
 } from '../types';
 import { AiToolId } from '../types';
+import { OpenRouterProvider } from './openrouter.provider';
 
 export const ELEVENLABS_DUBBING_RESULT_PREFIX = 'elevenlabs-dubbing://';
 
@@ -38,11 +39,15 @@ export class ElevenLabsProvider {
     private readonly voiceId: string;
     private readonly modelId: string;
     private readonly dubbingTargetLang: string;
+    private readonly sfxModelId: string;
+    private readonly sfxPromptInfluence: number;
+    private readonly sfxDurationSeconds: number;
     private readonly baseUrl: string;
 
     constructor(
         private readonly httpService: HttpService,
         configService: ConfigService,
+        private readonly openRouterProvider: OpenRouterProvider,
         @InjectPinoLogger(ElevenLabsProvider.name)
         private readonly logger: PinoLogger,
     ) {
@@ -55,6 +60,31 @@ export class ElevenLabsProvider {
             'eleven_multilingual_v2';
         this.dubbingTargetLang =
             configService.get<string>('ELEVENLABS_DUBBING_TARGET_LANG') ?? 'ru';
+        this.sfxModelId =
+            configService.get<string>('ELEVENLABS_SFX_MODEL_ID') ??
+            'eleven_text_to_sound_v2';
+        this.sfxPromptInfluence = Math.min(
+            1,
+            Math.max(
+                0,
+                Number(
+                    configService.get<string>(
+                        'ELEVENLABS_SFX_PROMPT_INFLUENCE',
+                    ) ?? '0.75',
+                ),
+            ),
+        );
+        this.sfxDurationSeconds = Math.min(
+            22,
+            Math.max(
+                0.5,
+                Number(
+                    configService.get<string>(
+                        'ELEVENLABS_SFX_DURATION_SECONDS',
+                    ) ?? '5',
+                ),
+            ),
+        );
         const baseUrl =
             configService.get<string>('ELEVENLABS_BASE_URL') ??
             'https://api.elevenlabs.io/v1';
@@ -294,16 +324,33 @@ export class ElevenLabsProvider {
             throw new Error('Опишите звук, который нужно сгенерировать');
         }
 
+        const apiPrompt =
+            await this.openRouterProvider.prepareSoundEffectPrompt(
+                input.prompt,
+            );
         const durationSeconds = Math.min(
             22,
-            Math.max(0.5, input.durationSeconds ?? 5),
+            Math.max(0.5, input.durationSeconds ?? this.sfxDurationSeconds),
+        );
+
+        this.logger.info(
+            {
+                userPrompt: input.prompt.trim().slice(0, 200),
+                apiPrompt: apiPrompt.slice(0, 300),
+                durationSeconds,
+                promptInfluence: this.sfxPromptInfluence,
+                modelId: this.sfxModelId,
+            },
+            'ElevenLabs sound effect request',
         );
 
         const buffer = await this.postBinary(
             '/sound-generation',
             {
-                text: input.prompt.trim().slice(0, 500),
+                text: apiPrompt,
                 duration_seconds: durationSeconds,
+                prompt_influence: this.sfxPromptInfluence,
+                model_id: this.sfxModelId,
             },
             {
                 headers: {

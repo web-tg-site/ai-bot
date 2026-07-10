@@ -364,7 +364,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.VIDEO_TO_AUDIO]:
                 'Send a video or audio file. The bot will dub it into Russian (or specify a language in the caption: en, es, de…).',
             [AiToolId.SOUND_GENERATOR]:
-                'Describe a sound or effect (e.g. «loud thunder», «footsteps on gravel», «space whoosh»).',
+                'Describe the sound itself, not a scene (e.g. «heels on metal floor», not «a girl walks»).',
         },
     },
     gptChat: {

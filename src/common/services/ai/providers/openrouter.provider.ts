@@ -13,6 +13,11 @@ import { getToolById } from '@/common/config/ai-tools.registry';
 import { AiToolId } from '../types';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
 import { pcm16ToWav } from '@/common/utils/pcm16-to-wav';
+import {
+    containsCyrillic,
+    SOUND_EFFECT_TRANSLATION_SYSTEM_PROMPT,
+    wrapSoundEffectPrompt,
+} from '@/common/utils/sound-effect-prompt';
 
 type OpenRouterMessageContent =
     | string
@@ -59,6 +64,54 @@ export class OpenRouterProvider {
                     `OpenRouter sync generate not supported for ${toolId}`,
                 );
         }
+    }
+
+    async prepareSoundEffectPrompt(userDescription: string): Promise<string> {
+        const trimmed = userDescription.trim();
+        if (!trimmed) {
+            return '';
+        }
+
+        let description = trimmed;
+
+        if (containsCyrillic(trimmed)) {
+            try {
+                const response = await this.post<{
+                    choices?: Array<{
+                        message?: { content?: string };
+                    }>;
+                }>('/chat/completions', {
+                    model: 'openai/gpt-4o-mini',
+                    temperature: 0.2,
+                    max_tokens: 120,
+                    messages: [
+                        {
+                            role: 'system',
+                            content: SOUND_EFFECT_TRANSLATION_SYSTEM_PROMPT,
+                        },
+                        { role: 'user', content: trimmed },
+                    ],
+                });
+
+                const translated =
+                    response.choices?.[0]?.message?.content?.trim();
+                if (translated) {
+                    description = translated.replace(/^["']|["']$/g, '');
+                }
+            } catch (error) {
+                this.logger.warn(
+                    {
+                        err:
+                            error instanceof Error
+                                ? error.message
+                                : String(error),
+                    },
+                    'Sound effect prompt translation failed, using original text',
+                );
+            }
+        }
+
+        return wrapSoundEffectPrompt(description);
     }
 
     async createJob(
