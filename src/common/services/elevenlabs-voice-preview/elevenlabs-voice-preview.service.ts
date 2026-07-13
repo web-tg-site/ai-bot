@@ -7,6 +7,15 @@ import { PrismaService } from '@/common/services/prisma';
 import { ElevenLabsProvider } from '@/common/services/ai/providers/elevenlabs.provider';
 import { getVoicePreviewSampleText } from '@/common/config/elevenlabs-voices.config';
 
+function getNodeErrorCode(error: unknown): string | undefined {
+    if (!error || typeof error !== 'object' || !('code' in error)) {
+        return undefined;
+    }
+
+    const { code } = error as { code?: unknown };
+    return typeof code === 'string' ? code : undefined;
+}
+
 @Injectable()
 export class ElevenLabsVoicePreviewService implements OnModuleInit {
     private readonly storageDir: string;
@@ -25,10 +34,69 @@ export class ElevenLabsVoicePreviewService implements OnModuleInit {
 
     async onModuleInit() {
         await this.ensureStorageDir();
+        this.logger.info(
+            { storageDir: this.storageDir },
+            'Voice preview storage ready',
+        );
     }
 
     private async ensureStorageDir() {
         await fs.mkdir(this.storageDir, { recursive: true, mode: 0o755 });
+    }
+
+    private async persistPreview(
+        voiceId: string,
+        localeTag: 'ru-RU' | 'en-US',
+        sampleText: string,
+        buffer: Buffer,
+    ): Promise<void> {
+        const fileName = `${voiceId}_${localeTag}.mp3`;
+        const filePath = path.join(this.storageDir, fileName);
+
+        try {
+            await this.ensureStorageDir();
+            await fs.writeFile(filePath, buffer);
+
+            await this.prismaService.elevenLabsVoicePreview.upsert({
+                where: {
+                    voiceId_localeTag: { voiceId, localeTag },
+                },
+                create: {
+                    voiceId,
+                    localeTag,
+                    filePath,
+                    sampleText,
+                },
+                update: {
+                    filePath,
+                    sampleText,
+                },
+            });
+
+            this.logger.info(
+                { voiceId, localeTag, filePath },
+                'Voice preview cached',
+            );
+        } catch (error: unknown) {
+            const code = getNodeErrorCode(error);
+            if (code === 'EACCES' || code === 'EPERM') {
+                this.logger.warn(
+                    {
+                        voiceId,
+                        localeTag,
+                        storageDir: this.storageDir,
+                        err:
+                            error instanceof Error
+                                ? error.message
+                                : String(error),
+                    },
+                    'Voice preview cache skipped: storage not writable',
+                );
+                return;
+            }
+
+            throw error;
+        }
     }
 
     async getOrCreatePreview(
@@ -70,31 +138,7 @@ export class ElevenLabsVoicePreviewService implements OnModuleInit {
             sampleText,
         );
 
-        await this.ensureStorageDir();
-        const fileName = `${voiceId}_${localeTag}.mp3`;
-        const filePath = path.join(this.storageDir, fileName);
-        await fs.writeFile(filePath, buffer);
-
-        await this.prismaService.elevenLabsVoicePreview.upsert({
-            where: {
-                voiceId_localeTag: { voiceId, localeTag },
-            },
-            create: {
-                voiceId,
-                localeTag,
-                filePath,
-                sampleText,
-            },
-            update: {
-                filePath,
-                sampleText,
-            },
-        });
-
-        this.logger.info(
-            { voiceId, localeTag, filePath },
-            'Voice preview cached',
-        );
+        await this.persistPreview(voiceId, localeTag, sampleText, buffer);
 
         return buffer;
     }
