@@ -9,65 +9,119 @@ export type ElevenLabsVoiceOption = {
 export const ELEVENLABS_VOICE_CATALOG: readonly ElevenLabsVoiceOption[] = [
     {
         id: '21m00Tcm4TlvDq8ikWAM',
-        labelRu: 'Rachel',
+        labelRu: 'Рейчел',
         labelEn: 'Rachel',
     },
     {
         id: 'pNInz6obpgDQGcFmaJgB',
-        labelRu: 'Adam',
+        labelRu: 'Адам',
         labelEn: 'Adam',
     },
     {
         id: 'EXAVITQu4vr4xnSDxMaL',
-        labelRu: 'Sarah',
+        labelRu: 'Сара',
         labelEn: 'Sarah',
     },
     {
         id: 'ErXwobaYiN019PkySvjV',
-        labelRu: 'Antoni',
+        labelRu: 'Антони',
         labelEn: 'Antoni',
     },
     {
         id: 'TxGEqnHWrfWFTfGW9XjX',
-        labelRu: 'Josh',
+        labelRu: 'Джош',
         labelEn: 'Josh',
     },
     {
         id: 'MF3mGyEYCl7XYWbV9V6O',
-        labelRu: 'Elli',
+        labelRu: 'Элли',
         labelEn: 'Elli',
     },
     {
         id: 'VR6AewLTigWG4xSOukaG',
-        labelRu: 'Arnold',
+        labelRu: 'Арнольд',
         labelEn: 'Arnold',
     },
     {
         id: 'AZnzlk1XvdvUeBnXmlld',
-        labelRu: 'Domi',
+        labelRu: 'Доми',
         labelEn: 'Domi',
     },
     {
         id: 'yoZ06aMxZJJ28mfd3POQ',
-        labelRu: 'Sam',
+        labelRu: 'Сэм',
         labelEn: 'Sam',
     },
     {
         id: 'XB0fDUnXU5powFXDhCwa',
-        labelRu: 'Charlotte',
+        labelRu: 'Шарлотта',
         labelEn: 'Charlotte',
     },
     {
         id: 'onwK4e9ZLuTAKqWW03F9',
-        labelRu: 'Daniel',
+        labelRu: 'Дэниел',
         labelEn: 'Daniel',
     },
     {
         id: 'pFZP5JQG7iQjIQuC4Bku',
-        labelRu: 'Lily',
+        labelRu: 'Лили',
         labelEn: 'Lily',
     },
 ] as const;
+
+/** Russian display names keyed by short English voice name from ElevenLabs API */
+const ELEVENLABS_VOICE_LABELS_RU: Record<string, string> = {
+    adam: 'Адам',
+    alice: 'Алиса',
+    antoni: 'Антони',
+    arnold: 'Арнольд',
+    bella: 'Белла',
+    bill: 'Билл',
+    brian: 'Брайан',
+    callum: 'Каллум',
+    charlie: 'Чарли',
+    charlotte: 'Шарлотта',
+    chris: 'Крис',
+    daniel: 'Дэниел',
+    domi: 'Доми',
+    ell: 'Элли',
+    eric: 'Эрик',
+    george: 'Джордж',
+    harry: 'Гарри',
+    jessica: 'Джессика',
+    josh: 'Джош',
+    laura: 'Лора',
+    liam: 'Лиам',
+    lily: 'Лили',
+    rachel: 'Рейчел',
+    sam: 'Сэм',
+    sarah: 'Сара',
+};
+
+function parseElevenLabsApiVoiceName(apiName: string): {
+    shortName: string;
+    labelEn: string;
+} {
+    const labelEn = apiName.trim();
+    const shortName = labelEn.split(' - ')[0]?.trim() || labelEn;
+    return { shortName, labelEn };
+}
+
+export function resolveElevenLabsVoiceLabels(
+    voiceId: string,
+    apiName: string,
+): { labelRu: string; labelEn: string } {
+    const catalogVoice = getElevenLabsVoiceOption(voiceId);
+    const { shortName, labelEn } = parseElevenLabsApiVoiceName(apiName);
+    const ruFromMap =
+        ELEVENLABS_VOICE_LABELS_RU[shortName.toLowerCase()] ??
+        (catalogVoice ? catalogVoice.labelRu : undefined);
+
+    return {
+        labelRu: ruFromMap ?? shortName,
+        labelEn,
+    };
+}
 
 export function getDefaultElevenLabsVoiceId(
     configService?: ConfigService,
@@ -94,6 +148,15 @@ export function getElevenLabsVoiceLabel(
         return voiceId;
     }
     return localeTag === 'ru-RU' ? voice.labelRu : voice.labelEn;
+}
+
+export function getElevenLabsVoiceLabelFromApiName(
+    apiName: string,
+    localeTag: 'ru-RU' | 'en-US',
+    voiceId?: string,
+): string {
+    const labels = resolveElevenLabsVoiceLabels(voiceId ?? '', apiName);
+    return localeTag === 'ru-RU' ? labels.labelRu : labels.labelEn;
 }
 
 export function getVoicePreviewSampleText(

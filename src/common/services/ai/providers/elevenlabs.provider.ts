@@ -15,6 +15,7 @@ import { OpenRouterProvider } from './openrouter.provider';
 import {
     ELEVENLABS_VOICE_CATALOG,
     ElevenLabsVoiceOption,
+    resolveElevenLabsVoiceLabels,
 } from '@/common/config/elevenlabs-voices.config';
 
 export type { ElevenLabsVoiceOption };
@@ -141,11 +142,17 @@ export class ElevenLabsProvider {
 
             const voices = (response.voices ?? [])
                 .filter((voice) => voice.voice_id && voice.name)
-                .map((voice) => ({
-                    id: voice.voice_id,
-                    labelRu: voice.name,
-                    labelEn: voice.name,
-                }))
+                .map((voice) => {
+                    const labels = resolveElevenLabsVoiceLabels(
+                        voice.voice_id,
+                        voice.name,
+                    );
+                    return {
+                        id: voice.voice_id,
+                        labelRu: labels.labelRu,
+                        labelEn: labels.labelEn,
+                    };
+                })
                 .sort((left, right) =>
                     left.labelRu.localeCompare(right.labelRu, 'ru'),
                 );
