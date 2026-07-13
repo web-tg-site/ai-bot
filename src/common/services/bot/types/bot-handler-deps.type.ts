@@ -10,6 +10,7 @@ import {
     ElevenLabsVoicePreviewService,
 } from '@/common/services/ai';
 import { CryptoPayService } from '@/common/services/crypto-pay';
+import { RedisService } from '@/common/services/redis';
 
 export type BotHandlerDeps = {
     userModelService: UserModelService;
@@ -22,4 +23,5 @@ export type BotHandlerDeps = {
     aiJobService: AiJobService;
     cryptoPayService: CryptoPayService;
     elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService;
+    redisService: RedisService;
 };

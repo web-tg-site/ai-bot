@@ -9,6 +9,7 @@
  */
 export type * from './models/Admin.js'
 export type * from './models/User.js'
+export type * from './models/ElevenLabsVoicePreview.js'
 export type * from './models/UserAiToolSettings.js'
 export type * from './models/Payment.js'
 export type * from './models/NextSubscriptionOfUser.js'

@@ -35,6 +35,7 @@ import {
     getMessageText,
     bufferToInputFile,
 } from '../utils/download-telegram-file';
+import { withPersistedSession } from '../utils/bot-session-store';
 import { collectMediaGroupMessage } from '../utils/media-group-collector';
 import {
     mimeTypeToExtension,
@@ -132,6 +133,15 @@ function getSession(ctx: Context): BotSession {
         botCtx.session = {};
     }
     return botCtx.session;
+}
+
+function getMessageId(ctx: Context): number | undefined {
+    const message = ctx.message;
+    if (!message || !('message_id' in message)) {
+        return undefined;
+    }
+
+    return message.message_id;
 }
 
 export type AiHandlerDeps = BotHandlerDeps;
@@ -476,17 +486,37 @@ async function processImageReferencesStep(
             : undefined;
 
     if (mediaGroupId) {
+        const messageId = getMessageId(ctx);
+        if (messageId === undefined) {
+            await appendImageReferences(
+                ctx,
+                session,
+                toolId,
+                imageFiles,
+                i18n,
+                deps,
+            );
+            return;
+        }
+
         collectMediaGroupMessage({
             mediaGroupId,
+            messageId,
             files: imageFiles,
             finalize: async (batch) => {
-                await appendImageReferences(
+                await withPersistedSession(
+                    deps.redisService.getClient(),
                     ctx,
-                    session,
-                    toolId,
-                    batch.files,
-                    i18n,
-                    deps,
+                    async (freshSession) => {
+                        await appendImageReferences(
+                            ctx,
+                            freshSession,
+                            toolId,
+                            batch.files,
+                            i18n,
+                            deps,
+                        );
+                    },
                 );
             },
             onError: async (error) => {
@@ -832,17 +862,37 @@ async function processVideoReferencesStep(
             : undefined;
 
     if (mediaGroupId) {
+        const messageId = getMessageId(ctx);
+        if (messageId === undefined) {
+            await appendVideoReferences(
+                ctx,
+                session,
+                toolId,
+                imageFiles,
+                i18n,
+                deps,
+            );
+            return;
+        }
+
         collectMediaGroupMessage({
             mediaGroupId,
+            messageId,
             files: imageFiles,
             finalize: async (batch) => {
-                await appendVideoReferences(
+                await withPersistedSession(
+                    deps.redisService.getClient(),
                     ctx,
-                    session,
-                    toolId,
-                    batch.files,
-                    i18n,
-                    deps,
+                    async (freshSession) => {
+                        await appendVideoReferences(
+                            ctx,
+                            freshSession,
+                            toolId,
+                            batch.files,
+                            i18n,
+                            deps,
+                        );
+                    },
                 );
             },
             onError: async (error) => {
@@ -1605,31 +1655,64 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
             : undefined;
 
     if (mediaGroupId && files.length > 0) {
+        const messageId = getMessageId(ctx);
+        if (messageId === undefined) {
+            const input = await buildAiGenerationInput(
+                deps,
+                session,
+                toolId,
+                text,
+                files,
+                tool,
+                i18n,
+            );
+
+            await runGeneration(
+                ctx,
+                deps,
+                toolId,
+                tool,
+                input,
+                session,
+                text,
+                i18n,
+                user,
+            );
+            return;
+        }
+
         collectMediaGroupMessage({
             mediaGroupId,
+            messageId,
             files,
             prompt: text,
             finalize: async (batch) => {
-                const batchInput = await buildAiGenerationInput(
-                    deps,
-                    session,
-                    toolId,
-                    batch.prompt,
-                    batch.files,
-                    tool,
-                    i18n,
-                );
-
-                await runGeneration(
+                await withPersistedSession(
+                    deps.redisService.getClient(),
                     ctx,
-                    deps,
-                    toolId,
-                    tool,
-                    batchInput,
-                    session,
-                    batch.prompt,
-                    i18n,
-                    user,
+                    async (freshSession) => {
+                        const batchInput = await buildAiGenerationInput(
+                            deps,
+                            freshSession,
+                            toolId,
+                            batch.prompt,
+                            batch.files,
+                            tool,
+                            i18n,
+                        );
+
+                        await runGeneration(
+                            ctx,
+                            deps,
+                            toolId,
+                            tool,
+                            batchInput,
+                            freshSession,
+                            batch.prompt,
+                            i18n,
+                            user,
+                        );
+                    },
                 );
             },
             onError: async (error) => {

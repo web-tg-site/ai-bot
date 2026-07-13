@@ -49,6 +49,11 @@ export type Admin = Prisma.AdminModel
  */
 export type User = Prisma.UserModel
 /**
+ * Model ElevenLabsVoicePreview
+ * 
+ */
+export type ElevenLabsVoicePreview = Prisma.ElevenLabsVoicePreviewModel
+/**
  * Model UserAiToolSettings
  * 
  */

@@ -17,6 +17,7 @@ import {
     ApayVerificationController,
     HealthController,
 } from '@/common/controllers';
+import { AuthModule } from '@/common/auth';
 import { CryptoPayModule } from '@/common/services/crypto-pay';
 import { PaymentCron } from '@/common/crons/payment';
 
@@ -37,6 +38,7 @@ import { PaymentCron } from '@/common/crons/payment';
         UserAiToolSettingsModule,
         AiModule,
         CryptoPayModule,
+        AuthModule,
     ],
     controllers: [HealthController, ApayVerificationController],
     providers: [RedisService, BotService, SubscriptionCron, PaymentCron],

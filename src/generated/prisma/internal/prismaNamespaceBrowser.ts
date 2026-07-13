@@ -52,6 +52,7 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   Admin: 'Admin',
   User: 'User',
+  ElevenLabsVoicePreview: 'ElevenLabsVoicePreview',
   UserAiToolSettings: 'UserAiToolSettings',
   Payment: 'Payment',
   NextSubscriptionOfUser: 'NextSubscriptionOfUser',
@@ -106,6 +107,19 @@ export const UserScalarFieldEnum = {
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const ElevenLabsVoicePreviewScalarFieldEnum = {
+  id: 'id',
+  voiceId: 'voiceId',
+  localeTag: 'localeTag',
+  filePath: 'filePath',
+  sampleText: 'sampleText',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ElevenLabsVoicePreviewScalarFieldEnum = (typeof ElevenLabsVoicePreviewScalarFieldEnum)[keyof typeof ElevenLabsVoicePreviewScalarFieldEnum]
 
 
 export const UserAiToolSettingsScalarFieldEnum = {

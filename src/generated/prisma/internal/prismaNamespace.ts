@@ -385,6 +385,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   Admin: 'Admin',
   User: 'User',
+  ElevenLabsVoicePreview: 'ElevenLabsVoicePreview',
   UserAiToolSettings: 'UserAiToolSettings',
   Payment: 'Payment',
   NextSubscriptionOfUser: 'NextSubscriptionOfUser',
@@ -406,7 +407,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "admin" | "user" | "userAiToolSettings" | "payment" | "nextSubscriptionOfUser" | "aiGenerationJob" | "gptConversation" | "gptMessage"
+    modelProps: "admin" | "user" | "elevenLabsVoicePreview" | "userAiToolSettings" | "payment" | "nextSubscriptionOfUser" | "aiGenerationJob" | "gptConversation" | "gptMessage"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -555,6 +556,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
+        }
+      }
+    }
+    ElevenLabsVoicePreview: {
+      payload: Prisma.$ElevenLabsVoicePreviewPayload<ExtArgs>
+      fields: Prisma.ElevenLabsVoicePreviewFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ElevenLabsVoicePreviewFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElevenLabsVoicePreviewPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ElevenLabsVoicePreviewFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElevenLabsVoicePreviewPayload>
+        }
+        findFirst: {
+          args: Prisma.ElevenLabsVoicePreviewFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElevenLabsVoicePreviewPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ElevenLabsVoicePreviewFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElevenLabsVoicePreviewPayload>
+        }
+        findMany: {
+          args: Prisma.ElevenLabsVoicePreviewFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElevenLabsVoicePreviewPayload>[]
+        }
+        create: {
+          args: Prisma.ElevenLabsVoicePreviewCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElevenLabsVoicePreviewPayload>
+        }
+        createMany: {
+          args: Prisma.ElevenLabsVoicePreviewCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ElevenLabsVoicePreviewCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElevenLabsVoicePreviewPayload>[]
+        }
+        delete: {
+          args: Prisma.ElevenLabsVoicePreviewDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElevenLabsVoicePreviewPayload>
+        }
+        update: {
+          args: Prisma.ElevenLabsVoicePreviewUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElevenLabsVoicePreviewPayload>
+        }
+        deleteMany: {
+          args: Prisma.ElevenLabsVoicePreviewDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ElevenLabsVoicePreviewUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ElevenLabsVoicePreviewUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElevenLabsVoicePreviewPayload>[]
+        }
+        upsert: {
+          args: Prisma.ElevenLabsVoicePreviewUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElevenLabsVoicePreviewPayload>
+        }
+        aggregate: {
+          args: Prisma.ElevenLabsVoicePreviewAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateElevenLabsVoicePreview>
+        }
+        groupBy: {
+          args: Prisma.ElevenLabsVoicePreviewGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ElevenLabsVoicePreviewGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ElevenLabsVoicePreviewCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ElevenLabsVoicePreviewCountAggregateOutputType> | number
         }
       }
     }
@@ -1073,6 +1148,19 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+export const ElevenLabsVoicePreviewScalarFieldEnum = {
+  id: 'id',
+  voiceId: 'voiceId',
+  localeTag: 'localeTag',
+  filePath: 'filePath',
+  sampleText: 'sampleText',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ElevenLabsVoicePreviewScalarFieldEnum = (typeof ElevenLabsVoicePreviewScalarFieldEnum)[keyof typeof ElevenLabsVoicePreviewScalarFieldEnum]
+
+
 export const UserAiToolSettingsScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1475,6 +1563,7 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   admin?: Prisma.AdminOmit
   user?: Prisma.UserOmit
+  elevenLabsVoicePreview?: Prisma.ElevenLabsVoicePreviewOmit
   userAiToolSettings?: Prisma.UserAiToolSettingsOmit
   payment?: Prisma.PaymentOmit
   nextSubscriptionOfUser?: Prisma.NextSubscriptionOfUserOmit

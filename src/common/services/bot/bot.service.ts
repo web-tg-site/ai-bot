@@ -202,6 +202,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
             aiJobService: this.aiJobService,
             cryptoPayService: this.cryptoPayService,
             elevenLabsVoicePreviewService: this.elevenLabsVoicePreviewService,
+            redisService: this.redisService,
         });
     }
 }
