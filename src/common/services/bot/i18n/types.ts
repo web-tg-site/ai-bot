@@ -23,6 +23,9 @@ export type I18nBundle = {
         activateTrial: string;
         telegram: string;
         email: string;
+        privacyPolicy: string;
+        userAgreement: string;
+        refundPolicy: string;
         sbp: (amount: string) => string;
         usdt: (amount: number) => string;
     };
@@ -85,6 +88,9 @@ export type I18nBundle = {
         text: string;
         telegram: string;
         email: string;
+        privacyPolicy: string;
+        userAgreement: string;
+        refundPolicy: string;
     };
     payment: {
         invoiceCreated: (

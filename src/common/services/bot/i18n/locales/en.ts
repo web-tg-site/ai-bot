@@ -51,6 +51,9 @@ export const en: I18nBundle = {
         activateTrial: 'Activate trial access',
         telegram: 'Telegram',
         email: 'Email',
+        privacyPolicy: 'Personal Data Processing Policy',
+        userAgreement: 'User Agreement',
+        refundPolicy: 'Refund Policy',
         sbp: (amount) => `SBP ${amount} ₽`,
         usdt: (amount) => `USDT ${amount} ₮`,
     },
@@ -297,6 +300,15 @@ Message us on Telegram: <a href="https://t.me/project_ai_support">https://t.me/p
         email: `💬 <b>${BOT_NAME} support</b>
 
 Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
+        privacyPolicy: `📄 <b>Personal Data Processing Policy</b>
+
+<a href="https://docs.google.com/document/d/1Rswj_pjUy9Zp6kAg0IdlL_1L63fl3ztF/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Open document</a>`,
+        userAgreement: `📄 <b>User Agreement</b>
+
+<a href="https://docs.google.com/document/d/1rpRf88usbn272VFR4qx0kJn3trMwx6Rs/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Open document</a>`,
+        refundPolicy: `📄 <b>Refund Policy</b>
+
+<a href="https://docs.google.com/document/d/15HWfEoyy_eVoovtpaVxFOtyfNZm5-CcB/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Open document</a>`,
     },
     records: {
         subPlanToPeriod: {
