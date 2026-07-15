@@ -24,7 +24,7 @@ export type StoredVoiceSample = {
     fileName?: string;
 };
 
-export type StoredReference = StoredVoiceSample;
+export type StoredReference = StoredVoiceSample & { id: string };
 
 export type BotSession = {
     ai?: {
@@ -39,12 +39,18 @@ export type BotSession = {
         toolSettings?: ToolSettings;
         voiceToolSettings?: VoiceToolSettings;
         activeCategory?: AiToolCategory;
-        imageKeyboardMode?: 'main' | 'settings' | 'aspect' | 'resolution';
+        imageKeyboardMode?:
+            | 'main'
+            | 'settings'
+            | 'aspect'
+            | 'resolution'
+            | 'quality';
         videoKeyboardMode?:
             | 'main'
             | 'settings'
             | 'aspect'
             | 'resolution'
+            | 'quality'
             | 'duration'
             | 'style';
         voiceKeyboardMode?: 'main' | 'settings' | 'preview';

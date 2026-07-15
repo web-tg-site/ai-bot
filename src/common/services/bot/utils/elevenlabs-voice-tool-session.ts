@@ -6,9 +6,12 @@ import {
     ElevenLabsVoiceOption,
     getDefaultElevenLabsVoiceId,
 } from '@/common/config/elevenlabs-voices.config';
-import { I18nBundle } from '../i18n';
+import { I18nBundle, getToolInstruction, getToolLabel } from '../i18n';
+import { UserLanguage } from '@/generated/prisma/enums';
+import { resolveVoiceSendAsFile } from '@/common/utils/resolve-send-as-file';
 import {
     generateElevenLabsVoiceReplyKeyboard,
+    getVoiceLabelById,
     VoiceKeyboardMode,
 } from '../keyboards/voice.keyboard';
 
@@ -23,11 +26,35 @@ export async function loadVoiceToolSettings(
     return {
         elevenLabsVoiceId:
             stored.elevenLabsVoiceId ?? getDefaultElevenLabsVoiceId(),
+        sendAsFile: stored.sendAsFile,
     };
 }
 
 export function getVoiceKeyboardMode(session: BotSession): VoiceKeyboardMode {
     return session.ai?.voiceKeyboardMode ?? 'main';
+}
+
+export function buildElevenLabsVoiceMainScreenText(
+    i18n: I18nBundle,
+    language: UserLanguage | null | undefined,
+    settings: VoiceToolSettings,
+    voices: ElevenLabsVoiceOption[],
+): string {
+    const label = getToolLabel(AiToolId.ELEVENLABS_VOICE, language);
+    const instruction = getToolInstruction(AiToolId.ELEVENLABS_VOICE, language);
+    const voiceName = getVoiceLabelById(
+        settings.elevenLabsVoiceId ?? '',
+        i18n.localeTag,
+        voices,
+    );
+
+    return [
+        i18n.aiResult.toolSelected(label, instruction),
+        i18n.voiceTool.voiceLine(voiceName),
+        i18n.voiceTool.deliveryLine(
+            resolveVoiceSendAsFile(AiToolId.ELEVENLABS_VOICE, settings),
+        ),
+    ].join('\n\n');
 }
 
 export function getSessionAccessibleVoices(
@@ -99,9 +126,10 @@ export async function replyWithElevenLabsVoiceKeyboard(
     }
 
     await ctx.reply(
-        i18n.voiceTool.keyboardUpdated(i18n.tools.labels.elevenlabs_voice),
+        buildElevenLabsVoiceMainScreenText(i18n, i18n.lang, settings, voices),
         {
             ...keyboard,
+            parse_mode: 'HTML',
         },
     );
 }

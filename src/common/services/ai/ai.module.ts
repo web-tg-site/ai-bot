@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from '@/common/models/user';
+import { UserAiToolSettingsModule } from '@/common/models/user-ai-tool-settings';
 import { AiService } from './ai.service';
 import { TokenBillingService } from './billing/token-billing.service';
 import { ImageCapabilitiesService } from './image-capabilities.service';
@@ -19,7 +20,7 @@ import { AiJobCron } from './jobs/ai-job.cron';
 import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/elevenlabs-voice-preview.service';
 
 @Module({
-    imports: [HttpModule, ConfigModule, UserModule],
+    imports: [HttpModule, ConfigModule, UserModule, UserAiToolSettingsModule],
     providers: [
         AiService,
         TokenBillingService,

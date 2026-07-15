@@ -1,8 +1,10 @@
 export type VideoToolSettings = {
     aspectRatio?: string;
     resolution?: string;
+    quality?: string;
     durationSeconds?: number;
     styleId?: string;
+    sendAsFile?: boolean;
 };
 
 export const DEFAULT_VIDEO_TOOL_SETTINGS: VideoToolSettings = {

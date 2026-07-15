@@ -149,7 +149,8 @@ export class HeyGenProvider {
             return {
                 status,
                 errorMessage:
-                    response.data.failure_message ?? 'HeyGen generation failed',
+                    response.data.failure_message ??
+                    'Не удалось завершить генерацию — сбой на стороне провайдера.',
             };
         }
 
@@ -184,7 +185,7 @@ export class HeyGenProvider {
         const look = response.data[0];
         if (!look?.id) {
             throw new Error(
-                'Не найден публичный аватар HeyGen. Укажите HEYGEN_AVATAR_ID в .env',
+                'Не найден публичный аватар. Обратитесь в поддержку.',
             );
         }
 
@@ -316,10 +317,12 @@ export class HeyGenProvider {
             }
 
             if (axiosError.response?.status) {
-                return `HeyGen API error: HTTP ${axiosError.response.status}`;
+                return `Сбой на стороне провайдера (HTTP ${axiosError.response.status}).`;
             }
         }
 
-        return error instanceof Error ? error.message : 'HeyGen API error';
+        return error instanceof Error
+            ? error.message
+            : 'Сбой на стороне провайдера';
     }
 }

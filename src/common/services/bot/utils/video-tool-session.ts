@@ -8,13 +8,17 @@ import {
 import { VideoCapabilitiesService } from '@/common/services/ai/video-capabilities.service';
 import { UserAiToolSettingsModelService } from '@/common/models/user-ai-tool-settings';
 import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
-import { I18nBundle, getToolLabel } from '../i18n';
+import { I18nBundle, getToolLabel, getToolInstruction } from '../i18n';
 import { UserLanguage } from '@/generated/prisma/enums';
+import { resolveVideoSendAsFile } from '@/common/utils/resolve-send-as-file';
 import {
     generateVideoEditorReplyKeyboard,
     VideoKeyboardMode,
 } from '../keyboards/video.keyboard';
-import { getVideoToolCapabilities } from './video-tool-buttons';
+import {
+    buildVideoSummaryLine,
+    getVideoToolCapabilities,
+} from './video-tool-buttons';
 
 type BotContext = Context & { session: BotSession };
 
@@ -34,6 +38,7 @@ export async function loadVideoToolSettings(
             toolId,
             stored.resolution,
         ),
+        quality: capabilitiesService.normalizeQuality(toolId, stored.quality),
         durationSeconds: capabilitiesService.normalizeDuration(
             toolId,
             stored.durationSeconds,
@@ -51,6 +56,41 @@ export function getInitialVideoToolStep(toolId: AiToolId): AiSessionStep {
 
 export function getVideoKeyboardMode(session: BotSession): VideoKeyboardMode {
     return session.ai?.videoKeyboardMode ?? 'main';
+}
+
+export function buildVideoToolMainScreenText(
+    i18n: I18nBundle,
+    toolId: AiToolId,
+    language: UserLanguage | null | undefined,
+    settings: VideoToolSettings,
+    capabilitiesService: VideoCapabilitiesService,
+): string {
+    const label = getToolLabel(toolId, language);
+    const instruction = getToolInstruction(toolId, language);
+    const caps = getVideoToolCapabilities(
+        toolId,
+        capabilitiesService,
+        i18n.localeTag,
+    );
+    const parts = [i18n.aiResult.toolSelected(label, instruction)];
+
+    const summary = buildVideoSummaryLine(i18n, {
+        settings,
+        aspectRatios: caps.aspectRatios,
+        resolutions: caps.resolutions,
+        toolId,
+        localeTag: i18n.localeTag,
+        capabilitiesService,
+    });
+    if (summary) {
+        parts.push(summary);
+    }
+
+    parts.push(
+        i18n.videoTool.deliveryLine(resolveVideoSendAsFile(toolId, settings)),
+    );
+
+    return parts.join('\n\n');
 }
 
 export function buildVideoEditorReplyKeyboard(
@@ -77,6 +117,7 @@ export function buildVideoEditorReplyKeyboard(
         settings: options.settings,
         aspectRatios: caps.aspectRatios,
         resolutions: caps.resolutions,
+        qualities: caps.qualities,
         durations: caps.durations,
         stylePresets: caps.stylePresets,
         step: options.step,
@@ -122,8 +163,17 @@ export async function replyWithVideoEditorKeyboard(
     }
 
     await ctx.reply(
-        i18n.videoTool.keyboardUpdated(getToolLabel(toolId, language)),
-        keyboard,
+        buildVideoToolMainScreenText(
+            i18n,
+            toolId,
+            language,
+            session.ai?.toolSettings ?? {},
+            capabilitiesService,
+        ),
+        {
+            ...keyboard,
+            parse_mode: 'HTML',
+        },
     );
 }
 

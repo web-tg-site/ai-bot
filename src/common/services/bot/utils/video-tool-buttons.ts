@@ -2,6 +2,7 @@ import { AiToolId } from '@/common/services/ai/types';
 import { AiSessionStep } from '@/common/services/ai/types/ai-session-state.type';
 import { VideoCapabilitiesService } from '@/common/services/ai/video-capabilities.service';
 import {
+    getVideoQualityLabel,
     getVideoStyleLabel,
     isVideoToolWithAspectSettings,
 } from '@/common/config/video-editor-capabilities.config';
@@ -12,17 +13,21 @@ import {
 import { I18nBundle, ru, en } from '../i18n';
 import { VideoKeyboardMode } from '../keyboards/video.keyboard';
 import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
+import { resolveVideoSendAsFile } from '@/common/utils/resolve-send-as-file';
 
 export type VideoToolButtonAction =
     | { type: 'open_settings' }
     | { type: 'open_aspect_picker' }
     | { type: 'open_resolution_picker' }
+    | { type: 'open_quality_picker' }
     | { type: 'open_duration_picker' }
     | { type: 'open_style_picker' }
     | { type: 'set_aspect'; value: string }
     | { type: 'set_resolution'; value: string }
+    | { type: 'set_quality'; value: string }
     | { type: 'set_duration'; value: number }
     | { type: 'set_style'; value: string }
+    | { type: 'toggle_send_as_file' }
     | { type: 'continue_prompt' }
     | { type: 'skip_refs' }
     | { type: 'back_to_settings' }
@@ -37,6 +42,7 @@ export function resolveVideoToolButtonAction(
         keyboardMode: VideoKeyboardMode;
         aspectRatios: string[];
         resolutions: string[];
+        qualities: Array<{ value: string; label: string }>;
         durations: number[];
         stylePresets: Array<{ id: string; label: string }>;
         currentSettings: VideoToolSettings;
@@ -78,12 +84,48 @@ export function resolveVideoToolButtonAction(
     }
 
     if (options.keyboardMode === 'resolution') {
+        const tool = getToolById(options.toolId);
         for (const resolution of options.resolutions) {
+            const tokens = tool
+                ? calculateToolTokenCost(tool, {
+                      durationSeconds:
+                          options.currentSettings.durationSeconds ??
+                          tool.defaultDurationSeconds,
+                      resolution,
+                      quality: options.currentSettings.quality,
+                  })
+                : 0;
             if (
-                text === i18n.videoTool.resolutionPickerOption(resolution) ||
-                text === i18n.videoTool.resolutionPickerSelected(resolution)
+                text ===
+                    i18n.videoTool.resolutionPickerOption(resolution, tokens) ||
+                text ===
+                    i18n.videoTool.resolutionPickerSelected(resolution, tokens)
             ) {
                 return { type: 'set_resolution', value: resolution };
+            }
+        }
+        return null;
+    }
+
+    if (options.keyboardMode === 'quality') {
+        const tool = getToolById(options.toolId);
+        for (const option of options.qualities) {
+            const tokens = tool
+                ? calculateToolTokenCost(tool, {
+                      durationSeconds:
+                          options.currentSettings.durationSeconds ??
+                          tool.defaultDurationSeconds,
+                      resolution: options.currentSettings.resolution,
+                      quality: option.value,
+                  })
+                : 0;
+            if (
+                text ===
+                    i18n.videoTool.qualityPickerOption(option.label, tokens) ||
+                text ===
+                    i18n.videoTool.qualityPickerSelected(option.label, tokens)
+            ) {
+                return { type: 'set_quality', value: option.value };
             }
         }
         return null;
@@ -93,7 +135,11 @@ export function resolveVideoToolButtonAction(
         const tool = getToolById(options.toolId);
         for (const seconds of options.durations) {
             const credits = tool
-                ? calculateToolTokenCost(tool, { durationSeconds: seconds })
+                ? calculateToolTokenCost(tool, {
+                      durationSeconds: seconds,
+                      resolution: options.currentSettings.resolution,
+                      quality: options.currentSettings.quality,
+                  })
                 : 0;
             if (
                 text ===
@@ -135,6 +181,13 @@ export function resolveVideoToolButtonAction(
         }
 
         if (
+            options.qualities.length &&
+            text === i18n.videoTool.changeQualityButton
+        ) {
+            return { type: 'open_quality_picker' };
+        }
+
+        if (
             options.durations.length &&
             text === i18n.videoTool.changeDurationButton
         ) {
@@ -146,6 +199,25 @@ export function resolveVideoToolButtonAction(
             text === i18n.videoTool.changeStyleButton
         ) {
             return { type: 'open_style_picker' };
+        }
+
+        if (
+            text ===
+                i18n.videoTool.sendAsFileButton(
+                    resolveVideoSendAsFile(
+                        options.toolId,
+                        options.currentSettings,
+                    ),
+                ) ||
+            text ===
+                i18n.videoTool.sendAsFileButton(
+                    !resolveVideoSendAsFile(
+                        options.toolId,
+                        options.currentSettings,
+                    ),
+                )
+        ) {
+            return { type: 'toggle_send_as_file' };
         }
 
         return null;
@@ -172,6 +244,7 @@ export function isVideoToolControlButton(text: string | undefined): boolean {
             text === i18n.videoTool.settingsButton ||
             text === i18n.videoTool.changeFormatButton ||
             text === i18n.videoTool.changeResolutionButton ||
+            text === i18n.videoTool.changeQualityButton ||
             text === i18n.videoTool.changeDurationButton ||
             text === i18n.videoTool.changeStyleButton
         ) {
@@ -179,8 +252,16 @@ export function isVideoToolControlButton(text: string | undefined): boolean {
         }
 
         if (
+            text === i18n.videoTool.sendAsFileButton(true) ||
+            text === i18n.videoTool.sendAsFileButton(false)
+        ) {
+            return true;
+        }
+
+        if (
             text.startsWith('📐 ') ||
             text.startsWith('🖼 ') ||
+            text.startsWith('✨ ') ||
             text.startsWith('⏱ ') ||
             text.startsWith('🎨 ')
         ) {
@@ -205,9 +286,14 @@ export function getVideoToolCapabilities(
     localeTag: 'ru-RU' | 'en-US',
 ) {
     const styleOptions = capabilitiesService.getStyleOptions(toolId);
+    const qualityOptions = capabilitiesService.getQualityOptions(toolId);
     return {
         aspectRatios: capabilitiesService.getAspectRatios(toolId),
         resolutions: capabilitiesService.getResolutions(toolId),
+        qualities: qualityOptions.map((option) => ({
+            value: option.value,
+            label: localeTag === 'ru-RU' ? option.labelRu : option.labelEn,
+        })),
         durations: capabilitiesService.getSupportedDurations(toolId),
         stylePresets: styleOptions.map((option) => {
             const baseLabel =
@@ -237,7 +323,11 @@ export function buildVideoSummaryLine(
         options.settings.durationSeconds ?? tool?.defaultDurationSeconds;
     const credits =
         tool && duration
-            ? calculateToolTokenCost(tool, { durationSeconds: duration })
+            ? calculateToolTokenCost(tool, {
+                  durationSeconds: duration,
+                  resolution: options.settings.resolution,
+                  quality: options.settings.quality,
+              })
             : undefined;
 
     const parts = {
@@ -248,6 +338,17 @@ export function buildVideoSummaryLine(
         resolution:
             options.resolutions.length > 0
                 ? (options.settings.resolution ?? options.resolutions[0])
+                : undefined,
+        qualityLabel:
+            options.settings.quality &&
+            options.capabilitiesService.supportsQuality(options.toolId)
+                ? getVideoQualityLabel(
+                      options.settings.quality,
+                      options.localeTag,
+                      options.capabilitiesService.getQualityOptions(
+                          options.toolId,
+                      ),
+                  )
                 : undefined,
         durationSeconds: duration,
         styleLabel:
@@ -266,6 +367,7 @@ export function buildVideoSummaryLine(
     if (
         !parts.format &&
         !parts.resolution &&
+        !parts.qualityLabel &&
         !parts.durationSeconds &&
         !parts.styleLabel
     ) {

@@ -136,12 +136,23 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         chatId: string,
         buffer: Buffer,
         mimeType = 'image/png',
+        sendAsFile = false,
     ) {
         const ext = mimeTypeToExtension(mimeType, 'png');
-        await this.bot.telegram.sendPhoto(
-            chatId,
-            bufferToInputFile(buffer, `image.${ext}`),
-        );
+        const inputFile = bufferToInputFile(buffer, `image.${ext}`);
+        if (sendAsFile) {
+            await this.bot.telegram.sendDocument(chatId, inputFile);
+            return;
+        }
+        await this.bot.telegram.sendPhoto(chatId, inputFile);
+    }
+
+    public async sendPhotoBufferAsDocument(
+        chatId: string,
+        buffer: Buffer,
+        mimeType = 'image/png',
+    ) {
+        await this.sendPhotoBuffer(chatId, buffer, mimeType, true);
     }
 
     public async sendVideo(chatId: string, url: string) {
@@ -162,12 +173,15 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         chatId: string,
         buffer: Buffer,
         mimeType = 'video/mp4',
+        sendAsFile = false,
     ) {
         const ext = mimeTypeToExtension(mimeType, 'mp4');
-        await this.bot.telegram.sendVideo(
-            chatId,
-            bufferToInputFile(buffer, `video.${ext}`),
-        );
+        const inputFile = bufferToInputFile(buffer, `video.${ext}`);
+        if (sendAsFile) {
+            await this.bot.telegram.sendDocument(chatId, inputFile);
+            return;
+        }
+        await this.bot.telegram.sendVideo(chatId, inputFile);
     }
 
     public async sendAudio(chatId: string, url: string) {
@@ -182,12 +196,26 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         chatId: string,
         buffer: Buffer,
         mimeType = 'audio/mpeg',
+        sendAsFile = true,
     ) {
         const ext = mimeTypeToExtension(mimeType, 'mp3');
-        await this.bot.telegram.sendAudio(
+        const inputFile = bufferToInputFile(buffer, `audio.${ext}`);
+        if (sendAsFile) {
+            await this.bot.telegram.sendAudio(chatId, inputFile);
+            return;
+        }
+        await this.bot.telegram.sendVoice(
             chatId,
-            bufferToInputFile(buffer, `audio.${ext}`),
+            bufferToInputFile(buffer, `voice.${ext}`),
         );
+    }
+
+    public async sendVoiceBuffer(
+        chatId: string,
+        buffer: Buffer,
+        mimeType = 'audio/mpeg',
+    ) {
+        await this.sendAudioBuffer(chatId, buffer, mimeType, false);
     }
 
     private registerHandlers() {

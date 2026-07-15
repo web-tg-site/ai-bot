@@ -369,6 +369,26 @@ export class UserModelService {
         return { success: true, balance: user?.tokenLeft ?? 0 };
     }
 
+    public async creditTokens(
+        telegramId: string,
+        amount: number,
+    ): Promise<{ success: boolean; balance: number }> {
+        if (amount <= 0) {
+            const user = await this.getUserByTelegramId(telegramId);
+            return { success: true, balance: user?.tokenLeft ?? 0 };
+        }
+
+        await this.prismaService.user.update({
+            where: { telegramId },
+            data: {
+                tokenLeft: { increment: amount },
+            },
+        });
+
+        const user = await this.getUserByTelegramId(telegramId);
+        return { success: true, balance: user?.tokenLeft ?? 0 };
+    }
+
     public async updateUserTokenForUsersWithNeedToGetSubs() {
         const users = await this.getUsersWithNeedToGetSubs();
 

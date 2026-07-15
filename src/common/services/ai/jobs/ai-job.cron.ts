@@ -19,12 +19,25 @@ import {
 } from '../providers/sharpii.provider';
 import {
     AI_JOB_COMPLETED_TEXT,
-    AI_JOB_FAILED_TEXT,
     AI_JOB_STALE_REMINDER_TEXT,
     AI_MIDJOURNEY_FALLBACK_TEXT,
 } from '@/common/services/bot/texts';
+import { isNanoBanana1KResolution } from '@/common/config/image-editor-capabilities.config';
+import { getI18n } from '@/common/services/bot/i18n';
+import { formatUserBotErrorMessage } from '@/common/services/bot/errors/bot-error.mapper';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
 import { isElevenLabsDubbingResultUrl } from '../providers/elevenlabs.provider';
+import { UserAiToolSettingsModelService } from '@/common/models/user-ai-tool-settings';
+import {
+    resolveImageSendAsFile,
+    resolveVideoSendAsFile,
+    resolveVoiceSendAsFile,
+} from '@/common/utils/resolve-send-as-file';
+import { isVideoFlowTool } from '@/common/config/video-editor-capabilities.config';
+import {
+    downloadRemoteFile,
+    getAuthHeadersForUrl,
+} from '@/common/utils/download-remote-file';
 
 type PendingJob = Awaited<ReturnType<AiJobService['getPendingJobs']>>[number];
 
@@ -39,6 +52,7 @@ export class AiJobCron {
         private readonly logger: PinoLogger,
         private readonly aiJobService: AiJobService,
         private readonly aiService: AiService,
+        private readonly userAiToolSettingsModelService: UserAiToolSettingsModelService,
         private readonly moduleRef: ModuleRef,
     ) {}
 
@@ -69,15 +83,12 @@ export class AiJobCron {
             if (stuckJobs.length > 0) {
                 const botService = this.getBotService();
                 for (const job of stuckJobs) {
-                    await botService
-                        .sendMessage(
-                            job.user.telegramId,
-                            AI_JOB_FAILED_TEXT(
-                                'Генерация превысила максимальное время ожидания. Попробуйте снова.',
-                            ),
-                            { parse_mode: 'HTML' },
-                        )
-                        .catch((error: unknown) => {
+                    const i18n = getI18n(job.user.language);
+                    const timeoutMessage =
+                        i18n.aiResult.errorByCode[11] ??
+                        i18n.aiResult.errorByCode[1];
+                    await this.failJob(botService, job, timeoutMessage).catch(
+                        (error: unknown) => {
                             this.logger.warn(
                                 {
                                     jobId: job.id,
@@ -88,7 +99,8 @@ export class AiJobCron {
                                 },
                                 'Failed to notify user about stuck job',
                             );
-                        });
+                        },
+                    );
                 }
             }
 
@@ -168,14 +180,30 @@ export class AiJobCron {
             if (status.status === 'failed') {
                 const errorMessage =
                     status.errorMessage ?? 'Неизвестная ошибка';
+                const toolId = job.toolId as AiToolId;
+                const input = job.inputJson as AiGenerationInput;
 
                 if (
-                    (job.toolId as AiToolId) === AiToolId.MIDJOURNEY &&
+                    toolId === AiToolId.MIDJOURNEY &&
                     (isSharpiiMidjourneyUpstreamError(errorMessage) ||
                         isSharpiiMidjourneyGenericFailure(errorMessage))
                 ) {
                     this.fallbackJobIds.add(job.id);
                     void this.handleMidjourneyFluxFallback(
+                        botService,
+                        job,
+                    ).finally(() => {
+                        this.fallbackJobIds.delete(job.id);
+                    });
+                    return;
+                }
+
+                if (
+                    toolId === AiToolId.NANO_BANANA &&
+                    isNanoBanana1KResolution(input.resolution)
+                ) {
+                    this.fallbackJobIds.add(job.id);
+                    void this.handleNanoBananaOpenRouterFallback(
                         botService,
                         job,
                     ).finally(() => {
@@ -218,8 +246,13 @@ export class AiJobCron {
             await this.sendResult(
                 botService,
                 job.user.telegramId,
+                job.toolId as AiToolId,
                 resolved.type,
                 resolved,
+                await this.resolveSendAsFile(
+                    job.userId,
+                    job.toolId as AiToolId,
+                ),
             );
 
             await this.aiJobService.updateJobStatus(
@@ -241,16 +274,7 @@ export class AiJobCron {
                     ? error.message
                     : 'Не удалось отправить результат';
             this.logJobError(job, 'delivery', error);
-
-            await this.aiJobService.updateJobStatus(job.id, JobStatus.FAILED, {
-                errorMessage: message,
-            });
-
-            await botService.sendMessage(
-                job.user.telegramId,
-                AI_JOB_FAILED_TEXT(message),
-                { parse_mode: 'HTML' },
-            );
+            await this.failJob(botService, job, message);
         }
     }
 
@@ -259,13 +283,26 @@ export class AiJobCron {
         job: PendingJob,
         errorMessage: string,
     ) {
-        await this.aiJobService.updateJobStatus(job.id, JobStatus.FAILED, {
+        const i18n = getI18n(job.user.language);
+        const formattedError = formatUserBotErrorMessage(errorMessage, i18n);
+
+        await this.aiJobService.failJobWithRefund({
+            jobId: job.id,
+            telegramId: job.user.telegramId,
+            tokenCost: job.tokenCost,
             errorMessage,
         });
 
+        const refundSuffix =
+            job.tokenCost > 0
+                ? i18n.aiResult.tokensRefunded(job.tokenCost)
+                : '';
+
         await botService.sendMessage(
             job.user.telegramId,
-            AI_JOB_FAILED_TEXT(errorMessage),
+            refundSuffix
+                ? `${formattedError}\n\n${refundSuffix}`
+                : formattedError,
             { parse_mode: 'HTML' },
         );
     }
@@ -325,6 +362,54 @@ export class AiJobCron {
         );
     }
 
+    private async handleNanoBananaOpenRouterFallback(
+        botService: BotService,
+        job: PendingJob,
+    ) {
+        const input = job.inputJson as AiGenerationInput;
+        const i18n = getI18n(job.user.language);
+
+        try {
+            await botService.sendMessage(
+                job.user.telegramId,
+                i18n.aiResult.generationTakingLonger,
+                { parse_mode: 'HTML' },
+            );
+
+            const result =
+                await this.aiService.generateNanoBananaFallback(input);
+            await this.sendResult(
+                botService,
+                job.user.telegramId,
+                AiToolId.NANO_BANANA,
+                result.type,
+                result,
+                await this.resolveSendAsFile(job.userId, AiToolId.NANO_BANANA),
+            );
+
+            await this.aiJobService.updateJobStatus(
+                job.id,
+                JobStatus.COMPLETED,
+                {
+                    resultUrl: result.url,
+                },
+            );
+
+            await botService.sendMessage(
+                job.user.telegramId,
+                AI_JOB_COMPLETED_TEXT,
+                { parse_mode: 'HTML' },
+            );
+        } catch (error) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : 'Не удалось завершить генерацию';
+            this.logJobError(job, 'delivery', error);
+            await this.failJob(botService, job, message);
+        }
+    }
+
     private async handleMidjourneyFluxFallback(
         botService: BotService,
         job: PendingJob,
@@ -342,8 +427,10 @@ export class AiJobCron {
             await this.sendResult(
                 botService,
                 job.user.telegramId,
+                AiToolId.FLUX,
                 result.type,
                 result,
+                await this.resolveSendAsFile(job.userId, AiToolId.FLUX),
             );
 
             await this.aiJobService.updateJobStatus(
@@ -369,9 +456,45 @@ export class AiJobCron {
         }
     }
 
+    private async resolveSendAsFile(
+        userId: string,
+        toolId: AiToolId,
+    ): Promise<boolean> {
+        if (isVideoFlowTool(toolId)) {
+            const settings =
+                await this.userAiToolSettingsModelService.getVideoSettings(
+                    userId,
+                    toolId,
+                );
+            return resolveVideoSendAsFile(toolId, settings);
+        }
+
+        if (
+            toolId === AiToolId.ELEVENLABS_VOICE ||
+            toolId === AiToolId.VOICE_CLONE ||
+            toolId === AiToolId.SOUND_GENERATOR ||
+            toolId === AiToolId.VIDEO_TO_AUDIO
+        ) {
+            const voiceSettings =
+                await this.userAiToolSettingsModelService.getVoiceSettings(
+                    userId,
+                    toolId,
+                );
+            return resolveVoiceSendAsFile(toolId, voiceSettings);
+        }
+
+        const imageSettings =
+            await this.userAiToolSettingsModelService.getSettings(
+                userId,
+                toolId,
+            );
+        return resolveImageSendAsFile(toolId, imageSettings);
+    }
+
     private async sendResult(
         botService: BotService,
         telegramId: string,
+        toolId: AiToolId,
         type: string,
         result: {
             url?: string;
@@ -379,10 +502,24 @@ export class AiJobCron {
             mimeType?: string;
             text?: string;
         },
+        sendAsFile: boolean,
     ) {
         if (result.url && !isElevenLabsDubbingResultUrl(result.url)) {
             if (type === 'video') {
-                await botService.sendVideo(telegramId, result.url);
+                if (sendAsFile) {
+                    const { buffer, mimeType } = await downloadRemoteFile(
+                        result.url,
+                        getAuthHeadersForUrl(result.url),
+                    );
+                    await botService.sendVideoBuffer(
+                        telegramId,
+                        buffer,
+                        mimeType,
+                        true,
+                    );
+                } else {
+                    await botService.sendVideo(telegramId, result.url);
+                }
             } else if (type === 'image') {
                 const parsed = parseDataUrl(result.url);
                 if (parsed) {
@@ -390,12 +527,36 @@ export class AiJobCron {
                         telegramId,
                         parsed.buffer,
                         parsed.mimeType,
+                        sendAsFile,
+                    );
+                } else if (sendAsFile) {
+                    const { buffer, mimeType } = await downloadRemoteFile(
+                        result.url,
+                        getAuthHeadersForUrl(result.url),
+                    );
+                    await botService.sendPhotoBuffer(
+                        telegramId,
+                        buffer,
+                        mimeType,
+                        true,
                     );
                 } else {
                     await botService.sendPhoto(telegramId, result.url);
                 }
             } else if (type === 'audio') {
-                await botService.sendAudio(telegramId, result.url);
+                if (sendAsFile) {
+                    await botService.sendAudio(telegramId, result.url);
+                } else {
+                    const { buffer, mimeType } = await downloadRemoteFile(
+                        result.url,
+                        getAuthHeadersForUrl(result.url),
+                    );
+                    await botService.sendVoiceBuffer(
+                        telegramId,
+                        buffer,
+                        mimeType,
+                    );
+                }
             }
             return;
         }
@@ -406,18 +567,21 @@ export class AiJobCron {
                     telegramId,
                     result.buffer,
                     result.mimeType,
+                    sendAsFile,
                 );
             } else if (type === 'video') {
                 await botService.sendVideoBuffer(
                     telegramId,
                     result.buffer,
                     result.mimeType,
+                    sendAsFile,
                 );
             } else if (type === 'audio') {
                 await botService.sendAudioBuffer(
                     telegramId,
                     result.buffer,
                     result.mimeType,
+                    sendAsFile,
                 );
             }
         }

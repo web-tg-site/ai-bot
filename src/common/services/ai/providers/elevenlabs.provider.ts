@@ -37,8 +37,7 @@ export function isElevenLabsDubbingResultUrl(url?: string): boolean {
 const MAX_TEXT_LENGTH = 5000;
 const DUBBING_JOB_SEPARATOR = '::';
 const GEO_BLOCK_MESSAGE =
-    'ElevenLabs API недоступен из вашего региона (HTTP 403). ' +
-    'Для локальной разработки используйте VPN/прокси или запускайте бота на сервере за пределами ограниченных стран (например Railway).';
+    'Сервис озвучки недоступен из вашего региона. Попробуйте позже или выберите другой инструмент.';
 
 @Injectable()
 export class ElevenLabsProvider {
@@ -233,7 +232,12 @@ export class ElevenLabsProvider {
         const status = this.mapStatus(response.status);
 
         if (status === 'failed') {
-            return { status, errorMessage: response.error ?? 'Dubbing failed' };
+            return {
+                status,
+                errorMessage:
+                    response.error ??
+                    'Не удалось выполнить дубляж — сбой на стороне провайдера.',
+            };
         }
 
         if (status === 'completed') {
@@ -534,9 +538,7 @@ export class ElevenLabsProvider {
 
     private ensureApiKey() {
         if (!this.apiKey) {
-            throw new Error(
-                'ELEVENLABS_API_KEY не настроен. Добавьте ключ в .env (получить на elevenlabs.io → Profile → API Key).',
-            );
+            throw new Error('Сервис временно недоступен. Попробуйте позже.');
         }
     }
 
@@ -615,7 +617,7 @@ export class ElevenLabsProvider {
         ) {
             return String(data);
         }
-        return 'ElevenLabs API error';
+        return 'Сбой на стороне провайдера';
     }
 
     private extractApiMessage(data: object): string | undefined {
@@ -697,20 +699,22 @@ export class ElevenLabsProvider {
             }
 
             if (status === 401) {
-                return 'Неверный ELEVENLABS_API_KEY. Проверьте ключ в .env.';
+                return 'Сервис временно недоступен. Попробуйте позже.';
             }
             if (status === 402) {
-                return 'Недостаточно кредитов ElevenLabs. Пополните баланс на elevenlabs.io.';
+                return 'Недостаточно квоты у провайдера для этой операции.';
             }
             if (status === 403) {
-                return 'Доступ к ElevenLabs запрещён (HTTP 403). Проверьте подписку, голос и модель.';
+                return 'Доступ к сервису ограничён. Попробуйте позже.';
             }
             if (status) {
-                return `ElevenLabs API error: HTTP ${status}`;
+                return `Сбой на стороне провайдера (HTTP ${status}).`;
             }
         }
 
-        return error instanceof Error ? error.message : 'ElevenLabs API error';
+        return error instanceof Error
+            ? error.message
+            : 'Сбой на стороне провайдера';
     }
 
     private tryParseJson(body: string): object | undefined {

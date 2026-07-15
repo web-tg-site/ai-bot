@@ -2,12 +2,15 @@ import { I18nBundle, ru, en } from '../i18n';
 import { VoiceKeyboardMode } from '../keyboards/voice.keyboard';
 import { resolveVoiceIdFromPickerLabel } from '../keyboards/voice.keyboard';
 import { ElevenLabsVoiceOption } from '@/common/config/elevenlabs-voices.config';
+import { AiToolId } from '@/common/services/ai/types';
+import { resolveVoiceSendAsFile } from '@/common/utils/resolve-send-as-file';
 
 export type ElevenLabsVoiceButtonAction =
     | { type: 'open_settings' }
     | { type: 'select_voice'; voiceId: string }
     | { type: 'confirm_voice' }
     | { type: 'reject_voice' }
+    | { type: 'toggle_send_as_file' }
     | { type: 'back_to_settings' }
     | { type: 'back_to_editor' };
 
@@ -18,6 +21,7 @@ export function resolveElevenLabsVoiceButtonAction(
         keyboardMode: VoiceKeyboardMode;
         localeTag: 'ru-RU' | 'en-US';
         voices: ElevenLabsVoiceOption[];
+        sendAsFile?: boolean;
     },
 ): ElevenLabsVoiceButtonAction | null {
     if (text === i18n.voiceTool.backToEditor) {
@@ -39,6 +43,16 @@ export function resolveElevenLabsVoiceButtonAction(
     }
 
     if (options.keyboardMode === 'settings') {
+        const sendAsFile = resolveVoiceSendAsFile(AiToolId.ELEVENLABS_VOICE, {
+            sendAsFile: options.sendAsFile,
+        });
+        if (
+            text === i18n.voiceTool.sendAsFileButton(sendAsFile) ||
+            text === i18n.voiceTool.sendAsFileButton(!sendAsFile)
+        ) {
+            return { type: 'toggle_send_as_file' };
+        }
+
         const voiceId = resolveVoiceIdFromPickerLabel(
             text,
             i18n,
@@ -72,6 +86,13 @@ export function isElevenLabsVoiceControlButton(
             text === i18n.voiceTool.rejectVoiceButton ||
             text === i18n.voiceTool.backToVoiceList ||
             text === i18n.voiceTool.backToEditor
+        ) {
+            return true;
+        }
+
+        if (
+            text === i18n.voiceTool.sendAsFileButton(true) ||
+            text === i18n.voiceTool.sendAsFileButton(false)
         ) {
             return true;
         }

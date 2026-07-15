@@ -210,7 +210,10 @@ export class TopazProvider {
             return {
                 status,
                 errorMessage:
-                    statusResponse.message ?? 'Topaz image enhancement failed',
+                    statusResponse.message &&
+                    /[а-яА-ЯёЁ]/.test(statusResponse.message)
+                        ? statusResponse.message
+                        : 'Не удалось улучшить изображение — сбой на стороне провайдера.',
             };
         }
 
@@ -225,7 +228,8 @@ export class TopazProvider {
         if (!downloadMeta.download_url) {
             return {
                 status: 'failed',
-                errorMessage: 'Topaz did not return image download URL',
+                errorMessage:
+                    'Не удалось получить результат — сбой на стороне провайдера.',
             };
         }
 
@@ -261,7 +265,9 @@ export class TopazProvider {
             return {
                 status,
                 errorMessage:
-                    response.message ?? 'Topaz video enhancement failed',
+                    response.message && /[а-яА-ЯёЁ]/.test(response.message)
+                        ? response.message
+                        : 'Не удалось улучшить видео — сбой на стороне провайдера.',
             };
         }
 
@@ -426,10 +432,12 @@ export class TopazProvider {
             if (message) return message;
 
             if (axiosError.response?.status) {
-                return `Topaz API error: HTTP ${axiosError.response.status}`;
+                return `Сбой на стороне провайдера (HTTP ${axiosError.response.status}).`;
             }
         }
 
-        return error instanceof Error ? error.message : 'Topaz API error';
+        return error instanceof Error
+            ? error.message
+            : 'Сбой на стороне провайдера';
     }
 }

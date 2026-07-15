@@ -9,9 +9,12 @@ import {
     DEFAULT_VIDEO_RESOLUTIONS,
     STATIC_VIDEO_DURATIONS,
     STATIC_VIDEO_RESOLUTIONS,
+    STATIC_VIDEO_QUALITIES,
     VIDEO_DURATION_TIERS,
     BUILTIN_VIDEO_STYLE_PRESETS,
+    VideoQualityOption,
     VideoStyleOption,
+    buildModelNativeQualityOptions,
     buildModelNativeStyleOptions,
     getOpenRouterVideoModelForTool,
     isVideoFlowTool,
@@ -88,18 +91,51 @@ export class VideoCapabilitiesService implements OnModuleInit {
             : [...DEFAULT_VIDEO_RESOLUTIONS];
     }
 
+    getQualityOptions(toolId: AiToolId): VideoQualityOption[] {
+        if (!isVideoFlowTool(toolId)) {
+            return [];
+        }
+
+        const staticQualities = STATIC_VIDEO_QUALITIES[toolId];
+        if (staticQualities?.length) {
+            return [...staticQualities];
+        }
+
+        const model = getOpenRouterVideoModelForTool(toolId);
+        if (!model) {
+            return [];
+        }
+
+        const allowedPassthrough =
+            this.cache.get(model)?.allowedPassthrough ?? [];
+        return buildModelNativeQualityOptions(model, allowedPassthrough);
+    }
+
+    supportsQuality(toolId: AiToolId): boolean {
+        return this.getQualityOptions(toolId).length > 0;
+    }
+
     getSupportedDurations(toolId: AiToolId): number[] {
         if (!isVideoFlowTool(toolId)) {
             return [];
         }
 
         const modelDurations = this.getModelDurations(toolId);
-        const tierMatches = VIDEO_DURATION_TIERS.filter((tier) =>
+        const durations: number[] = VIDEO_DURATION_TIERS.filter((tier) =>
             this.isDurationSupported(toolId, tier, modelDurations),
         );
 
-        if (tierMatches.length) {
-            return [...tierMatches];
+        const maxDuration = this.getProviderMaxDuration(toolId, modelDurations);
+        if (
+            maxDuration > 5 &&
+            maxDuration < 10 &&
+            !durations.includes(maxDuration)
+        ) {
+            durations.push(maxDuration);
+        }
+
+        if (durations.length) {
+            return durations.sort((left, right) => left - right);
         }
 
         return modelDurations;
@@ -165,6 +201,17 @@ export class VideoCapabilitiesService implements OnModuleInit {
         return allowed[0];
     }
 
+    normalizeQuality(toolId: AiToolId, quality?: string): string | undefined {
+        const allowed = this.getQualityOptions(toolId);
+        if (!allowed.length) {
+            return undefined;
+        }
+        if (quality && allowed.some((option) => option.value === quality)) {
+            return quality;
+        }
+        return allowed[0]?.value;
+    }
+
     normalizeDuration(toolId: AiToolId, durationSeconds?: number): number {
         const allowed = this.getSupportedDurations(toolId);
         const fallback =
@@ -223,6 +270,25 @@ export class VideoCapabilitiesService implements OnModuleInit {
         }
 
         return durationSeconds;
+    }
+
+    private getProviderMaxDuration(
+        toolId: AiToolId,
+        modelDurations: number[],
+    ): number {
+        if (toolId === AiToolId.KLING || toolId === AiToolId.SEEDANCE) {
+            return 15;
+        }
+
+        if (toolId === AiToolId.SORA) {
+            return 15;
+        }
+
+        if (modelDurations.length) {
+            return Math.max(...modelDurations);
+        }
+
+        return 15;
     }
 
     private getModelDurations(toolId: AiToolId): number[] {

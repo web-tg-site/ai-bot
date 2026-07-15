@@ -9,4 +9,5 @@ export * from './gpt.keyboard';
 export * from './image.keyboard';
 export * from './video.keyboard';
 export * from './voice.keyboard';
+export * from './audio-tool.keyboard';
 export * from './subs.keyboard';

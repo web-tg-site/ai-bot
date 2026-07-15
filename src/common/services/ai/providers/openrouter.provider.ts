@@ -9,6 +9,7 @@ import {
     AiJobCreateResult,
     AiJobStatusResult,
 } from '../types';
+import { OPENROUTER_NANO_BANANA_MODEL } from '@/common/config/image-editor-capabilities.config';
 import { getToolById } from '@/common/config/ai-tools.registry';
 import { AiToolId } from '../types';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
@@ -51,7 +52,6 @@ export class OpenRouterProvider {
                 return this.chatGpt(input);
             case AiToolId.GPT_IMAGES:
             case AiToolId.FLUX:
-            case AiToolId.NANO_BANANA:
             case AiToolId.SEEDREAM: {
                 const tool = getToolById(toolId);
                 if (!tool?.model) {
@@ -64,6 +64,15 @@ export class OpenRouterProvider {
                     `OpenRouter sync generate not supported for ${toolId}`,
                 );
         }
+    }
+
+    async generateNanoBananaFallback(
+        input: AiGenerationInput,
+    ): Promise<AiGenerationResult> {
+        return this.generateImage(OPENROUTER_NANO_BANANA_MODEL, {
+            ...input,
+            resolution: '1K',
+        });
     }
 
     async prepareSoundEffectPrompt(userDescription: string): Promise<string> {
@@ -164,6 +173,10 @@ export class OpenRouterProvider {
             Object.assign(body, input.videoStylePassthrough);
         }
 
+        if (input.quality) {
+            body.quality = input.quality;
+        }
+
         const response = await this.post<{
             id: string;
             polling_url?: string;
@@ -203,12 +216,11 @@ export class OpenRouterProvider {
         }
 
         if (status === 'failed') {
-            const errorMessage =
-                typeof response.error === 'string'
-                    ? response.error
-                    : (response.error?.message ?? 'Video generation failed');
-
-            return { status, errorMessage };
+            return {
+                status,
+                errorMessage:
+                    'Сбой на стороне провайдера. Попробуйте позже или выберите другой инструмент.',
+            };
         }
 
         return { status };
@@ -617,6 +629,10 @@ export class OpenRouterProvider {
             body.resolution = input.resolution;
         }
 
+        if (input.quality) {
+            body.quality = input.quality;
+        }
+
         const imageFiles = input.files?.filter((file) =>
             file.mimeType.startsWith('image/'),
         );
@@ -854,11 +870,13 @@ export class OpenRouterProvider {
             }
 
             if (axiosError.response?.status) {
-                return `OpenRouter API error: HTTP ${axiosError.response.status}`;
+                return `Сбой на стороне провайдера (HTTP ${axiosError.response.status}).`;
             }
         }
 
-        return error instanceof Error ? error.message : 'OpenRouter API error';
+        return error instanceof Error
+            ? error.message
+            : 'Сбой на стороне провайдера';
     }
 
     private humanizeApiError(data: unknown): string | undefined {
@@ -926,8 +944,6 @@ export class OpenRouterProvider {
             })
             .filter(Boolean);
 
-        return lines.length
-            ? lines.join('\n')
-            : 'Ошибка валидации запроса к OpenRouter';
+        return lines.length ? lines.join('\n') : 'Ошибка параметров запроса.';
     }
 }

@@ -3,12 +3,15 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { AiToolId } from '@/common/services/ai/types';
+import { AiProviderId, AiToolId } from '@/common/services/ai/types';
+import { getToolById } from '@/common/config/ai-tools.registry';
 import {
     DEFAULT_ASPECT_RATIOS,
+    DEFAULT_IMAGE_QUALITIES,
     DEFAULT_RESOLUTIONS,
     ImageCapabilityDescriptor,
     ImageModelCapabilities,
+    SHARPII_NANO_BANANA_RESOLUTIONS,
     STATIC_IMAGE_ASPECT_RATIOS,
     TOPAZ_SCALES,
     getOpenRouterModelForTool,
@@ -60,6 +63,10 @@ export class ImageCapabilitiesService implements OnModuleInit {
             return [];
         }
 
+        if (this.isSharpiiNanoBanana(toolId)) {
+            return [...SHARPII_NANO_BANANA_RESOLUTIONS];
+        }
+
         const model = getOpenRouterModelForTool(toolId);
         if (!model) {
             return [];
@@ -67,6 +74,27 @@ export class ImageCapabilitiesService implements OnModuleInit {
 
         const resolutions = this.cache.get(model)?.resolutions ?? [];
         return resolutions;
+    }
+
+    getQualities(toolId: AiToolId): string[] {
+        if (
+            toolId === AiToolId.MIDJOURNEY ||
+            isTopazTool(toolId) ||
+            this.isSharpiiNanoBanana(toolId)
+        ) {
+            return [];
+        }
+
+        const model = getOpenRouterModelForTool(toolId);
+        if (!model) {
+            return [];
+        }
+
+        return this.cache.get(model)?.qualities ?? [];
+    }
+
+    supportsQuality(toolId: AiToolId): boolean {
+        return this.getQualities(toolId).length > 0;
     }
 
     getTopazScales(): readonly number[] {
@@ -102,6 +130,20 @@ export class ImageCapabilitiesService implements OnModuleInit {
         return allowed[0];
     }
 
+    normalizeQuality(toolId: AiToolId, quality?: string): string | undefined {
+        const allowed = this.getQualities(toolId);
+        if (!allowed.length) {
+            return undefined;
+        }
+        if (quality && allowed.includes(quality)) {
+            return quality;
+        }
+        if (allowed.includes('auto')) {
+            return 'auto';
+        }
+        return allowed[0];
+    }
+
     normalizeTopazScale(scale?: number): number {
         if (
             scale &&
@@ -123,7 +165,6 @@ export class ImageCapabilitiesService implements OnModuleInit {
         const models = [
             getOpenRouterModelForTool(AiToolId.GPT_IMAGES),
             getOpenRouterModelForTool(AiToolId.FLUX),
-            getOpenRouterModelForTool(AiToolId.NANO_BANANA),
             getOpenRouterModelForTool(AiToolId.SEEDREAM),
         ].filter(Boolean) as string[];
 
@@ -144,6 +185,7 @@ export class ImageCapabilitiesService implements OnModuleInit {
                     this.cache.set(model, {
                         aspectRatios: [...DEFAULT_ASPECT_RATIOS],
                         resolutions: [],
+                        qualities: [],
                     });
                 }
             }),
@@ -174,6 +216,12 @@ export class ImageCapabilitiesService implements OnModuleInit {
             resolutions: supported?.resolution
                 ? this.readEnumValues(supported.resolution, DEFAULT_RESOLUTIONS)
                 : [],
+            qualities: supported?.quality
+                ? this.readEnumValues(
+                      supported.quality,
+                      DEFAULT_IMAGE_QUALITIES,
+                  )
+                : [],
         };
     }
 
@@ -202,5 +250,13 @@ export class ImageCapabilitiesService implements OnModuleInit {
             return descriptor.values;
         }
         return [...fallback];
+    }
+
+    private isSharpiiNanoBanana(toolId: AiToolId): boolean {
+        const tool = getToolById(toolId);
+        return (
+            toolId === AiToolId.NANO_BANANA &&
+            tool?.provider === AiProviderId.SHARPII
+        );
     }
 }

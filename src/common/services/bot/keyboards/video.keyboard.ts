@@ -3,6 +3,7 @@ import { AiToolId } from '@/common/services/ai/types';
 import { AiSessionStep } from '@/common/services/ai/types/ai-session-state.type';
 import { I18nBundle } from '../i18n';
 import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
+import { resolveVideoSendAsFile } from '@/common/utils/resolve-send-as-file';
 import {
     isVideoToolWithAspectSettings,
     isVideoToolWithReferences,
@@ -20,6 +21,7 @@ export type VideoKeyboardMode =
     | 'settings'
     | 'aspect'
     | 'resolution'
+    | 'quality'
     | 'duration'
     | 'style';
 
@@ -28,17 +30,25 @@ type VideoStyleOption = {
     label: string;
 };
 
+type VideoQualityOption = {
+    value: string;
+    label: string;
+};
+
 function hasConfigurableSettings(options: {
     toolId: AiToolId;
     aspectRatios: string[];
     resolutions: string[];
+    qualities: VideoQualityOption[];
     durations: number[];
 }): boolean {
     return (
         (isVideoToolWithAspectSettings(options.toolId) &&
             (options.aspectRatios.length > 0 ||
                 options.resolutions.length > 0)) ||
-        options.durations.length > 0
+        options.qualities.length > 0 ||
+        options.durations.length > 0 ||
+        true
     );
 }
 
@@ -49,6 +59,7 @@ export function generateVideoEditorReplyKeyboard(
         settings: VideoToolSettings;
         aspectRatios: string[];
         resolutions: string[];
+        qualities: VideoQualityOption[];
         durations: number[];
         stylePresets: VideoStyleOption[];
         step: AiSessionStep;
@@ -73,8 +84,22 @@ export function generateVideoEditorReplyKeyboard(
     if (options.keyboardMode === 'resolution') {
         return generateResolutionPickerKeyboard(
             i18n,
+            tool,
             options.resolutions,
             options.settings.resolution ?? options.resolutions[0] ?? '720p',
+            options.settings,
+        );
+    }
+
+    if (options.keyboardMode === 'quality') {
+        return generateQualityPickerKeyboard(
+            i18n,
+            tool,
+            options.qualities,
+            options.settings.quality ??
+                options.qualities[0]?.value ??
+                'standard',
+            options.settings,
         );
     }
 
@@ -97,6 +122,7 @@ export function generateVideoEditorReplyKeyboard(
             toolId: options.toolId,
             aspectRatios: options.aspectRatios,
             resolutions: options.resolutions,
+            qualities: options.qualities,
             durations: options.durations,
         })
     ) {
@@ -107,7 +133,8 @@ export function generateVideoEditorReplyKeyboard(
         options.step === 'awaiting_video_references' &&
         isVideoToolWithReferences(options.toolId)
     ) {
-        rows.push([i18n.videoTool.continueToPrompt, i18n.videoTool.skipRefs]);
+        rows.push([i18n.videoTool.continueToPrompt]);
+        rows.push([i18n.videoTool.skipRefs]);
     }
 
     rows.push([i18n.buttons.back]);
@@ -123,6 +150,7 @@ function generateSettingsMenuKeyboard(
         settings: VideoToolSettings;
         aspectRatios: string[];
         resolutions: string[];
+        qualities: VideoQualityOption[];
         durations: number[];
         stylePresets: VideoStyleOption[];
     },
@@ -140,6 +168,10 @@ function generateSettingsMenuKeyboard(
         settingButtons.push(i18n.videoTool.changeResolutionButton);
     }
 
+    if (options.qualities.length) {
+        settingButtons.push(i18n.videoTool.changeQualityButton);
+    }
+
     if (options.durations.length) {
         settingButtons.push(i18n.videoTool.changeDurationButton);
     }
@@ -149,6 +181,11 @@ function generateSettingsMenuKeyboard(
     }
 
     const rows = chunkKeyboardRow(settingButtons).map((chunk) => [...chunk]);
+    rows.push([
+        i18n.videoTool.sendAsFileButton(
+            resolveVideoSendAsFile(options.toolId, options.settings),
+        ),
+    ]);
     rows.push([i18n.videoTool.backToEditor]);
     return Markup.keyboard(rows).resize();
 }
@@ -173,15 +210,54 @@ function generateAspectRatioPickerKeyboard(
 
 function generateResolutionPickerKeyboard(
     i18n: I18nBundle,
+    tool: AiToolConfig | undefined,
     resolutions: string[],
     current: string,
+    settings: VideoToolSettings,
 ) {
     const rows = chunkKeyboardRow(resolutions).map((chunk) =>
-        chunk.map((resolution) =>
-            resolution === current
-                ? i18n.videoTool.resolutionPickerSelected(resolution)
-                : i18n.videoTool.resolutionPickerOption(resolution),
-        ),
+        chunk.map((resolution) => {
+            const tokens = tool
+                ? calculateToolTokenCost(tool, {
+                      durationSeconds:
+                          settings.durationSeconds ??
+                          tool.defaultDurationSeconds,
+                      resolution,
+                      quality: settings.quality,
+                  })
+                : 0;
+            return resolution === current
+                ? i18n.videoTool.resolutionPickerSelected(resolution, tokens)
+                : i18n.videoTool.resolutionPickerOption(resolution, tokens);
+        }),
+    );
+
+    rows.push([i18n.videoTool.backToSettings]);
+    return Markup.keyboard(rows).resize();
+}
+
+function generateQualityPickerKeyboard(
+    i18n: I18nBundle,
+    tool: AiToolConfig | undefined,
+    qualities: VideoQualityOption[],
+    current: string,
+    settings: VideoToolSettings,
+) {
+    const rows = chunkKeyboardRow(qualities).map((chunk) =>
+        chunk.map((option) => {
+            const tokens = tool
+                ? calculateToolTokenCost(tool, {
+                      durationSeconds:
+                          settings.durationSeconds ??
+                          tool.defaultDurationSeconds,
+                      resolution: settings.resolution,
+                      quality: option.value,
+                  })
+                : 0;
+            return option.value === current
+                ? i18n.videoTool.qualityPickerSelected(option.label, tokens)
+                : i18n.videoTool.qualityPickerOption(option.label, tokens);
+        }),
     );
 
     rows.push([i18n.videoTool.backToSettings]);
@@ -200,7 +276,11 @@ function generateDurationPickerKeyboard(
     const rows = chunkKeyboardRow(options.durations).map((chunk) =>
         chunk.map((seconds) => {
             const credits = tool
-                ? calculateToolTokenCost(tool, { durationSeconds: seconds })
+                ? calculateToolTokenCost(tool, {
+                      durationSeconds: seconds,
+                      resolution: options.settings.resolution,
+                      quality: options.settings.quality,
+                  })
                 : 0;
             return seconds === current
                 ? i18n.videoTool.durationPickerSelected(seconds, credits)

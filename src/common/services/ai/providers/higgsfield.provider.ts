@@ -60,7 +60,9 @@ export class HiggsfieldProvider {
         if (status === 'failed') {
             return {
                 status,
-                errorMessage: response.error ?? 'Higgsfield generation failed',
+                errorMessage:
+                    response.error ??
+                    'Не удалось завершить генерацию — сбой на стороне провайдера.',
             };
         }
 
@@ -128,8 +130,13 @@ export class HiggsfieldProvider {
             const axiosError = error as {
                 response?: { data?: { message?: string } };
             };
-            return axiosError.response?.data?.message ?? 'Higgsfield API error';
+            return (
+                axiosError.response?.data?.message ??
+                'Сбой на стороне провайдера'
+            );
         }
-        return error instanceof Error ? error.message : 'Higgsfield API error';
+        return error instanceof Error
+            ? error.message
+            : 'Сбой на стороне провайдера';
     }
 }

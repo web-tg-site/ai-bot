@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { AiFileInput } from '@/common/services/ai/types';
 import { StoredReference } from '@/common/services/ai/types/ai-session-state.type';
 import { compressReferenceImage } from '@/common/utils/compress-reference-image';
@@ -8,6 +9,7 @@ export async function serializeReference(
     const compressed = await compressReferenceImage(file);
 
     return {
+        id: randomUUID(),
         data: compressed.buffer.toString('base64'),
         mimeType: compressed.mimeType,
         fileName: compressed.fileName,

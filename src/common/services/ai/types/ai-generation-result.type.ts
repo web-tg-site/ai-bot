@@ -30,6 +30,7 @@ export type AiGenerationInput = {
     localeTag?: 'ru-RU' | 'en-US';
     aspectRatio?: string;
     resolution?: string;
+    quality?: string;
     topazScale?: number;
     videoStyleId?: string;
     videoStylePassthrough?: Record<string, string | number | boolean>;

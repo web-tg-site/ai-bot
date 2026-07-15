@@ -5,12 +5,15 @@ import {
     isImageToolWithAspectSettings,
     isImageToolWithReferences,
     isTopazTool,
+    formatImageQualityLabel,
 } from '@/common/config/image-editor-capabilities.config';
 import { ImageCapabilitiesService } from '@/common/services/ai/image-capabilities.service';
 import { UserAiToolSettingsModelService } from '@/common/models/user-ai-tool-settings';
 import { ImageToolSettings } from '@/common/types/image-tool-settings.type';
-import { I18nBundle, getToolLabel } from '../i18n';
+import { I18nBundle, getToolLabel, getToolInstruction } from '../i18n';
 import { UserLanguage } from '@/generated/prisma/enums';
+import { resolveImageSendAsFile } from '@/common/utils/resolve-send-as-file';
+import { getImageToolCapabilities } from './image-tool-buttons';
 import {
     generateImageEditorReplyKeyboard,
     ImageKeyboardMode,
@@ -34,6 +37,7 @@ export async function loadImageToolSettings(
             toolId,
             stored.resolution,
         ),
+        quality: capabilitiesService.normalizeQuality(toolId, stored.quality),
         topazScale: capabilitiesService.normalizeTopazScale(stored.topazScale),
     };
 }
@@ -55,6 +59,42 @@ export function getImageKeyboardMode(session: BotSession): ImageKeyboardMode {
     return session.ai?.imageKeyboardMode ?? 'main';
 }
 
+export function buildImageToolMainScreenText(
+    i18n: I18nBundle,
+    toolId: AiToolId,
+    language: UserLanguage | null | undefined,
+    settings: ImageToolSettings,
+    capabilitiesService: ImageCapabilitiesService,
+): string {
+    const label = getToolLabel(toolId, language);
+    const instruction = getToolInstruction(toolId, language);
+    const caps = getImageToolCapabilities(toolId, capabilitiesService);
+    const parts = [i18n.aiResult.toolSelected(label, instruction)];
+
+    if (isImageToolWithAspectSettings(toolId) && caps.aspectRatios.length) {
+        parts.push(
+            i18n.imageTool.formatLine(
+                settings.aspectRatio ?? caps.aspectRatios[0],
+                caps.resolutions.length
+                    ? (settings.resolution ?? caps.resolutions[0])
+                    : undefined,
+                caps.qualities.length && settings.quality
+                    ? formatImageQualityLabel(
+                          settings.quality ?? caps.qualities[0],
+                          i18n.localeTag,
+                      )
+                    : undefined,
+            ),
+        );
+    }
+
+    parts.push(
+        i18n.imageTool.deliveryLine(resolveImageSendAsFile(toolId, settings)),
+    );
+
+    return parts.join('\n\n');
+}
+
 export function buildImageEditorReplyKeyboard(
     i18n: I18nBundle,
     options: {
@@ -74,9 +114,11 @@ export function buildImageEditorReplyKeyboard(
             options.toolId,
         ),
         resolutions: options.capabilitiesService.getResolutions(options.toolId),
+        qualities: options.capabilitiesService.getQualities(options.toolId),
         topazScales: options.capabilitiesService.getTopazScales(),
         step: options.step,
         keyboardMode: options.keyboardMode ?? 'main',
+        localeTag: i18n.localeTag,
     });
 }
 
@@ -120,8 +162,17 @@ export async function replyWithImageEditorKeyboard(
     }
 
     await ctx.reply(
-        i18n.imageTool.keyboardUpdated(getToolLabel(toolId, language)),
-        keyboard,
+        buildImageToolMainScreenText(
+            i18n,
+            toolId,
+            language,
+            session.ai?.toolSettings ?? {},
+            capabilitiesService,
+        ),
+        {
+            ...keyboard,
+            parse_mode: 'HTML',
+        },
     );
 }
 

@@ -35,6 +35,8 @@ export class AiJobService {
         const tokenCost = this.tokenBillingService.calculateCost(tool, {
             durationSeconds: params.input.durationSeconds,
             topazScale: params.input.topazScale,
+            quality: params.input.quality,
+            resolution: params.input.resolution,
         });
 
         const balanceCheck = await this.tokenBillingService.checkBalance(
@@ -78,7 +80,7 @@ export class AiJobService {
                 status: { in: [JobStatus.PENDING, JobStatus.PROCESSING] },
             },
             include: {
-                user: { select: { telegramId: true } },
+                user: { select: { telegramId: true, language: true } },
             },
             orderBy: { createdAt: 'asc' },
             take: AI_JOB_POLL_BATCH_SIZE,
@@ -129,7 +131,7 @@ export class AiJobService {
                 createdAt: { lt: cutoff },
             },
             include: {
-                user: { select: { telegramId: true } },
+                user: { select: { telegramId: true, language: true } },
             },
         });
 
@@ -167,7 +169,7 @@ export class AiJobService {
                 staleReminderSent: false,
             },
             include: {
-                user: { select: { telegramId: true } },
+                user: { select: { telegramId: true, language: true } },
             },
             take: 20,
         });
@@ -193,5 +195,23 @@ export class AiJobService {
                 errorMessage: data?.errorMessage,
             },
         });
+    }
+
+    async failJobWithRefund(params: {
+        jobId: string;
+        telegramId: string;
+        tokenCost: number;
+        errorMessage: string;
+    }) {
+        await this.updateJobStatus(params.jobId, JobStatus.FAILED, {
+            errorMessage: params.errorMessage,
+        });
+
+        if (params.tokenCost > 0) {
+            await this.tokenBillingService.refund(
+                params.telegramId,
+                params.tokenCost,
+            );
+        }
     }
 }

@@ -1,6 +1,8 @@
 import { Markup } from 'telegraf';
 import { I18nBundle } from '../i18n';
 import { VoiceToolSettings } from '@/common/types/voice-tool-settings.type';
+import { AiToolId } from '@/common/services/ai/types';
+import { resolveVoiceSendAsFile } from '@/common/utils/resolve-send-as-file';
 import {
     ElevenLabsVoiceOption,
     getElevenLabsVoiceLabel,
@@ -24,10 +26,8 @@ export function generateElevenLabsVoiceReplyKeyboard(
 
     if (options.keyboardMode === 'preview') {
         return Markup.keyboard([
-            [
-                i18n.voiceTool.confirmVoiceButton,
-                i18n.voiceTool.rejectVoiceButton,
-            ],
+            [i18n.voiceTool.confirmVoiceButton],
+            [i18n.voiceTool.rejectVoiceButton],
             [i18n.voiceTool.backToVoiceList],
         ]).resize();
     }
@@ -55,6 +55,11 @@ function generateVoicePickerKeyboard(
     });
 
     const rows = chunkKeyboardRow(labels).map((chunk) => [...chunk]);
+    rows.unshift([
+        i18n.voiceTool.sendAsFileButton(
+            resolveVoiceSendAsFile(AiToolId.ELEVENLABS_VOICE, options.settings),
+        ),
+    ]);
     rows.push([i18n.voiceTool.backToEditor]);
     return Markup.keyboard(rows).resize();
 }

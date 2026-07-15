@@ -5,6 +5,10 @@ import {
     AiToolId,
 } from '@/common/services/ai/types';
 import { calculateTopazTokenCost } from '@/common/config/image-editor-capabilities.config';
+import {
+    applyImageCostMultipliers,
+    applyVideoCostMultipliers,
+} from '@/common/config/token-cost-multipliers.config';
 import { ru } from '@/common/services/bot/i18n/locales/ru';
 import { en } from '@/common/services/bot/i18n/locales/en';
 
@@ -43,7 +47,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         accepts: ['text', 'photo'],
         isAsync: false,
         instruction:
-            'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу.',
+            'Опишите задачу и при желании добавьте референсы (до 10 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
     },
     {
         id: AiToolId.FLUX,
@@ -55,19 +59,19 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         accepts: ['text', 'photo'],
         isAsync: false,
         instruction:
-            'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу.',
+            'Опишите задачу и при желании добавьте референсы (до 10 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
     },
     {
         id: AiToolId.NANO_BANANA,
         label: 'Nano Banana',
         category: 'image',
-        provider: AiProviderId.OPENROUTER,
-        model: 'google/gemini-2.5-flash-image',
+        provider: AiProviderId.SHARPII,
+        model: 'nano-banana-2',
         baseTokenCost: 20,
         accepts: ['text', 'photo'],
-        isAsync: false,
+        isAsync: true,
         instruction:
-            'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу.',
+            'Опишите задачу и при желании добавьте референсы (до 4 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
     },
     {
         id: AiToolId.SEEDREAM,
@@ -79,7 +83,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         accepts: ['text', 'photo'],
         isAsync: false,
         instruction:
-            'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу.',
+            'Опишите задачу и при желании добавьте референсы (до 10 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
     },
     {
         id: AiToolId.MIDJOURNEY,
@@ -259,6 +263,8 @@ export const getToolsByCategory = (category: AiToolCategory): AiToolConfig[] =>
 export type ToolCostOptions = {
     durationSeconds?: number;
     topazScale?: number;
+    quality?: string;
+    resolution?: string;
 };
 
 export const calculateToolTokenCost = (
@@ -278,7 +284,19 @@ export const calculateToolTokenCost = (
     if (tool.perSecondCost) {
         const duration =
             normalized.durationSeconds ?? tool.defaultDurationSeconds ?? 5;
-        return tool.baseTokenCost + tool.perSecondCost * duration;
+        const baseCost = tool.baseTokenCost + tool.perSecondCost * duration;
+        return applyVideoCostMultipliers(tool.id, baseCost, {
+            resolution: normalized.resolution,
+            quality: normalized.quality,
+        });
     }
+
+    if (tool.category === 'image') {
+        return applyImageCostMultipliers(tool.id, tool.baseTokenCost, {
+            resolution: normalized.resolution,
+            quality: normalized.quality,
+        });
+    }
+
     return tool.baseTokenCost;
 };

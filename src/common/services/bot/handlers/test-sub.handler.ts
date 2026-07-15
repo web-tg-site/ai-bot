@@ -50,7 +50,7 @@ export const registerTestSubHandler = (
                     subscriptionEndsAt: getDateEndSubToDb(7),
                     isSubscriptionActive: true,
                     lastSubscriptionType: SubscribeType.FREE,
-                    tokenLeft: 50,
+                    tokenLeft: 309,
                 },
             );
 

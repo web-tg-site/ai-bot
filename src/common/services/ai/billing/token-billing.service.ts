@@ -15,7 +15,14 @@ export class TokenBillingService {
 
     calculateCost(
         tool: AiToolConfig,
-        options?: { durationSeconds?: number; topazScale?: number } | number,
+        options?:
+            | {
+                  durationSeconds?: number;
+                  topazScale?: number;
+                  quality?: string;
+                  resolution?: string;
+              }
+            | number,
     ): number {
         return calculateToolTokenCost(tool, options);
     }
@@ -43,5 +50,12 @@ export class TokenBillingService {
         cost: number,
     ): Promise<{ success: boolean; balance: number }> {
         return this.userModelService.deductTokens(telegramId, cost);
+    }
+
+    async refund(
+        telegramId: string,
+        amount: number,
+    ): Promise<{ success: boolean; balance: number }> {
+        return this.userModelService.creditTokens(telegramId, amount);
     }
 }

@@ -146,7 +146,9 @@ Select a tool below.`,
         asyncStarted:
             '⏳ Generation started. The result will arrive in this chat when ready.',
         midjourneyFallback:
-            '⚠️ Midjourney via Sharpii is currently unavailable (provider issue). Generating with Flux…',
+            '⚠️ Midjourney is currently unavailable (provider issue). Generating with Flux…',
+        generationTakingLonger:
+            '⏳ Generation is taking longer than usual. Please wait…',
         videoToAudioPreparing:
             '⏳ Creating dub… This may take several minutes.',
         insufficientTokens:
@@ -154,6 +156,17 @@ Select a tool below.`,
         noSubscription:
             '❌ An active subscription is required to use AI tools.\n\nTap «Subscription plans» to choose a plan.',
         error: (message) => `❌ Generation error:\n\n${message}`,
+        errorWithCode: (code, message) => `❌ Error #${code}\n\n${message}`,
+        tokensRefunded: (amount) =>
+            `↩️ <b>${amount}</b> tokens refunded to your balance.`,
+        errorByCode: {
+            1: 'Something went wrong. Try again or choose another tool.',
+            10: 'The service is temporarily unavailable. Try again later.',
+            11: 'Generation took too long. Please try again.',
+            12: 'Provider failure. Try again later or choose another tool.',
+            13: 'Could not deliver the result. Please try again.',
+            14: 'Could not check generation status. Try again later.',
+        },
         sendTextOrFile: 'Send text or a file for generation.',
         mySubscription: (subscribeType, tokenLeft, subscriptionEndsAt) => {
             const endDate = subscriptionEndsAt
@@ -221,7 +234,7 @@ Trial limits:
 🧠 Up to 50 AI requests per week
 🎨 Up to 5 image generations per week
 🎬 Up to 1 video generation per week
-🎙️ Up to 3 audio generations per week
+🎙️ Up to 2 audio generations per week
 
 After the trial ends, a paid subscription is required to continue.
 Full access is available on any paid plan.`,
@@ -335,13 +348,13 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         instructions: {
             [AiToolId.GPT]: 'Send text, a photo, file, or video.',
             [AiToolId.GPT_IMAGES]:
-                'Attach up to 10 references (optional), then describe the task. In the prompt you can assign roles: "appearance from photo 1, location from photo 2".',
+                "Describe the task and optionally add references (up to 10 images). The more precisely you specify each image's role, the more predictable the result.",
             [AiToolId.FLUX]:
-                'Attach up to 10 references (optional), then describe the task. In the prompt you can assign roles: "appearance from photo 1, location from photo 2".',
+                "Describe the task and optionally add references (up to 10 images). The more precisely you specify each image's role, the more predictable the result.",
             [AiToolId.NANO_BANANA]:
-                'Attach up to 10 references (optional), then describe the task. In the prompt you can assign roles: "appearance from photo 1, location from photo 2".',
+                "Describe the task and optionally add references (up to 4 images). The more precisely you specify each image's role, the more predictable the result.",
             [AiToolId.SEEDREAM]:
-                'Attach up to 10 references (optional), then describe the task. In the prompt you can assign roles: "appearance from photo 1, location from photo 2".',
+                "Describe the task and optionally add references (up to 10 images). The more precisely you specify each image's role, the more predictable the result.",
             [AiToolId.MIDJOURNEY]: 'Send a prompt to generate an image.',
             [AiToolId.KLING]:
                 'Upload references (optional), adjust settings, then describe the scene.',
@@ -408,6 +421,9 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
     imageTool: {
         promptHint: 'Describe the task.',
         refAdded: (count, max) => `✅ Reference added: ${count}/${max}`,
+        refDeleteButton: '🗑 Delete',
+        refDeleted: '🗑 Reference removed',
+        refNotFound: 'Reference already removed or not found',
         refLimitReached: (max) =>
             `⚠️ Reference limit (${max}). Tap "Continue to prompt".`,
         needPhotoOnRefStep:
@@ -419,18 +435,26 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             formatAspectRatioToolbarLabel(ratio, 'en-US'),
         changeFormatButton: '📐 Change format',
         changeResolutionButton: '🖼 Change resolution',
+        changeQualityButton: '✨ Change quality',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Choose aspect ratio:',
         selectResolutionTitle: 'Choose resolution:',
+        selectQualityTitle: 'Choose quality:',
         aspectRatioPickerOption: (ratio) => formatAspectRatioLabelEn(ratio),
         aspectRatioPickerSelected: (ratio) =>
             `✓ ${formatAspectRatioLabelEn(ratio)}`,
-        resolutionPickerOption: (resolution) => resolution,
-        resolutionPickerSelected: (resolution) => `✓ ${resolution}`,
+        resolutionPickerOption: (resolution, tokens) =>
+            `${resolution} · ${tokens} tok.`,
+        resolutionPickerSelected: (resolution, tokens) =>
+            `✓ ${resolution} · ${tokens} tok.`,
+        qualityPickerOption: (label, tokens) => `${label} · ${tokens} tok.`,
+        qualityPickerSelected: (label, tokens) => `✓ ${label} · ${tokens} tok.`,
         aspectRatioChanged: (ratio) =>
             `Aspect: ${formatAspectRatioLabelEn(ratio)}`,
-        resolutionChanged: (resolution) =>
-            `Resolution: ${resolution} (higher = more detail)`,
+        resolutionChanged: (resolution, tokens) =>
+            `Resolution: ${resolution} (${tokens} tokens)`,
+        qualityChanged: (label, tokens) =>
+            `Quality: ${label} (${tokens} tokens)`,
         topazScaleButton: (scale, tokens, selected) =>
             `${selected ? '✓ ' : ''}×${scale} (${tokens} tok.)`,
         topazScaleChanged: (scale, tokens) =>
@@ -442,14 +466,33 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         backToEditor: '◀️ Back to editor',
         settingsMenuTitle: 'Generation settings',
         keyboardUpdated: (toolName) => toolName,
-        formatLine: (format, resolution) =>
-            resolution
-                ? `Format: <b>${getAspectRatioLabel(format, 'en-US')}</b> · <b>${format}</b> · <b>${resolution}</b>`
-                : `Format: <b>${getAspectRatioLabel(format, 'en-US')}</b> · <b>${format}</b>`,
+        formatLine: (format, resolution, quality) => {
+            const parts = [
+                `Format: <b>${getAspectRatioLabel(format, 'en-US')}</b> · <b>${format}</b>`,
+            ];
+            if (resolution) {
+                parts.push(`<b>${resolution}</b>`);
+            }
+            if (quality) {
+                parts.push(`<b>${quality}</b>`);
+            }
+            return parts.join(' · ');
+        },
+        sendAsFileButton: (asFile) =>
+            asFile ? '✓ Send as file' : '📎 Send as file',
+        sendAsFileChanged: (asFile) =>
+            asFile
+                ? 'Results will be sent as a <b>file</b>'
+                : 'Results will be sent as a <b>photo</b>',
+        deliveryLine: (asFile) =>
+            asFile ? 'Delivery: <b>file</b>' : 'Delivery: <b>photo</b>',
     },
     videoTool: {
         promptHint: 'Describe the scene and camera movement.',
         refAdded: (count, max) => `✅ Reference added: ${count}/${max}`,
+        refDeleteButton: '🗑 Delete',
+        refDeleted: '🗑 Reference removed',
+        refNotFound: 'Reference already removed or not found',
         refLimitReached: (max) =>
             `⚠️ Reference limit (${max}). Tap "Continue to prompt".`,
         needPhotoOnRefStep:
@@ -461,21 +504,30 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             formatAspectRatioToolbarLabel(ratio, 'en-US'),
         changeFormatButton: '📐 Change format',
         changeResolutionButton: '🖼 Change resolution',
+        changeQualityButton: '✨ Change quality',
         changeDurationButton: '⏱ Change duration',
         changeStyleButton: '🎨 Change style',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Choose aspect ratio:',
         selectResolutionTitle: 'Choose resolution:',
+        selectQualityTitle: 'Choose quality:',
         selectDurationTitle: 'Choose duration:',
         selectStyleTitle: 'Choose style:',
         aspectRatioPickerOption: (ratio) => formatAspectRatioLabelEn(ratio),
         aspectRatioPickerSelected: (ratio) =>
             `✓ ${formatAspectRatioLabelEn(ratio)}`,
-        resolutionPickerOption: (resolution) => resolution,
-        resolutionPickerSelected: (resolution) => `✓ ${resolution}`,
+        resolutionPickerOption: (resolution, tokens) =>
+            `${resolution} · ${tokens} tok.`,
+        resolutionPickerSelected: (resolution, tokens) =>
+            `✓ ${resolution} · ${tokens} tok.`,
+        qualityPickerOption: (label, tokens) => `${label} · ${tokens} tok.`,
+        qualityPickerSelected: (label, tokens) => `✓ ${label} · ${tokens} tok.`,
         aspectRatioChanged: (ratio) =>
             `Aspect: ${formatAspectRatioLabelEn(ratio)}`,
-        resolutionChanged: (resolution) => `Resolution: ${resolution}`,
+        resolutionChanged: (resolution, tokens) =>
+            `Resolution: ${resolution} (${tokens} tokens)`,
+        qualityChanged: (label, tokens) =>
+            `Quality: ${label} (${tokens} tokens)`,
         durationToolbarButton: (seconds, credits) =>
             `⏱ ${seconds}s · ${credits} tok.`,
         durationPickerOption: (seconds, credits) =>
@@ -495,14 +547,23 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         backToEditor: '◀️ Back to editor',
         settingsMenuTitle: 'Video settings',
         keyboardUpdated: (toolName) => toolName,
-        formatLine: (format, resolution) =>
-            resolution
-                ? `Format: <b>${getAspectRatioLabel(format, 'en-US')}</b> · <b>${format}</b> · <b>${resolution}</b>`
-                : `Format: <b>${getAspectRatioLabel(format, 'en-US')}</b> · <b>${format}</b>`,
+        formatLine: (format, resolution, quality) => {
+            const parts = [
+                `Format: <b>${getAspectRatioLabel(format, 'en-US')}</b> · <b>${format}</b>`,
+            ];
+            if (resolution) {
+                parts.push(`<b>${resolution}</b>`);
+            }
+            if (quality) {
+                parts.push(`<b>${quality}</b>`);
+            }
+            return parts.join(' · ');
+        },
         durationLabel: (seconds) => (seconds >= 60 ? '1 min' : `${seconds}s`),
         summaryLine: ({
             format,
             resolution,
+            qualityLabel,
             durationSeconds,
             styleLabel,
             credits,
@@ -515,6 +576,9 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             }
             if (resolution) {
                 parts.push(`<b>${resolution}</b>`);
+            }
+            if (qualityLabel) {
+                parts.push(`<b>${qualityLabel}</b>`);
             }
             if (durationSeconds) {
                 parts.push(
@@ -531,6 +595,14 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             }
             return parts.join(' · ');
         },
+        sendAsFileButton: (asFile) =>
+            asFile ? '✓ Send as file' : '📎 Send as file',
+        sendAsFileChanged: (asFile) =>
+            asFile
+                ? 'Results will be sent as a <b>file</b>'
+                : 'Results will be sent as a <b>video</b>',
+        deliveryLine: (asFile) =>
+            asFile ? 'Delivery: <b>file</b>' : 'Delivery: <b>video</b>',
     },
     voiceTool: {
         selectVoiceButton: '🎙 Available voices',
@@ -548,5 +620,15 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         voicePickerOption: (voiceName) => voiceName,
         voicePickerSelected: (voiceName) => `✓ ${voiceName}`,
         keyboardUpdated: (toolName) => toolName,
+        sendAsFileButton: (asFile) =>
+            asFile ? '✓ Audio file' : '🎙 Voice message',
+        sendAsFileChanged: (asFile) =>
+            asFile
+                ? 'Results will be sent as an <b>audio file</b>'
+                : 'Results will be sent as a <b>voice message</b>',
+        deliveryLine: (asFile) =>
+            asFile
+                ? 'Delivery: <b>audio file</b>'
+                : 'Delivery: <b>voice message</b>',
     },
 };

@@ -3,20 +3,28 @@ import { AiSessionStep } from '@/common/services/ai/types/ai-session-state.type'
 import { ImageCapabilitiesService } from '@/common/services/ai/image-capabilities.service';
 import {
     calculateTopazTokenCost,
+    formatImageQualityLabel,
     isImageToolWithAspectSettings,
     isTopazTool,
 } from '@/common/config/image-editor-capabilities.config';
-import { getToolById } from '@/common/config/ai-tools.registry';
+import {
+    getToolById,
+    calculateToolTokenCost,
+} from '@/common/config/ai-tools.registry';
 import { I18nBundle, ru, en } from '../i18n';
 import { ImageKeyboardMode } from '../keyboards/image.keyboard';
+import { resolveImageSendAsFile } from '@/common/utils/resolve-send-as-file';
 
 export type ImageToolButtonAction =
     | { type: 'open_settings' }
     | { type: 'open_aspect_picker' }
     | { type: 'open_resolution_picker' }
+    | { type: 'open_quality_picker' }
     | { type: 'set_aspect'; value: string }
     | { type: 'set_resolution'; value: string }
+    | { type: 'set_quality'; value: string }
     | { type: 'set_topaz_scale'; value: number }
+    | { type: 'toggle_send_as_file' }
     | { type: 'continue_prompt' }
     | { type: 'skip_refs' }
     | { type: 'back_to_settings' }
@@ -31,12 +39,16 @@ export function resolveImageToolButtonAction(
         keyboardMode: ImageKeyboardMode;
         aspectRatios: string[];
         resolutions: string[];
+        qualities: string[];
         topazScales: readonly number[];
         currentSettings: {
             aspectRatio?: string;
             resolution?: string;
+            quality?: string;
             topazScale?: number;
+            sendAsFile?: boolean;
         };
+        localeTag: 'ru-RU' | 'en-US';
     },
 ): ImageToolButtonAction | null {
     if (
@@ -74,12 +86,41 @@ export function resolveImageToolButtonAction(
     }
 
     if (options.keyboardMode === 'resolution') {
+        const tool = getToolById(options.toolId);
         for (const resolution of options.resolutions) {
+            const tokens = tool
+                ? calculateToolTokenCost(tool, {
+                      resolution,
+                      quality: options.currentSettings.quality,
+                  })
+                : 0;
             if (
-                text === i18n.imageTool.resolutionPickerOption(resolution) ||
-                text === i18n.imageTool.resolutionPickerSelected(resolution)
+                text ===
+                    i18n.imageTool.resolutionPickerOption(resolution, tokens) ||
+                text ===
+                    i18n.imageTool.resolutionPickerSelected(resolution, tokens)
             ) {
                 return { type: 'set_resolution', value: resolution };
+            }
+        }
+        return null;
+    }
+
+    if (options.keyboardMode === 'quality') {
+        const tool = getToolById(options.toolId);
+        for (const quality of options.qualities) {
+            const label = formatImageQualityLabel(quality, options.localeTag);
+            const tokens = tool
+                ? calculateToolTokenCost(tool, {
+                      resolution: options.currentSettings.resolution,
+                      quality,
+                  })
+                : 0;
+            if (
+                text === i18n.imageTool.qualityPickerOption(label, tokens) ||
+                text === i18n.imageTool.qualityPickerSelected(label, tokens)
+            ) {
+                return { type: 'set_quality', value: quality };
             }
         }
         return null;
@@ -125,6 +166,32 @@ export function resolveImageToolButtonAction(
             return { type: 'open_resolution_picker' };
         }
 
+        if (
+            options.qualities.length &&
+            text === i18n.imageTool.changeQualityButton
+        ) {
+            return { type: 'open_quality_picker' };
+        }
+
+        if (
+            text ===
+                i18n.imageTool.sendAsFileButton(
+                    resolveImageSendAsFile(
+                        options.toolId,
+                        options.currentSettings,
+                    ),
+                ) ||
+            text ===
+                i18n.imageTool.sendAsFileButton(
+                    !resolveImageSendAsFile(
+                        options.toolId,
+                        options.currentSettings,
+                    ),
+                )
+        ) {
+            return { type: 'toggle_send_as_file' };
+        }
+
         return null;
     }
 
@@ -148,7 +215,15 @@ export function isImageToolControlButton(text: string | undefined): boolean {
             text === i18n.imageTool.backToSettings ||
             text === i18n.imageTool.settingsButton ||
             text === i18n.imageTool.changeFormatButton ||
-            text === i18n.imageTool.changeResolutionButton
+            text === i18n.imageTool.changeResolutionButton ||
+            text === i18n.imageTool.changeQualityButton
+        ) {
+            return true;
+        }
+
+        if (
+            text === i18n.imageTool.sendAsFileButton(true) ||
+            text === i18n.imageTool.sendAsFileButton(false)
         ) {
             return true;
         }
@@ -161,6 +236,10 @@ export function isImageToolControlButton(text: string | undefined): boolean {
             return true;
         }
         if (text.startsWith('×') && text.includes('tok')) {
+            return true;
+        }
+
+        if (text.includes(' ток.') || text.includes(' tok.')) {
             return true;
         }
 
@@ -179,6 +258,7 @@ export function getImageToolCapabilities(
     return {
         aspectRatios: capabilitiesService.getAspectRatios(toolId),
         resolutions: capabilitiesService.getResolutions(toolId),
+        qualities: capabilitiesService.getQualities(toolId),
         topazScales: capabilitiesService.getTopazScales(),
     };
 }

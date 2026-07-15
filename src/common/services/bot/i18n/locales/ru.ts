@@ -146,7 +146,9 @@ export const ru: I18nBundle = {
         asyncStarted:
             '⏳ Генерация запущена. Результат придёт в этот чат, когда будет готов.',
         midjourneyFallback:
-            '⚠️ Midjourney через Sharpii сейчас недоступен (сбой на стороне провайдера). Генерирую через Flux…',
+            '⚠️ Midjourney сейчас недоступен (сбой на стороне провайдера). Генерирую через Flux…',
+        generationTakingLonger:
+            '⏳ Генерация занимает больше времени, чем обычно. Пожалуйста, подождите…',
         videoToAudioPreparing:
             '⏳ Создаём дубляж… Это может занять несколько минут.',
         insufficientTokens:
@@ -154,6 +156,17 @@ export const ru: I18nBundle = {
         noSubscription:
             '❌ Для использования AI-инструментов нужна активная подписка.\n\nНажмите «Тарифы подписок», чтобы выбрать план.',
         error: (message) => `❌ Ошибка генерации:\n\n${message}`,
+        errorWithCode: (code, message) => `❌ Ошибка #${code}\n\n${message}`,
+        tokensRefunded: (amount) =>
+            `↩️ Возвращено <b>${amount}</b> токенов на баланс.`,
+        errorByCode: {
+            1: 'Что-то пошло не так. Попробуйте ещё раз или выберите другой инструмент.',
+            10: 'Сервис временно недоступен. Попробуйте позже.',
+            11: 'Генерация заняла слишком много времени. Попробуйте ещё раз.',
+            12: 'Сбой на стороне провайдера. Попробуйте позже или выберите другой инструмент.',
+            13: 'Не удалось отправить результат. Попробуйте ещё раз.',
+            14: 'Не удалось проверить статус генерации. Попробуйте позже.',
+        },
         sendTextOrFile: 'Отправьте текст или файл для генерации.',
         mySubscription: (subscribeType, tokenLeft, subscriptionEndsAt) => {
             const endDate = subscriptionEndsAt
@@ -221,7 +234,7 @@ ${getTariffIncludesText(type, plan, ru)}
 🧠 До 50 AI-запросов за неделю
 🎨 До 5 генераций изображений за неделю
 🎬 До 1 генерации видео за неделю
-🎙️ До 3 аудио-генераций за неделю
+🎙️ До 2 аудио-генераций за неделю
 
 После окончания тестового периода для продолжения работы потребуется оформить подписку.
 Полный доступ без ограничений доступен на любом платном тарифе.`,
@@ -335,13 +348,13 @@ ${getTariffIncludesText(type, plan, ru)}
         instructions: {
             [AiToolId.GPT]: 'Отправьте текст, фото, файл или видео.',
             [AiToolId.GPT_IMAGES]:
-                'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу. В промпте можно указать роли: «с 1-го фото внешность, со 2-го — локацию».',
+                'Опишите задачу и при желании добавьте референсы (до 10 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
             [AiToolId.FLUX]:
-                'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу. В промпте можно указать роли: «с 1-го фото внешность, со 2-го — локацию».',
+                'Опишите задачу и при желании добавьте референсы (до 10 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
             [AiToolId.NANO_BANANA]:
-                'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу. В промпте можно указать роли: «с 1-го фото внешность, со 2-го — локацию».',
+                'Опишите задачу и при желании добавьте референсы (до 4 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
             [AiToolId.SEEDREAM]:
-                'Прикрепите до 10 референсов (можно пропустить), затем опишите задачу. В промпте можно указать роли: «с 1-го фото внешность, со 2-го — локацию».',
+                'Опишите задачу и при желании добавьте референсы (до 10 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
             [AiToolId.MIDJOURNEY]:
                 'Отправьте промпт для генерации изображения.',
             [AiToolId.KLING]:
@@ -409,6 +422,9 @@ ${getTariffIncludesText(type, plan, ru)}
     imageTool: {
         promptHint: 'Опишите задачу.',
         refAdded: (count, max) => `✅ Референс добавлен: ${count}/${max}`,
+        refDeleteButton: '🗑 Удалить',
+        refDeleted: '🗑 Референс удалён',
+        refNotFound: 'Референс уже удалён или не найден',
         refLimitReached: (max) =>
             `⚠️ Лимит референсов (${max}). Нажмите «К промпту».`,
         needPhotoOnRefStep:
@@ -420,18 +436,26 @@ ${getTariffIncludesText(type, plan, ru)}
             formatAspectRatioToolbarLabel(ratio, 'ru-RU'),
         changeFormatButton: '📐 Изменить формат',
         changeResolutionButton: '🖼 Изменить разрешение',
+        changeQualityButton: '✨ Изменить качество',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Выберите формат:',
         selectResolutionTitle: 'Выберите разрешение:',
+        selectQualityTitle: 'Выберите качество:',
         aspectRatioPickerOption: (ratio) => formatAspectRatioLabelRu(ratio),
         aspectRatioPickerSelected: (ratio) =>
             `✓ ${formatAspectRatioLabelRu(ratio)}`,
-        resolutionPickerOption: (resolution) => resolution,
-        resolutionPickerSelected: (resolution) => `✓ ${resolution}`,
+        resolutionPickerOption: (resolution, tokens) =>
+            `${resolution} · ${tokens} ток.`,
+        resolutionPickerSelected: (resolution, tokens) =>
+            `✓ ${resolution} · ${tokens} ток.`,
+        qualityPickerOption: (label, tokens) => `${label} · ${tokens} ток.`,
+        qualityPickerSelected: (label, tokens) => `✓ ${label} · ${tokens} ток.`,
         aspectRatioChanged: (ratio) =>
             `Формат: ${formatAspectRatioLabelRu(ratio)}`,
-        resolutionChanged: (resolution) =>
-            `Разрешение: ${resolution} (чем выше — тем детальнее картинка)`,
+        resolutionChanged: (resolution, tokens) =>
+            `Разрешение: ${resolution} (${tokens} токенов)`,
+        qualityChanged: (label, tokens) =>
+            `Качество: ${label} (${tokens} токенов)`,
         topazScaleButton: (scale, tokens, selected) =>
             `${selected ? '✓ ' : ''}×${scale} (${tokens} ток.)`,
         topazScaleChanged: (scale, tokens) =>
@@ -443,14 +467,33 @@ ${getTariffIncludesText(type, plan, ru)}
         backToEditor: '◀️ К редактору',
         settingsMenuTitle: 'Настройки генерации',
         keyboardUpdated: (toolName) => toolName,
-        formatLine: (format, resolution) =>
-            resolution
-                ? `Формат: <b>${getAspectRatioLabel(format, 'ru-RU')}</b> · <b>${format}</b> · <b>${resolution}</b>`
-                : `Формат: <b>${getAspectRatioLabel(format, 'ru-RU')}</b> · <b>${format}</b>`,
+        formatLine: (format, resolution, quality) => {
+            const parts = [
+                `Формат: <b>${getAspectRatioLabel(format, 'ru-RU')}</b> · <b>${format}</b>`,
+            ];
+            if (resolution) {
+                parts.push(`<b>${resolution}</b>`);
+            }
+            if (quality) {
+                parts.push(`<b>${quality}</b>`);
+            }
+            return parts.join(' · ');
+        },
+        sendAsFileButton: (asFile) =>
+            asFile ? '✓ Отправлять файлом' : '📎 Отправлять файлом',
+        sendAsFileChanged: (asFile) =>
+            asFile
+                ? 'Результат будет отправлен <b>файлом</b>'
+                : 'Результат будет отправлен <b>как фото</b>',
+        deliveryLine: (asFile) =>
+            asFile ? 'Отправка: <b>файлом</b>' : 'Отправка: <b>как фото</b>',
     },
     videoTool: {
         promptHint: 'Опишите сцену и движение камеры.',
         refAdded: (count, max) => `✅ Референс добавлен: ${count}/${max}`,
+        refDeleteButton: '🗑 Удалить',
+        refDeleted: '🗑 Референс удалён',
+        refNotFound: 'Референс уже удалён или не найден',
         refLimitReached: (max) =>
             `⚠️ Лимит референсов (${max}). Нажмите «К промпту».`,
         needPhotoOnRefStep:
@@ -462,21 +505,30 @@ ${getTariffIncludesText(type, plan, ru)}
             formatAspectRatioToolbarLabel(ratio, 'ru-RU'),
         changeFormatButton: '📐 Изменить формат',
         changeResolutionButton: '🖼 Изменить разрешение',
+        changeQualityButton: '✨ Изменить качество',
         changeDurationButton: '⏱ Изменить длительность',
         changeStyleButton: '🎨 Изменить стиль',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Выберите формат:',
         selectResolutionTitle: 'Выберите разрешение:',
+        selectQualityTitle: 'Выберите качество:',
         selectDurationTitle: 'Выберите длительность:',
         selectStyleTitle: 'Выберите стиль:',
         aspectRatioPickerOption: (ratio) => formatAspectRatioLabelRu(ratio),
         aspectRatioPickerSelected: (ratio) =>
             `✓ ${formatAspectRatioLabelRu(ratio)}`,
-        resolutionPickerOption: (resolution) => resolution,
-        resolutionPickerSelected: (resolution) => `✓ ${resolution}`,
+        resolutionPickerOption: (resolution, tokens) =>
+            `${resolution} · ${tokens} ток.`,
+        resolutionPickerSelected: (resolution, tokens) =>
+            `✓ ${resolution} · ${tokens} ток.`,
+        qualityPickerOption: (label, tokens) => `${label} · ${tokens} ток.`,
+        qualityPickerSelected: (label, tokens) => `✓ ${label} · ${tokens} ток.`,
         aspectRatioChanged: (ratio) =>
             `Формат: ${formatAspectRatioLabelRu(ratio)}`,
-        resolutionChanged: (resolution) => `Разрешение: ${resolution}`,
+        resolutionChanged: (resolution, tokens) =>
+            `Разрешение: ${resolution} (${tokens} токенов)`,
+        qualityChanged: (label, tokens) =>
+            `Качество: ${label} (${tokens} токенов)`,
         durationToolbarButton: (seconds, credits) =>
             `⏱ ${seconds} сек · ${credits} ток.`,
         durationPickerOption: (seconds, credits) =>
@@ -496,15 +548,24 @@ ${getTariffIncludesText(type, plan, ru)}
         backToEditor: '◀️ К редактору',
         settingsMenuTitle: 'Настройки видео',
         keyboardUpdated: (toolName) => toolName,
-        formatLine: (format, resolution) =>
-            resolution
-                ? `Формат: <b>${getAspectRatioLabel(format, 'ru-RU')}</b> · <b>${format}</b> · <b>${resolution}</b>`
-                : `Формат: <b>${getAspectRatioLabel(format, 'ru-RU')}</b> · <b>${format}</b>`,
+        formatLine: (format, resolution, quality) => {
+            const parts = [
+                `Формат: <b>${getAspectRatioLabel(format, 'ru-RU')}</b> · <b>${format}</b>`,
+            ];
+            if (resolution) {
+                parts.push(`<b>${resolution}</b>`);
+            }
+            if (quality) {
+                parts.push(`<b>${quality}</b>`);
+            }
+            return parts.join(' · ');
+        },
         durationLabel: (seconds) =>
             seconds >= 60 ? '1 мин' : `${seconds} сек`,
         summaryLine: ({
             format,
             resolution,
+            qualityLabel,
             durationSeconds,
             styleLabel,
             credits,
@@ -517,6 +578,9 @@ ${getTariffIncludesText(type, plan, ru)}
             }
             if (resolution) {
                 parts.push(`<b>${resolution}</b>`);
+            }
+            if (qualityLabel) {
+                parts.push(`<b>${qualityLabel}</b>`);
             }
             if (durationSeconds) {
                 parts.push(
@@ -533,6 +597,14 @@ ${getTariffIncludesText(type, plan, ru)}
             }
             return parts.join(' · ');
         },
+        sendAsFileButton: (asFile) =>
+            asFile ? '✓ Отправлять файлом' : '📎 Отправлять файлом',
+        sendAsFileChanged: (asFile) =>
+            asFile
+                ? 'Результат будет отправлен <b>файлом</b>'
+                : 'Результат будет отправлен <b>как видео</b>',
+        deliveryLine: (asFile) =>
+            asFile ? 'Отправка: <b>файлом</b>' : 'Отправка: <b>как видео</b>',
     },
     voiceTool: {
         selectVoiceButton: '🎙 Доступные голоса',
@@ -550,5 +622,15 @@ ${getTariffIncludesText(type, plan, ru)}
         voicePickerOption: (voiceName) => voiceName,
         voicePickerSelected: (voiceName) => `✓ ${voiceName}`,
         keyboardUpdated: (toolName) => toolName,
+        sendAsFileButton: (asFile) =>
+            asFile ? '✓ Аудиофайлом' : '🎙 Голосовым сообщением',
+        sendAsFileChanged: (asFile) =>
+            asFile
+                ? 'Результат будет отправлен <b>аудиофайлом</b>'
+                : 'Результат будет отправлен <b>голосовым сообщением</b>',
+        deliveryLine: (asFile) =>
+            asFile
+                ? 'Отправка: <b>аудиофайлом</b>'
+                : 'Отправка: <b>голосовым сообщением</b>',
     },
 };

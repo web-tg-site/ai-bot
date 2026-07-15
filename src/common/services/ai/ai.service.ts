@@ -56,6 +56,12 @@ export class AiService {
         }
     }
 
+    async generateNanoBananaFallback(
+        input: AiGenerationInput,
+    ): Promise<AiGenerationResult> {
+        return this.openRouterProvider.generateNanoBananaFallback(input);
+    }
+
     async createJob(
         toolId: AiToolId,
         input: AiGenerationInput,

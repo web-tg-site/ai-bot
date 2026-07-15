@@ -2,7 +2,7 @@ import { AiToolId } from '@/common/services/ai/types';
 import { getToolById } from '@/common/config/ai-tools.registry';
 import { UI_ASPECT_RATIOS } from '@/common/config/aspect-ratio.config';
 
-export const VIDEO_DURATION_TIERS = [5, 15, 30, 60] as const;
+export const VIDEO_DURATION_TIERS = [5, 10, 15] as const;
 
 export type VideoDurationTier = (typeof VIDEO_DURATION_TIERS)[number];
 
@@ -178,6 +178,57 @@ export const MODEL_PASSTHROUGH_STYLE_ENUMS: Record<
 /** Passthrough param names treated as visual style (not quality/technical). */
 export const MODEL_STYLE_PASSTHROUGH_PARAMS = new Set(['style']);
 
+export type VideoQualityOption = {
+    value: string;
+    labelRu: string;
+    labelEn: string;
+};
+
+/**
+ * Known enum values for model-native quality passthrough params.
+ * Keyed by OpenRouter model slug → param name → options.
+ */
+export const MODEL_PASSTHROUGH_QUALITY_ENUMS: Record<
+    string,
+    Record<string, VideoQualityOption[]>
+> = {
+    'openai/sora-2-pro': {
+        quality: [
+            {
+                value: 'standard',
+                labelRu: 'Стандарт',
+                labelEn: 'Standard',
+            },
+            {
+                value: 'high',
+                labelRu: 'Высокое',
+                labelEn: 'High',
+            },
+        ],
+    },
+};
+
+/** Passthrough param names treated as rendering quality. */
+export const MODEL_QUALITY_PASSTHROUGH_PARAMS = new Set(['quality']);
+
+/** Quality presets for providers outside OpenRouter video API. */
+export const STATIC_VIDEO_QUALITIES: Partial<
+    Record<AiToolId, VideoQualityOption[]>
+> = {
+    [AiToolId.SORA]: [
+        {
+            value: 'standard',
+            labelRu: 'Стандарт',
+            labelEn: 'Standard',
+        },
+        {
+            value: 'high',
+            labelRu: 'Высокое',
+            labelEn: 'High',
+        },
+    ],
+};
+
 export const VIDEO_TOOLS_WITH_REFERENCES: AiToolId[] = [
     AiToolId.KLING,
     AiToolId.VEO,
@@ -213,6 +264,7 @@ export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
 };
 
 export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
+    [AiToolId.VEO]: [4, 6, 8],
     [AiToolId.SORA]: [10, 15],
     [AiToolId.SEEDANCE]: [5, 15],
     [AiToolId.HIGGSFIELD]: [5, 15],
@@ -281,6 +333,37 @@ export function buildModelNativeStyleOptions(
     }
 
     return options;
+}
+
+export function buildModelNativeQualityOptions(
+    modelSlug: string,
+    allowedPassthrough: string[],
+): VideoQualityOption[] {
+    const options: VideoQualityOption[] = [];
+
+    for (const param of allowedPassthrough) {
+        if (!MODEL_QUALITY_PASSTHROUGH_PARAMS.has(param)) {
+            continue;
+        }
+
+        const enums = MODEL_PASSTHROUGH_QUALITY_ENUMS[modelSlug]?.[param] ?? [];
+        options.push(...enums);
+    }
+
+    return options;
+}
+
+export function getVideoQualityLabel(
+    quality: string,
+    locale: 'ru-RU' | 'en-US',
+    options?: VideoQualityOption[],
+): string {
+    const fromList = options?.find((option) => option.value === quality);
+    if (fromList) {
+        return locale === 'ru-RU' ? fromList.labelRu : fromList.labelEn;
+    }
+
+    return quality;
 }
 
 export function getVideoStyleLabel(

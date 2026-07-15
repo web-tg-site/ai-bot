@@ -13,16 +13,22 @@ import {
 } from '../types';
 import { AiToolId } from '../types';
 
+export function stripSharpiiErrorMessage(message: string): string {
+    return message.split('\n\nID запроса:')[0].trim();
+}
+
 export function isSharpiiMidjourneyUpstreamError(message: string): boolean {
-    return /Image generation failed|Insufficient corporate funds|Midjourney через Sharpii временно недоступен|provider_error|provider unavailable|provider_timeout/i.test(
-        message,
+    const base = stripSharpiiErrorMessage(message);
+    return /Image generation failed|Insufficient corporate funds|Сбой на стороне провайдера|provider_error|provider unavailable|provider_timeout/i.test(
+        base,
     );
 }
 
 export function isSharpiiMidjourneyGenericFailure(message: string): boolean {
+    const base = stripSharpiiErrorMessage(message);
     return (
-        message === 'Sharpii generation failed' ||
-        /Sharpii завершил задачу без результата/i.test(message)
+        base === 'Sharpii generation failed' ||
+        /Sharpii завершил задачу без результата/i.test(base)
     );
 }
 
@@ -92,7 +98,7 @@ export class SharpiiProvider {
         const path = isVideo ? '/v1/videos/generate' : '/v1/images/generate';
         const model = isVideo
             ? this.resolveSharpiiVideoModel(toolId, tool.model, input)
-            : tool.model;
+            : this.resolveSharpiiImageModel(toolId, tool.model, input);
         const body = this.buildVideoImageRequestBody(
             toolId,
             model,
@@ -101,6 +107,11 @@ export class SharpiiProvider {
         );
 
         this.validateSharpiiPayload(body, isVideo);
+
+        this.logger.debug(
+            { toolId, model, path, aspectRatio: body.aspect_ratio },
+            'Sharpii createJob request',
+        );
 
         const response = await this.post<SharpiiTaskSubmitResponse>(path, body);
         const taskId = response.data?.task?.id;
@@ -377,12 +388,19 @@ export class SharpiiProvider {
             }
             if (status.status === 'failed') {
                 throw new Error(
-                    status.errorMessage ?? 'Sharpii generation failed',
+                    status.errorMessage ??
+                        'Не удалось завершить генерацию — сбой на стороне провайдера.',
                 );
             }
         }
 
-        throw new Error('Sharpii generation timed out');
+        throw new Error(
+            this.formatSharpiiApiMessage(
+                'Sharpii generation timed out',
+                undefined,
+                undefined,
+            ),
+        );
     }
 
     private extractInlineOutput(
@@ -476,8 +494,24 @@ export class SharpiiProvider {
             if (input.videoStylePassthrough) {
                 Object.assign(body, input.videoStylePassthrough);
             }
+
+            if (input.quality) {
+                body.quality = input.quality;
+            }
         } else {
             body.aspect_ratio = input.aspectRatio ?? '1:1';
+
+            const images =
+                input.files?.filter((file) =>
+                    file.mimeType.startsWith('image/'),
+                ) ?? [];
+            if (images.length) {
+                const maxRefs =
+                    toolId === AiToolId.NANO_BANANA ? 4 : images.length;
+                body.reference_image_urls = images
+                    .slice(0, maxRefs)
+                    .map((file) => this.toDataUrl(file));
+            }
         }
 
         return body;
@@ -521,7 +555,7 @@ export class SharpiiProvider {
 
         if (totalBytes > SHARPII_MAX_FRAME_PAYLOAD_BYTES) {
             throw new Error(
-                'Референсные кадры слишком большие для Sharpii. Отправьте изображения меньшего размера или сожмите их.',
+                'Референсные кадры слишком большие. Отправьте изображения меньшего размера или сожмите их.',
             );
         }
     }
@@ -535,6 +569,25 @@ export class SharpiiProvider {
             return input.resolution === '1080p'
                 ? 'seedance-2.0-1080p'
                 : 'seedance-2.0-720p';
+        }
+
+        return defaultModel;
+    }
+
+    private resolveSharpiiImageModel(
+        toolId: AiToolId,
+        defaultModel: string,
+        input: AiGenerationInput,
+    ): string {
+        if (toolId === AiToolId.NANO_BANANA) {
+            switch (input.resolution) {
+                case '2K':
+                    return 'nano-banana-2-2k';
+                case '4K':
+                    return 'nano-banana-2-4k';
+                default:
+                    return 'nano-banana-2';
+            }
         }
 
         return defaultModel;
@@ -648,7 +701,7 @@ export class SharpiiProvider {
 
             if (axiosError.response?.status === 502) {
                 const suffix = requestId ? `\n\nID запроса: ${requestId}` : '';
-                return `Sharpii временно недоступен (HTTP 502). Попробуйте позже.${suffix}`;
+                return `Сервис генерации временно недоступен. Попробуйте позже.${suffix}`;
             }
 
             if (message) {
@@ -656,11 +709,13 @@ export class SharpiiProvider {
             }
 
             if (axiosError.response?.status) {
-                return `Sharpii API error: HTTP ${axiosError.response.status}`;
+                return `Сбой на стороне провайдера (HTTP ${axiosError.response.status}).`;
             }
         }
 
-        return error instanceof Error ? error.message : 'Sharpii API error';
+        return error instanceof Error
+            ? error.message
+            : 'Сбой на стороне провайдера';
     }
 
     private formatSharpiiApiMessage(
@@ -674,14 +729,14 @@ export class SharpiiProvider {
             code === 'provider_error' &&
             message.includes('Insufficient corporate funds')
         ) {
-            return `Sharpii: у провайдера закончился баланс (это не ваши кредиты на sharpii.ai). Попробуйте Seedance, Flux или другой инструмент.${suffix}`;
+            return `Сбой на стороне провайдера. Попробуйте другой инструмент.${suffix}`;
         }
 
         if (
             code === 'provider_error' &&
             message === 'Image generation failed'
         ) {
-            return `Midjourney через Sharpii временно недоступен (сбой на стороне провайдера, не ваших кредитов).${suffix}`;
+            return `Сбой на стороне провайдера. Попробуйте позже или выберите другой инструмент.${suffix}`;
         }
 
         if (
@@ -689,28 +744,26 @@ export class SharpiiProvider {
                 message,
             )
         ) {
-            const availableMatch = message.match(/available ([\d.]+) credits/);
-            const needMatch = message.match(/need ([\d.]+) credits/);
-            const available = availableMatch?.[1] ?? '?';
-            const need = needMatch?.[1] ?? '?';
-
-            return (
-                `Suno (генерация звуков) на Sharpii списывает отдельный пул permanent-кредитов, ` +
-                `а не основной баланс подписки (~172k на вашем аккаунте). ` +
-                `Для Suno сейчас доступно ${available} кредитов, нужно минимум ${need}.\n\n` +
-                `Это ограничение Sharpii/Suno. Используйте Seedance, Flux, ElevenLabs Voice или обратитесь в поддержку sharpii.ai.${suffix}`
-            );
+            return `Недостаточно квоты у провайдера для этой операции. Попробуйте другой инструмент.${suffix}`;
         }
 
         if (message.includes('Insufficient credits')) {
-            return `Недостаточно кредитов Sharpii для этой генерации. Пополните баланс на sharpii.ai.${suffix}`;
+            return `Недостаточно квоты у провайдера для этой генерации.${suffix}`;
         }
 
-        if (requestId) {
-            return `${message}${suffix}`;
+        if (
+            message === 'Sharpii generation failed' ||
+            message === 'Sharpii завершил задачу без результата' ||
+            code === 'generation_failed'
+        ) {
+            return `Не удалось завершить генерацию — сбой на стороне провайдера. Попробуйте позже или выберите другой инструмент.${suffix}`;
         }
 
-        return message;
+        if (message === 'Sharpii generation timed out') {
+            return `Генерация заняла слишком много времени. Попробуйте ещё раз.${suffix}`;
+        }
+
+        return `Сбой на стороне провайдера. Попробуйте позже или выберите другой инструмент.${suffix}`;
     }
 
     private sleep(ms: number) {
