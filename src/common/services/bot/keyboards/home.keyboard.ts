@@ -12,6 +12,7 @@ export const generateHomeKeyboardNotRegistered = (
     }
 
     keyboard.push([i18n.buttons.subsTariffs]);
+    keyboard.push([i18n.buttons.support]);
 
     return Markup.keyboard(keyboard).resize();
 };
