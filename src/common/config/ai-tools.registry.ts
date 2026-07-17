@@ -129,7 +129,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         model: 'google/veo-3.1-lite',
         baseTokenCost: 0,
         perSecondCost: 25,
-        defaultDurationSeconds: 6,
+        defaultDurationSeconds: 4,
         accepts: ['text', 'photo'],
         isAsync: true,
         instruction:

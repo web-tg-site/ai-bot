@@ -121,6 +121,12 @@ export class VideoCapabilitiesService implements OnModuleInit {
         }
 
         const modelDurations = this.getModelDurations(toolId);
+
+        // Veo exposes exact model durations (4/6/8), not VIDEO_DURATION_TIERS.
+        if (toolId === AiToolId.VEO && modelDurations.length) {
+            return [...modelDurations].sort((left, right) => left - right);
+        }
+
         const durations: number[] = VIDEO_DURATION_TIERS.filter((tier) =>
             this.isDurationSupported(toolId, tier, modelDurations),
         );
