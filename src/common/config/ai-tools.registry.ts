@@ -38,6 +38,17 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         instruction: 'Отправьте текст, фото, файл или видео.',
     },
     {
+        id: AiToolId.CLAUDE_SONNET,
+        label: 'Claude Sonnet',
+        category: 'text',
+        provider: AiProviderId.OPENROUTER,
+        model: 'anthropic/claude-sonnet-4.6',
+        baseTokenCost: 3,
+        accepts: ['text', 'photo', 'document', 'video'],
+        isAsync: false,
+        instruction: 'Отправьте текст, фото, файл или видео.',
+    },
+    {
         id: AiToolId.GPT_IMAGES,
         label: 'GPT Images',
         category: 'image',

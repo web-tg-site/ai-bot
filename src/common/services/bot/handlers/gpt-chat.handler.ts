@@ -16,8 +16,15 @@ import {
     escapeTelegramHtml,
     markdownToTelegramHtml,
 } from '@/common/utils/markdown-to-telegram-html';
+import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
 
 type BotContext = Context & { session: BotSession };
+
+function resolveChatAssistantToolId(session: BotSession): AiToolId {
+    return isChatAssistantTool(session.ai?.activeToolId)
+        ? session.ai.activeToolId
+        : AiToolId.GPT;
+}
 
 function asBotContext(ctx: Context): BotContext {
     return ctx as BotContext;
@@ -56,14 +63,21 @@ export const registerGptChatHandlers = (
         const i18n = getI18nForUser(user);
         const session = getSession(ctx);
         ensureGptSession(session);
+        const toolId = resolveChatAssistantToolId(session);
 
         const conversation =
-            await deps.gptConversationModelService.createConversation(user.id);
-        await deps.gptConversationModelService.trimOldConversations(user.id);
+            await deps.gptConversationModelService.createConversation(
+                user.id,
+                toolId,
+            );
+        await deps.gptConversationModelService.trimOldConversations(
+            user.id,
+            toolId,
+        );
 
         session.ai = {
             ...session.ai!,
-            activeToolId: AiToolId.GPT,
+            activeToolId: toolId,
             step: 'awaiting_input',
             activeConversationId: conversation.id,
         };
@@ -87,10 +101,13 @@ export const registerGptChatHandlers = (
         if (!user) return;
 
         const i18n = getI18nForUser(user);
+        const session = getSession(ctx);
+        const toolId = resolveChatAssistantToolId(session);
         const page = Number(ctx.match[1]);
         const { items, total } =
             await deps.gptConversationModelService.listConversations(
                 user.id,
+                toolId,
                 GPT_CHAT_LIST_PAGE_SIZE,
                 page * GPT_CHAT_LIST_PAGE_SIZE,
             );
@@ -116,10 +133,14 @@ export const registerGptChatHandlers = (
         if (!user) return;
 
         const conversationId = ctx.match[1];
+        const session = getSession(ctx);
+        ensureGptSession(session);
+        const toolId = resolveChatAssistantToolId(session);
         const conversation =
             await deps.gptConversationModelService.getConversation(
                 user.id,
                 conversationId,
+                toolId,
             );
 
         const i18n = getI18nForUser(user);
@@ -128,11 +149,9 @@ export const registerGptChatHandlers = (
             return;
         }
 
-        const session = getSession(ctx);
-        ensureGptSession(session);
         session.ai = {
             ...session.ai!,
-            activeToolId: AiToolId.GPT,
+            activeToolId: toolId,
             step: 'awaiting_input',
             activeConversationId: conversation.id,
         };

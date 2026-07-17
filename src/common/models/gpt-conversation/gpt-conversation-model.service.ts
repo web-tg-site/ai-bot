@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/services/prisma';
-import { AiChatMessage } from '@/common/services/ai/types';
+import { AiChatMessage, AiToolId } from '@/common/services/ai/types';
 import { parseGptUserMessage } from '@/common/utils/gpt-message-content';
 
 const DEFAULT_TITLE = 'Новый чат';
@@ -11,20 +11,25 @@ const MAX_CONVERSATIONS = 50;
 export class GptConversationModelService {
     constructor(private readonly prismaService: PrismaService) {}
 
-    async createConversation(userId: string, title = DEFAULT_TITLE) {
+    async createConversation(
+        userId: string,
+        toolId: AiToolId,
+        title = DEFAULT_TITLE,
+    ) {
         return this.prismaService.gptConversation.create({
-            data: { userId, title },
+            data: { userId, toolId, title },
         });
     }
 
     async getOrCreateActiveConversation(
         userId: string,
+        toolId: AiToolId,
         conversationId?: string,
     ) {
         if (conversationId) {
             const existing = await this.prismaService.gptConversation.findFirst(
                 {
-                    where: { id: conversationId, userId },
+                    where: { id: conversationId, userId, toolId },
                 },
             );
             if (existing) {
@@ -33,7 +38,7 @@ export class GptConversationModelService {
         }
 
         const latest = await this.prismaService.gptConversation.findFirst({
-            where: { userId },
+            where: { userId, toolId },
             orderBy: { updatedAt: 'desc' },
         });
 
@@ -41,26 +46,40 @@ export class GptConversationModelService {
             return latest;
         }
 
-        return this.createConversation(userId);
+        return this.createConversation(userId, toolId);
     }
 
-    async listConversations(userId: string, limit = 8, offset = 0) {
+    async listConversations(
+        userId: string,
+        toolId: AiToolId,
+        limit = 8,
+        offset = 0,
+    ) {
+        const where = { userId, toolId };
         const [items, total] = await Promise.all([
             this.prismaService.gptConversation.findMany({
-                where: { userId },
+                where,
                 orderBy: { updatedAt: 'desc' },
                 take: limit,
                 skip: offset,
             }),
-            this.prismaService.gptConversation.count({ where: { userId } }),
+            this.prismaService.gptConversation.count({ where }),
         ]);
 
         return { items, total };
     }
 
-    async getConversation(userId: string, conversationId: string) {
+    async getConversation(
+        userId: string,
+        conversationId: string,
+        toolId?: AiToolId,
+    ) {
         return this.prismaService.gptConversation.findFirst({
-            where: { id: conversationId, userId },
+            where: {
+                id: conversationId,
+                userId,
+                ...(toolId ? { toolId } : {}),
+            },
         });
     }
 
@@ -161,10 +180,10 @@ export class GptConversationModelService {
         return true;
     }
 
-    async trimOldConversations(userId: string) {
+    async trimOldConversations(userId: string, toolId: AiToolId) {
         const conversations = await this.prismaService.gptConversation.findMany(
             {
-                where: { userId },
+                where: { userId, toolId },
                 orderBy: { updatedAt: 'desc' },
                 skip: MAX_CONVERSATIONS,
                 select: { id: true },

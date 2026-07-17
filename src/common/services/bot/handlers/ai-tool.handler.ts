@@ -43,6 +43,7 @@ import { collectMediaGroupMessage } from '../utils/media-group-collector';
 import { mimeTypeToExtension } from '@/common/utils/parse-data-url';
 import { serializeGptUserMessage } from '@/common/utils/gpt-message-content';
 import { compressReferenceImage } from '@/common/utils/compress-reference-image';
+import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
 import { markdownToTelegramHtml } from '@/common/utils/markdown-to-telegram-html';
 import { getToolsByCategory } from '@/common/config/ai-tools.registry';
 import { BotHandlerDeps } from './global.handler';
@@ -292,11 +293,18 @@ async function selectTool(
     const session = getSession(ctx);
     const gptDefaults = getGptSessionDefaults(session.ai);
 
-    if (toolId === AiToolId.GPT) {
+    if (isChatAssistantTool(toolId)) {
+        const previousToolId = session.ai?.activeToolId;
+        const conversationId =
+            previousToolId === toolId
+                ? session.ai?.activeConversationId
+                : undefined;
+
         const conversation =
             await deps.gptConversationModelService.getOrCreateActiveConversation(
                 user.id,
-                session.ai?.activeConversationId,
+                toolId,
+                conversationId,
             );
 
         session.ai = {
@@ -508,7 +516,7 @@ async function selectTool(
         });
     }
 
-    if (toolId === AiToolId.GPT) {
+    if (isChatAssistantTool(toolId)) {
         await ctx.reply(i18n.gptChat.controlsHint, {
             ...generateGptControlKeyboard(i18n, {
                 webSearch: session.ai.gptWebSearch !== false,
@@ -2206,7 +2214,7 @@ async function buildAiGenerationInput(
 ): Promise<AiGenerationInput> {
     let chatHistory: AiGenerationInput['chatHistory'];
 
-    if (toolId === AiToolId.GPT && session.ai?.activeConversationId) {
+    if (isChatAssistantTool(toolId) && session.ai?.activeConversationId) {
         chatHistory = await deps.gptConversationModelService.getMessages(
             session.ai.activeConversationId,
         );
@@ -2549,7 +2557,7 @@ async function runGeneration(
         await sendGenerationResult(ctx, generationResult, toolId, sendAsFile);
 
         if (
-            toolId === AiToolId.GPT &&
+            isChatAssistantTool(toolId) &&
             generationResult.text &&
             session.ai?.activeConversationId
         ) {
@@ -2574,6 +2582,7 @@ async function runGeneration(
 
             await deps.gptConversationModelService.trimOldConversations(
                 user.id,
+                toolId,
             );
         }
     } catch (error) {

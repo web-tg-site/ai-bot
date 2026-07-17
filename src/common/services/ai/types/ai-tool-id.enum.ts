@@ -1,5 +1,6 @@
 export enum AiToolId {
     GPT = 'gpt',
+    CLAUDE_SONNET = 'claude_sonnet',
     GPT_IMAGES = 'gpt_images',
     FLUX = 'flux',
     NANO_BANANA = 'nano_banana',

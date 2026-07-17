@@ -340,6 +340,7 @@ ${getTariffIncludesText(type, plan, ru)}
     tools: {
         labels: {
             [AiToolId.GPT]: 'GPT',
+            [AiToolId.CLAUDE_SONNET]: 'Claude Sonnet',
             [AiToolId.GPT_IMAGES]: 'GPT Images',
             [AiToolId.FLUX]: 'Flux',
             [AiToolId.NANO_BANANA]: 'Nano Banana',
@@ -359,6 +360,7 @@ ${getTariffIncludesText(type, plan, ru)}
         },
         instructions: {
             [AiToolId.GPT]: 'Отправьте текст, фото, файл или видео.',
+            [AiToolId.CLAUDE_SONNET]: 'Отправьте текст, фото, файл или видео.',
             [AiToolId.GPT_IMAGES]:
                 'Опишите задачу и при желании добавьте референсы (до 10 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
             [AiToolId.FLUX]:

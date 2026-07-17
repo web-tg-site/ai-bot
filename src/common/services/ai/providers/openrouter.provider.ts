@@ -50,6 +50,8 @@ export class OpenRouterProvider {
         switch (toolId) {
             case AiToolId.GPT:
                 return this.chatGpt(input);
+            case AiToolId.CLAUDE_SONNET:
+                return this.chatClaude(input);
             case AiToolId.GPT_IMAGES:
             case AiToolId.FLUX:
             case AiToolId.SEEDREAM: {
@@ -326,10 +328,25 @@ export class OpenRouterProvider {
     private async chatGpt(
         input: AiGenerationInput,
     ): Promise<AiGenerationResult> {
+        return this.chatWithReplyMode(input, () => this.resolveGptModel(input));
+    }
+
+    private async chatClaude(
+        input: AiGenerationInput,
+    ): Promise<AiGenerationResult> {
+        return this.chatWithReplyMode(input, () =>
+            this.resolveClaudeModel(input),
+        );
+    }
+
+    private async chatWithReplyMode(
+        input: AiGenerationInput,
+        resolveModel: () => { model: string; tokenCost: number },
+    ): Promise<AiGenerationResult> {
         const replyMode = input.gptReplyMode ?? 'text';
 
         if (replyMode === 'audio') {
-            const textResult = await this.chatUnified(input);
+            const textResult = await this.chatUnified(input, resolveModel);
             const speech = await this.synthesizeSpeech(textResult.text ?? '');
             return {
                 type: 'audio',
@@ -341,7 +358,7 @@ export class OpenRouterProvider {
             };
         }
 
-        const textResult = await this.chatUnified(input);
+        const textResult = await this.chatUnified(input, resolveModel);
 
         if (replyMode === 'both' && textResult.text) {
             const speech = await this.synthesizeSpeech(textResult.text);
@@ -357,30 +374,62 @@ export class OpenRouterProvider {
         return textResult;
     }
 
-    private async chatUnified(
-        input: AiGenerationInput,
-    ): Promise<AiGenerationResult> {
+    private resolveGptModel(input: AiGenerationInput): {
+        model: string;
+        tokenCost: number;
+    } {
         const hasMedia = (input.files?.length ?? 0) > 0;
         const prompt = input.prompt ?? '';
         const webSearchEnabled = input.gptWebSearch !== false;
         const wantsSearch = webSearchEnabled || this.detectSearchIntent(prompt);
 
-        let model: string;
-        let tokenCost: number;
+        if (wantsSearch) {
+            return {
+                model: 'openai/gpt-4o',
+                tokenCost: webSearchEnabled ? 8 : 15,
+            };
+        }
+        if (hasMedia) {
+            return { model: 'openai/gpt-4o', tokenCost: 8 };
+        }
+        if (prompt.length > 200) {
+            return { model: 'openai/gpt-4o', tokenCost: 5 };
+        }
+        return { model: 'openai/gpt-4o-mini', tokenCost: 1 };
+    }
+
+    private resolveClaudeModel(input: AiGenerationInput): {
+        model: string;
+        tokenCost: number;
+    } {
+        const hasMedia = (input.files?.length ?? 0) > 0;
+        const prompt = input.prompt ?? '';
+        const webSearchEnabled = input.gptWebSearch !== false;
+        const wantsSearch = webSearchEnabled || this.detectSearchIntent(prompt);
+        const model =
+            getToolById(AiToolId.CLAUDE_SONNET)?.model ??
+            'anthropic/claude-sonnet-4.6';
 
         if (wantsSearch) {
-            model = 'openai/gpt-4o';
-            tokenCost = webSearchEnabled ? 8 : 15;
-        } else if (hasMedia) {
-            model = 'openai/gpt-4o';
-            tokenCost = 8;
-        } else if (prompt.length > 200) {
-            model = 'openai/gpt-4o';
-            tokenCost = 5;
-        } else {
-            model = 'openai/gpt-4o-mini';
-            tokenCost = 1;
+            return { model, tokenCost: 15 };
         }
+        if (hasMedia) {
+            return { model, tokenCost: 8 };
+        }
+        if (prompt.length > 200) {
+            return { model, tokenCost: 5 };
+        }
+        return { model, tokenCost: 3 };
+    }
+
+    private async chatUnified(
+        input: AiGenerationInput,
+        resolveModel: () => { model: string; tokenCost: number },
+    ): Promise<AiGenerationResult> {
+        const prompt = input.prompt ?? '';
+        const webSearchEnabled = input.gptWebSearch !== false;
+        const wantsSearch = webSearchEnabled || this.detectSearchIntent(prompt);
+        const { model, tokenCost } = resolveModel();
 
         const messages: Array<{
             role: string;

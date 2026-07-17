@@ -340,6 +340,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
     tools: {
         labels: {
             [AiToolId.GPT]: 'GPT',
+            [AiToolId.CLAUDE_SONNET]: 'Claude Sonnet',
             [AiToolId.GPT_IMAGES]: 'GPT Images',
             [AiToolId.FLUX]: 'Flux',
             [AiToolId.NANO_BANANA]: 'Nano Banana',
@@ -359,6 +360,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         },
         instructions: {
             [AiToolId.GPT]: 'Send text, a photo, file, or video.',
+            [AiToolId.CLAUDE_SONNET]: 'Send text, a photo, file, or video.',
             [AiToolId.GPT_IMAGES]:
                 "Describe the task and optionally add references (up to 10 images). The more precisely you specify each image's role, the more predictable the result.",
             [AiToolId.FLUX]:

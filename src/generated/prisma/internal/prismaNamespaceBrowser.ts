@@ -187,6 +187,7 @@ export type AiGenerationJobScalarFieldEnum = (typeof AiGenerationJobScalarFieldE
 export const GptConversationScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  toolId: 'toolId',
   title: 'title',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
