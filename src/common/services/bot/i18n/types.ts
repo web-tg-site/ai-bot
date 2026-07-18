@@ -87,6 +87,10 @@ export type I18nBundle = {
     support: {
         text: string;
         telegram: string;
+        telegramSuccess: string;
+        telegramNotText: string;
+        telegramTooShort: string;
+        telegramSendFailed: string;
         email: string;
         privacyPolicy: string;
         userAgreement: string;

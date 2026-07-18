@@ -294,9 +294,13 @@ Need help or have a question?
 Contact us directly — we'll help with anything from billing and subscriptions to AI tools and platform features.
 
 📩 Tap your preferred contact method below.`,
-        telegram: `💬 <b>${BOT_NAME} support</b>
+        telegram: `Hello! Please write your question below👀`,
+        telegramSuccess: `Thank you!
 
-Message us on Telegram: <a href="https://t.me/project_ai_support">https://t.me/project_ai_support</a>`,
+We've received your request and will start working on your issue shortly. If we need any clarifying details, our manager will contact you. Thank you for your understanding — have a great day!`,
+        telegramNotText: `Please send your request as text.`,
+        telegramTooShort: `Message is too short. Please write at least 5 characters.`,
+        telegramSendFailed: `Failed to send your request. Please try again later.`,
         email: `💬 <b>${BOT_NAME} support</b>
 
 Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,

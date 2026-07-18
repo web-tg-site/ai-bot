@@ -27,6 +27,7 @@ export type StoredVoiceSample = {
 export type StoredReference = StoredVoiceSample & { id: string };
 
 export type BotSession = {
+    pendingTechSupport?: boolean;
     ai?: {
         activeToolId?: AiToolId;
         step: AiSessionStep;

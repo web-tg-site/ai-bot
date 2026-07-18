@@ -18,6 +18,9 @@ export async function showHome(
     if (!ctx.from) return;
 
     const botCtx = ctx as BotContext;
+    if (botCtx.session) {
+        botCtx.session.pendingTechSupport = undefined;
+    }
     if (botCtx.session?.ai) {
         resetAiSessionPreservingGpt(botCtx.session);
     }
