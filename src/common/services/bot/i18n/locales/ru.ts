@@ -302,13 +302,13 @@ ${getTariffIncludesText(type, plan, ru)}
 Напишите нам на email: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         privacyPolicy: `📄 <b>Политика обработки персональных данных</b>
 
-<a href="https://docs.google.com/document/d/1Rswj_pjUy9Zp6kAg0IdlL_1L63fl3ztF/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Открыть документ</a>`,
+<a href="https://docs.google.com/document/d/1sRw7-MkYo_SoqeSJOFOYQzccq8O_no-O/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Открыть документ</a>`,
         userAgreement: `📄 <b>Пользовательское соглашение</b>
 
-<a href="https://docs.google.com/document/d/1rpRf88usbn272VFR4qx0kJn3trMwx6Rs/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Открыть документ</a>`,
+<a href="https://docs.google.com/document/d/1qOlS8jTUKMBUeDQ7z0AGU7RCV_cAc830/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Открыть документ</a>`,
         refundPolicy: `📄 <b>Политика возврата денежных средств</b>
 
-<a href="https://docs.google.com/document/d/15HWfEoyy_eVoovtpaVxFOtyfNZm5-CcB/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Открыть документ</a>`,
+<a href="https://docs.google.com/document/d/1Vt0GgEPtXIDL54hxcNjT9iGlu_6ERFwT/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Открыть документ</a>`,
     },
     records: {
         subPlanToPeriod: {
