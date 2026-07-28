@@ -42,7 +42,7 @@ import { withPersistedSession } from '../utils/bot-session-store';
 import { collectMediaGroupMessage } from '../utils/media-group-collector';
 import { mimeTypeToExtension } from '@/common/utils/parse-data-url';
 import { serializeGptUserMessage } from '@/common/utils/gpt-message-content';
-import { compressReferenceImage } from '@/common/utils/compress-reference-image';
+import { compressGptHistoryImage } from '@/common/utils/compress-reference-image';
 import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
 import { markdownToTelegramHtml } from '@/common/utils/markdown-to-telegram-html';
 import { getToolsByCategory } from '@/common/config/ai-tools.registry';
@@ -115,6 +115,7 @@ import {
 import {
     generateAudioToolReplyKeyboard,
     isAudioDeliveryTool,
+    AudioToolKeyboardMode,
 } from '../keyboards/audio-tool.keyboard';
 import {
     isAudioToolControlButton,
@@ -220,11 +221,13 @@ export const registerAiToolHandlers = (bot: Telegraf, deps: AiHandlerDeps) => {
         if (
             text &&
             session.ai?.activeToolId &&
-            isAudioDeliveryTool(session.ai.activeToolId) &&
-            isAudioToolControlButton(text)
+            isAudioDeliveryTool(session.ai.activeToolId)
         ) {
-            await processAiInput(asBotContext(ctx), deps);
-            return;
+            const audioMode = session.ai.voiceKeyboardMode ?? 'main';
+            if (audioMode !== 'main' || isAudioToolControlButton(text)) {
+                await processAiInput(asBotContext(ctx), deps);
+                return;
+            }
         }
 
         if (isBackOrStartButton(text) || text?.startsWith('/')) {
@@ -389,6 +392,7 @@ async function selectTool(
             gptWebSearch: gptDefaults.gptWebSearch,
             gptReplyMode: gptDefaults.gptReplyMode,
             voiceToolSettings: toolSettings,
+            voiceKeyboardMode: 'main',
             activeCategory: session.ai?.activeCategory,
         };
     } else {
@@ -494,15 +498,26 @@ async function selectTool(
         );
     } else if (isAudioDeliveryTool(toolId)) {
         const settings = session.ai.voiceToolSettings ?? {};
-        const parts = [
-            i18n.aiResult.toolSelected(label, instruction),
+        const parts = [i18n.aiResult.toolSelected(label, instruction)];
+
+        if (toolId === AiToolId.SUNO) {
+            const durationSeconds = settings.durationSeconds ?? 30;
+            const tokens = calculateToolTokenCost(tool, { durationSeconds });
+            parts.push(i18n.voiceTool.durationLine(durationSeconds, tokens));
+        }
+
+        parts.push(
             i18n.voiceTool.deliveryLine(
                 resolveVoiceSendAsFile(toolId, settings),
             ),
-        ];
+        );
+
+        if (toolId === AiToolId.SUNO) {
+            parts.push(i18n.voiceTool.promptHint);
+        }
 
         await ctx.reply(parts.join('\n\n'), {
-            ...generateAudioToolReplyKeyboard(i18n, toolId, settings),
+            ...generateAudioToolReplyKeyboard(i18n, toolId, settings, 'main'),
             parse_mode: 'HTML',
         });
     } else {
@@ -1877,10 +1892,102 @@ async function handleAudioToolButtonPress(
         return false;
     }
 
+    const keyboardMode =
+        (session.ai.voiceKeyboardMode as AudioToolKeyboardMode | undefined) ??
+        'main';
     const settings = session.ai.voiceToolSettings ?? {};
-    const action = resolveAudioToolButtonAction(text, i18n, toolId, settings);
+    const action = resolveAudioToolButtonAction(
+        text,
+        i18n,
+        toolId,
+        settings,
+        keyboardMode,
+    );
     if (!action) {
         return false;
+    }
+
+    const replyKeyboard = (
+        mode: AudioToolKeyboardMode,
+        nextSettings = settings,
+    ) => generateAudioToolReplyKeyboard(i18n, toolId, nextSettings, mode);
+
+    if (action.type === 'open_settings') {
+        session.ai.voiceKeyboardMode = 'settings';
+        const durationSeconds = settings.durationSeconds ?? 30;
+        const tool = getToolById(toolId);
+        const tokens = tool
+            ? calculateToolTokenCost(tool, { durationSeconds })
+            : 0;
+        const parts = [
+            i18n.voiceTool.parametersMenuTitle,
+            i18n.voiceTool.durationLine(durationSeconds, tokens),
+            i18n.voiceTool.deliveryLine(
+                resolveVoiceSendAsFile(toolId, settings),
+            ),
+        ];
+        await ctx.reply(parts.join('\n\n'), {
+            ...replyKeyboard('settings'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'open_duration') {
+        session.ai.voiceKeyboardMode = 'duration';
+        await ctx.reply(i18n.voiceTool.selectDurationTitle, {
+            ...replyKeyboard('duration'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'back_to_settings') {
+        session.ai.voiceKeyboardMode = 'settings';
+        const durationSeconds = settings.durationSeconds ?? 30;
+        const tool = getToolById(toolId);
+        const tokens = tool
+            ? calculateToolTokenCost(tool, { durationSeconds })
+            : 0;
+        await ctx.reply(
+            [
+                i18n.voiceTool.durationLine(durationSeconds, tokens),
+                i18n.voiceTool.deliveryLine(
+                    resolveVoiceSendAsFile(toolId, settings),
+                ),
+            ].join('\n\n'),
+            {
+                ...replyKeyboard('settings'),
+                parse_mode: 'HTML',
+            },
+        );
+        return true;
+    }
+
+    if (action.type === 'back_to_editor') {
+        session.ai.voiceKeyboardMode = 'main';
+        const label = getToolLabel(toolId, user.language);
+        const instruction = getToolInstruction(toolId, user.language);
+        const durationSeconds = settings.durationSeconds ?? 30;
+        const tool = getToolById(toolId);
+        const tokens = tool
+            ? calculateToolTokenCost(tool, { durationSeconds })
+            : 0;
+        await ctx.reply(
+            [
+                i18n.aiResult.toolSelected(label, instruction),
+                i18n.voiceTool.durationLine(durationSeconds, tokens),
+                i18n.voiceTool.deliveryLine(
+                    resolveVoiceSendAsFile(toolId, settings),
+                ),
+                i18n.voiceTool.promptHint,
+            ].join('\n\n'),
+            {
+                ...replyKeyboard('main'),
+                parse_mode: 'HTML',
+            },
+        );
+        return true;
     }
 
     if (action.type === 'toggle_send_as_file') {
@@ -1892,11 +1999,42 @@ async function handleAudioToolButtonPress(
                 { sendAsFile: nextSendAsFile },
             );
         session.ai.voiceToolSettings = nextSettings;
+        const mode: AudioToolKeyboardMode =
+            toolId === AiToolId.SUNO ? 'settings' : 'main';
+        session.ai.voiceKeyboardMode = mode;
 
         await ctx.reply(i18n.voiceTool.sendAsFileChanged(nextSendAsFile), {
-            ...generateAudioToolReplyKeyboard(i18n, toolId, nextSettings),
+            ...replyKeyboard(mode, nextSettings),
             parse_mode: 'HTML',
         });
+        return true;
+    }
+
+    if (action.type === 'set_duration') {
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVoiceSettings(
+                user.id,
+                toolId,
+                { durationSeconds: action.value },
+            );
+        session.ai.voiceToolSettings = nextSettings;
+        session.ai.voiceKeyboardMode = 'settings';
+        const tokens = calculateToolTokenCost(getToolById(toolId)!, {
+            durationSeconds: action.value,
+        });
+
+        await ctx.reply(
+            [
+                i18n.voiceTool.durationChanged(action.value, tokens),
+                i18n.voiceTool.deliveryLine(
+                    resolveVoiceSendAsFile(toolId, nextSettings),
+                ),
+            ].join('\n\n'),
+            {
+                ...replyKeyboard('settings', nextSettings),
+                parse_mode: 'HTML',
+            },
+        );
         return true;
     }
 
@@ -2241,7 +2379,7 @@ async function buildAiGenerationInput(
     }
 
     const prompt =
-        referenceCount > 0
+        referenceCount > 0 && !isChatAssistantTool(toolId)
             ? buildNumberedReferencePrompt(
                   promptText ||
                       (i18n.localeTag === 'en-US'
@@ -2259,7 +2397,7 @@ async function buildAiGenerationInput(
         ? ((settings ?? {}) as ImageToolSettings)
         : undefined;
     const voiceSettings =
-        toolId === AiToolId.ELEVENLABS_VOICE
+        toolId === AiToolId.ELEVENLABS_VOICE || toolId === AiToolId.SUNO
             ? voiceSettingsFromSession
             : undefined;
     const styleOption =
@@ -2274,7 +2412,11 @@ async function buildAiGenerationInput(
         prompt,
         files: files.length ? files : undefined,
         durationSeconds:
-            videoSettings?.durationSeconds ?? tool.defaultDurationSeconds,
+            videoSettings?.durationSeconds ??
+            (toolId === AiToolId.SUNO
+                ? (voiceSettings?.durationSeconds ??
+                  tool.defaultDurationSeconds)
+                : tool.defaultDurationSeconds),
         chatHistory,
         gptWebSearch: session.ai?.gptWebSearch,
         gptReplyMode: session.ai?.gptReplyMode,
@@ -2563,7 +2705,7 @@ async function runGeneration(
         ) {
             const storedFiles = input.files
                 ? await Promise.all(
-                      input.files.map((file) => compressReferenceImage(file)),
+                      input.files.map((file) => compressGptHistoryImage(file)),
                   )
                 : undefined;
             const userContent = serializeGptUserMessage(text, storedFiles);

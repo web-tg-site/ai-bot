@@ -234,6 +234,7 @@ export const VIDEO_TOOLS_WITH_REFERENCES: AiToolId[] = [
     AiToolId.VEO,
     AiToolId.SORA,
     AiToolId.SEEDANCE,
+    AiToolId.LUMA_RAY,
     AiToolId.HIGGSFIELD,
 ];
 
@@ -242,6 +243,7 @@ export const VIDEO_FLOW_TOOLS: AiToolId[] = [
     AiToolId.VEO,
     AiToolId.SORA,
     AiToolId.SEEDANCE,
+    AiToolId.LUMA_RAY,
     AiToolId.HIGGSFIELD,
     AiToolId.HEYGEN,
 ];
@@ -251,6 +253,7 @@ export const VIDEO_TOOLS_WITH_ASPECT_SETTINGS: AiToolId[] = [
     AiToolId.VEO,
     AiToolId.SORA,
     AiToolId.SEEDANCE,
+    AiToolId.LUMA_RAY,
     AiToolId.HIGGSFIELD,
     AiToolId.HEYGEN,
 ];
@@ -260,6 +263,7 @@ export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
     [AiToolId.VEO]: 10,
     [AiToolId.SORA]: 2,
     [AiToolId.SEEDANCE]: 2,
+    [AiToolId.LUMA_RAY]: 2,
     [AiToolId.HIGGSFIELD]: 1,
 };
 
@@ -267,6 +271,7 @@ export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
     [AiToolId.VEO]: [4, 6, 8],
     [AiToolId.SORA]: [10, 15],
     [AiToolId.SEEDANCE]: [5, 15],
+    [AiToolId.LUMA_RAY]: [5, 10],
     [AiToolId.HIGGSFIELD]: [5, 15],
     [AiToolId.HEYGEN]: [5, 15],
 };
@@ -276,6 +281,7 @@ export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.VEO]: [...UI_ASPECT_RATIOS],
     [AiToolId.SORA]: [...UI_ASPECT_RATIOS],
     [AiToolId.SEEDANCE]: [...UI_ASPECT_RATIOS],
+    [AiToolId.LUMA_RAY]: [...UI_ASPECT_RATIOS],
     [AiToolId.HIGGSFIELD]: [...UI_ASPECT_RATIOS],
     [AiToolId.HEYGEN]: [...UI_ASPECT_RATIOS],
 };
@@ -283,6 +289,7 @@ export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
 export const STATIC_VIDEO_RESOLUTIONS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.SORA]: ['720p', '1080p'],
     [AiToolId.SEEDANCE]: ['720p', '1080p'],
+    [AiToolId.LUMA_RAY]: ['1080p', '720p'],
     [AiToolId.HIGGSFIELD]: ['720p'],
     [AiToolId.HEYGEN]: ['720p', '1080p'],
 };

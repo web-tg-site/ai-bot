@@ -15,10 +15,12 @@ import { AiModule } from '@/common/services/ai';
 import { RedisService } from '@/common/services/redis';
 import {
     ApayVerificationController,
+    AntilopayController,
     HealthController,
 } from '@/common/controllers';
 import { AuthModule } from '@/common/auth';
 import { CryptoPayModule } from '@/common/services/crypto-pay';
+import { AntilopayModule } from '@/common/services/antilopay';
 import { PaymentCron } from '@/common/crons/payment';
 
 @Module({
@@ -38,9 +40,14 @@ import { PaymentCron } from '@/common/crons/payment';
         UserAiToolSettingsModule,
         AiModule,
         CryptoPayModule,
+        AntilopayModule,
         AuthModule,
     ],
-    controllers: [HealthController, ApayVerificationController],
+    controllers: [
+        HealthController,
+        ApayVerificationController,
+        AntilopayController,
+    ],
     providers: [RedisService, BotService, SubscriptionCron, PaymentCron],
 })
 export class AppModule {}

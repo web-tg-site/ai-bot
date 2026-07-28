@@ -6,6 +6,7 @@ import {
     generateGptChatListKeyboard,
     generateGptClearConfirmKeyboard,
     generateGptControlKeyboard,
+    generateGptDeleteConfirmKeyboard,
     GPT_CHAT_LIST_PAGE_SIZE,
 } from '../keyboards/gpt.keyboard';
 import {
@@ -182,6 +183,127 @@ export const registerGptChatHandlers = (
                 parse_mode: 'HTML',
             },
         );
+    });
+
+    bot.action(/^gpt:delete:ask:(.+)$/, async (ctx) => {
+        if (!ctx.from) return;
+
+        const user = await deps.userModelService.getUserByTelegramId(
+            ctx.from.id.toString(),
+        );
+        if (!user) return;
+
+        const conversationId = ctx.match[1];
+        const session = getSession(ctx);
+        const toolId = resolveChatAssistantToolId(session);
+        const i18n = getI18nForUser(user);
+        const conversation =
+            await deps.gptConversationModelService.getConversation(
+                user.id,
+                conversationId,
+                toolId,
+            );
+
+        if (!conversation) {
+            await ctx.answerCbQuery(i18n.gptChat.chatNotFound);
+            return;
+        }
+
+        await ctx.answerCbQuery();
+        await ctx.reply(
+            i18n.gptChat.deleteChatConfirm(
+                escapeTelegramHtml(conversation.title),
+            ),
+            {
+                ...generateGptDeleteConfirmKeyboard(i18n, conversation.id),
+                parse_mode: 'HTML',
+            },
+        );
+    });
+
+    bot.action(/^gpt:delete:confirm:(.+)$/, async (ctx) => {
+        if (!ctx.from) return;
+
+        const user = await deps.userModelService.getUserByTelegramId(
+            ctx.from.id.toString(),
+        );
+        if (!user) return;
+
+        const i18n = getI18nForUser(user);
+        const session = getSession(ctx);
+        ensureGptSession(session);
+        const toolId = resolveChatAssistantToolId(session);
+        const conversationId = ctx.match[1];
+
+        const deleted =
+            await deps.gptConversationModelService.deleteConversation(
+                user.id,
+                conversationId,
+            );
+
+        if (!deleted) {
+            await ctx.answerCbQuery(i18n.gptChat.chatNotFound);
+            return;
+        }
+
+        if (session.ai?.activeConversationId === conversationId) {
+            const replacement =
+                await deps.gptConversationModelService.createConversation(
+                    user.id,
+                    toolId,
+                );
+            session.ai.activeConversationId = replacement.id;
+        }
+
+        await ctx.answerCbQuery(i18n.gptChat.chatDeleted);
+
+        const { items, total } =
+            await deps.gptConversationModelService.listConversations(
+                user.id,
+                toolId,
+                GPT_CHAT_LIST_PAGE_SIZE,
+                0,
+            );
+
+        if (!items.length) {
+            try {
+                await ctx.editMessageText(i18n.gptChat.chatDeleted, {
+                    parse_mode: 'HTML',
+                });
+            } catch {
+                await ctx.reply(i18n.gptChat.chatDeleted, {
+                    parse_mode: 'HTML',
+                });
+            }
+            return;
+        }
+
+        try {
+            await ctx.editMessageText(i18n.gptChat.chatListTitle, {
+                ...generateGptChatListKeyboard(i18n, items, 0, total),
+                parse_mode: 'HTML',
+            });
+        } catch {
+            await ctx.reply(i18n.gptChat.chatListTitle, {
+                ...generateGptChatListKeyboard(i18n, items, 0, total),
+                parse_mode: 'HTML',
+            });
+        }
+    });
+
+    bot.action('gpt:delete:cancel', async (ctx) => {
+        const user = ctx.from
+            ? await deps.userModelService.getUserByTelegramId(
+                  ctx.from.id.toString(),
+              )
+            : null;
+        const i18n = getI18nForUser(user);
+        await ctx.answerCbQuery();
+        try {
+            await ctx.deleteMessage();
+        } catch {
+            await ctx.reply(i18n.gptChat.deleteChatCancelled);
+        }
     });
 
     bot.action('gpt:clear', async (ctx) => {

@@ -4,13 +4,14 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { BotService } from '@/common/services/bot';
 import { UserModelService } from '@/common/models/user';
 import { CryptoPayService } from '@/common/services/crypto-pay';
-import { getI18nForUser } from '@/common/services/bot/i18n';
-import { formatDate } from '@/common/services/bot/i18n/format';
+import { AntilopayService } from '@/common/services/antilopay';
+import { notifyPaidSubscriptionActivations } from '@/common/services/payment/notify-paid-subscription';
 
 @Injectable()
 export class PaymentCron implements OnModuleInit {
     constructor(
         private readonly cryptoPayService: CryptoPayService,
+        private readonly antilopayService: AntilopayService,
         private readonly botService: BotService,
         private readonly userModelService: UserModelService,
         @InjectPinoLogger(PaymentCron.name)
@@ -19,7 +20,10 @@ export class PaymentCron implements OnModuleInit {
 
     onModuleInit() {
         if (this.cryptoPayService.isConfigured()) {
-            this.logger.info('Payment polling cron started');
+            this.logger.info('Crypto Pay polling cron started');
+        }
+        if (this.antilopayService.isConfigured()) {
+            this.logger.info('Antilopay polling cron started');
         }
     }
 
@@ -31,30 +35,34 @@ export class PaymentCron implements OnModuleInit {
 
         try {
             const results = await this.cryptoPayService.pollPendingPayments();
-
-            for (const result of results) {
-                if (result.status !== 'activated') {
-                    continue;
-                }
-
-                const user = await this.userModelService.getUserByTelegramId(
-                    result.telegramId,
-                );
-                const i18n = getI18nForUser(user);
-
-                await this.botService.sendMessage(
-                    result.telegramId,
-                    i18n.payment.success(
-                        i18n.records.subTypeToText[result.subscribeType],
-                        i18n.records.subPlanToPeriod[result.subscribePlan],
-                        formatDate(result.subscriptionEndsAt, i18n.lang),
-                    ),
-                    { parse_mode: 'HTML' },
-                );
-            }
+            await notifyPaidSubscriptionActivations(
+                this.botService,
+                this.userModelService,
+                results,
+            );
         } catch (err) {
             this.logger.error(
-                `Payment polling failed: ${err instanceof Error ? err.message : String(err)}`,
+                `Crypto Pay polling failed: ${err instanceof Error ? err.message : String(err)}`,
+            );
+        }
+    }
+
+    @Cron('*/30 * * * * *', { name: 'poll-antilopay-payments' })
+    public async pollAntilopayPayments() {
+        if (!this.antilopayService.isConfigured()) {
+            return;
+        }
+
+        try {
+            const results = await this.antilopayService.pollPendingPayments();
+            await notifyPaidSubscriptionActivations(
+                this.botService,
+                this.userModelService,
+                results,
+            );
+        } catch (err) {
+            this.logger.error(
+                `Antilopay polling failed: ${err instanceof Error ? err.message : String(err)}`,
             );
         }
     }

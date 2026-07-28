@@ -1,8 +1,11 @@
 import { AiFileInput } from '@/common/services/ai/types';
+import { MAX_GPT_IMAGE_BYTES } from '@/common/utils/gpt-message-content';
 
 const MAX_REFERENCE_BYTES = 1_500_000;
 const MAX_REFERENCE_DIMENSION = 1920;
 const JPEG_QUALITY = 82;
+const GPT_HISTORY_DIMENSION = 1600;
+const GPT_HISTORY_QUALITIES = [82, 70, 58, 45] as const;
 
 /**
  * Compresses large reference images before session storage / API upload.
@@ -45,6 +48,59 @@ export async function compressReferenceImage(
             );
         }
 
+        return file;
+    }
+}
+
+/**
+ * Compresses an image so it fits GPT chat-history reload limits.
+ * Images already under the limit are returned unchanged.
+ */
+export async function compressGptHistoryImage(
+    file: AiFileInput,
+    maxBytes: number = MAX_GPT_IMAGE_BYTES,
+): Promise<AiFileInput> {
+    if (!file.mimeType.startsWith('image/')) {
+        return file;
+    }
+
+    if (file.buffer.byteLength <= maxBytes) {
+        return file;
+    }
+
+    try {
+        const sharp = (await import('sharp')).default;
+        let best: Buffer | null = null;
+
+        for (const quality of GPT_HISTORY_QUALITIES) {
+            const compressed = await sharp(file.buffer)
+                .rotate()
+                .resize({
+                    width: GPT_HISTORY_DIMENSION,
+                    height: GPT_HISTORY_DIMENSION,
+                    fit: 'inside',
+                    withoutEnlargement: true,
+                })
+                .jpeg({ quality, mozjpeg: true })
+                .toBuffer();
+
+            best = compressed;
+            if (compressed.byteLength <= maxBytes) {
+                break;
+            }
+        }
+
+        if (!best) {
+            return file;
+        }
+
+        return {
+            buffer: best,
+            mimeType: 'image/jpeg',
+            fileName:
+                file.fileName?.replace(/\.\w+$/, '.jpg') ?? 'reference.jpg',
+        };
+    } catch {
         return file;
     }
 }

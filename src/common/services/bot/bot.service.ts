@@ -24,6 +24,7 @@ import {
 } from '@/common/services/ai';
 import { RedisService } from '@/common/services/redis';
 import { CryptoPayService } from '@/common/services/crypto-pay';
+import { AntilopayService } from '@/common/services/antilopay';
 import { bufferToInputFile } from './utils/download-telegram-file';
 import {
     mimeTypeToExtension,
@@ -52,6 +53,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         private readonly aiJobService: AiJobService,
         private readonly redisService: RedisService,
         private readonly cryptoPayService: CryptoPayService,
+        private readonly antilopayService: AntilopayService,
         private readonly elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService,
     ) {
         const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
@@ -229,6 +231,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
             tokenBillingService: this.tokenBillingService,
             aiJobService: this.aiJobService,
             cryptoPayService: this.cryptoPayService,
+            antilopayService: this.antilopayService,
             elevenLabsVoicePreviewService: this.elevenLabsVoicePreviewService,
             redisService: this.redisService,
         });

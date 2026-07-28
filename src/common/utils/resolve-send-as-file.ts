@@ -4,7 +4,7 @@ import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
 import { VoiceToolSettings } from '@/common/types/voice-tool-settings.type';
 
 export function getDefaultSendAsFile(toolId: AiToolId): boolean {
-    return toolId === AiToolId.SOUND_GENERATOR;
+    return toolId === AiToolId.SOUND_GENERATOR || toolId === AiToolId.SUNO;
 }
 
 export function resolveSendAsFile(

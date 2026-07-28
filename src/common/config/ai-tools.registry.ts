@@ -164,6 +164,20 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
             'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
     },
     {
+        id: AiToolId.LUMA_RAY,
+        label: 'Luma Ray',
+        category: 'video',
+        provider: AiProviderId.SHARPII,
+        model: 'luma-ray3',
+        baseTokenCost: 0,
+        perSecondCost: 89,
+        defaultDurationSeconds: 5,
+        accepts: ['text', 'photo'],
+        isAsync: true,
+        instruction:
+            'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
+    },
+    {
         id: AiToolId.HIGGSFIELD,
         label: 'Higgsfield',
         category: 'video',
@@ -246,6 +260,20 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         isAsync: false,
         instruction:
             'Опишите именно звук, а не сцену (например: «стук каблуков по металлу», «громкий гром», «шаги по гравию»).',
+    },
+    {
+        id: AiToolId.SUNO,
+        label: 'Suno',
+        category: 'audio',
+        provider: AiProviderId.SHARPII,
+        model: 'suno-v4.5plus',
+        baseTokenCost: 0,
+        perSecondCost: 20 / 60,
+        defaultDurationSeconds: 30,
+        accepts: ['text'],
+        isAsync: true,
+        instruction:
+            'Отправьте текстом описание песни (жанр, настроение, темп, вокал). Параметры — в «⚙️ Параметры».',
     },
 ];
 

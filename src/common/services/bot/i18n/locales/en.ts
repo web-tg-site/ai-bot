@@ -92,6 +92,7 @@ Inside you'll find the world's best AI models:
 • Higgsfield
 • HeyGen
 • Seedance
+• Luma Ray
 • Topaz AI
 
 🎙️ <b>Voice & audio</b>
@@ -99,6 +100,7 @@ Inside you'll find the world's best AI models:
 • Voice cloning
 • Video dubbing
 • Sound generation on demand
+• Suno
 
 Choose a section below and get started. All tools are available in one place — no need to switch between dozens of services.`,
         registered: `🚀 <b>All AI tools in one place</b>
@@ -129,7 +131,7 @@ Create videos with AI, animate images, and enhance existing clips.
 Select a model below.`,
         audioBots: `🎙️ Audio tools
 
-Create voiceovers, clone voices, generate sounds, and work with audio content.
+Create voiceovers, clone voices, generate sounds and songs, and work with audio content.
 
 Select a tool below.`,
     },
@@ -271,6 +273,14 @@ Amount: ~${amountUsd} USDT (pay with any supported cryptocurrency)
 
 Tap the button below to pay via @send.
 The link is valid for 1 hour.`,
+        invoiceCreatedRub: (amountRub, tariffName, periodName) =>
+            `💳 <b>Subscription payment</b>
+
+Plan: ${tariffName}
+Period: ${periodName}
+Amount: ${amountRub} ₽
+
+Tap the button below to pay by card or SBP.`,
         payButton: 'Pay',
         success: (tariffName, periodName, endsAt) =>
             `✅ <b>Payment received, subscription activated</b>
@@ -281,10 +291,14 @@ Valid until: ${endsAt}
 
 All platform AI tools are now available.`,
         error: 'Could not create a payment invoice. Please try again later or contact support.',
-        sbpComingSoon:
-            'SBP payments are coming soon. You can pay with cryptocurrency using the USDT button for now.',
+        askEmail:
+            'To pay in rubles, send your email in one message.\nIt will be saved for future payments.',
+        emailInvalid:
+            'Invalid email. Example: name@example.com\nPlease send your email again.',
         notConfigured:
             '@send payments are temporarily unavailable. Please contact support.',
+        rubNotConfigured:
+            'Ruble payments are temporarily unavailable. You can pay with cryptocurrency using the USDT button for now.',
     },
     support: {
         text: `💬 <b>${BOT_NAME} support</b>
@@ -354,6 +368,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.VEO]: 'Veo',
             [AiToolId.SORA]: 'Sora',
             [AiToolId.SEEDANCE]: 'Seedance',
+            [AiToolId.LUMA_RAY]: 'Luma Ray',
             [AiToolId.HIGGSFIELD]: 'Higgsfield',
             [AiToolId.HEYGEN]: 'HeyGen',
             [AiToolId.TOPAZ]: 'Topaz AI',
@@ -361,6 +376,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.VOICE_CLONE]: 'Voice Clone',
             [AiToolId.VIDEO_TO_AUDIO]: 'Video Dubbing',
             [AiToolId.SOUND_GENERATOR]: 'Sound Generator',
+            [AiToolId.SUNO]: 'Suno',
         },
         instructions: {
             [AiToolId.GPT]: 'Send text, a photo, file, or video.',
@@ -382,6 +398,8 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
                 'Upload up to 2 frames for a transition, adjust settings, then describe the scene.',
             [AiToolId.SEEDANCE]:
                 'Upload up to 2 frames for a transition, adjust settings, then describe the scene.',
+            [AiToolId.LUMA_RAY]:
+                'Upload up to 2 frames for a transition, adjust settings, then describe the scene.',
             [AiToolId.HIGGSFIELD]:
                 'Upload a reference (optional), adjust settings, then describe the scene.',
             [AiToolId.HEYGEN]:
@@ -396,6 +414,8 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
                 'Send a video or audio file. The bot will dub it into Russian (or specify a language in the caption: en, es, de…).',
             [AiToolId.SOUND_GENERATOR]:
                 'Describe the sound itself, not a scene (e.g. «heels on metal floor», not «a girl walks»).',
+            [AiToolId.SUNO]:
+                'Send a text description of the song (genre, mood, tempo, vocals) — generation starts right away. Duration and delivery are under “⚙️ Settings”.',
         },
     },
     gptChat: {
@@ -423,6 +443,12 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             '⚠️ <b>Clear the current chat history?</b>\n\nMessages will be deleted permanently.',
         confirmClear: '✅ Yes, clear',
         cancelClear: '❌ Cancel',
+        deleteChatConfirm: (title) =>
+            `⚠️ <b>Delete this chat?</b>\n\n“${title}”\n\nThe chat and all messages will be deleted permanently.`,
+        confirmDeleteChat: '✅ Yes, delete',
+        cancelDeleteChat: '❌ Cancel',
+        chatDeleted: '✅ Chat deleted',
+        deleteChatCancelled: 'Delete cancelled',
         noActiveChat: 'No active chat',
         historyCleared: '✅ Chat history cleared',
         clearCancelled: 'Clear cancelled',
@@ -648,5 +674,28 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             asFile
                 ? 'Delivery: <b>audio file</b>'
                 : 'Delivery: <b>voice message</b>',
+        durationLine: (seconds, tokens) =>
+            `Duration: <b>${formatSunoDurationEn(seconds)}</b> · <b>${tokens}</b> tok.`,
+        durationPickerOption: (seconds, tokens) =>
+            `${formatSunoDurationEn(seconds)} · ${tokens} tok.`,
+        durationPickerSelected: (seconds, tokens) =>
+            `✓ ${formatSunoDurationEn(seconds)} · ${tokens} tok.`,
+        durationChanged: (seconds, tokens) =>
+            `Duration: ${formatSunoDurationEn(seconds)} (${tokens} tokens)`,
+        promptHint:
+            '✍️ Send a prompt as a message — generation will start immediately.',
+        settingsButton: '⚙️ Settings',
+        changeDurationButton: '⏱ Change duration',
+        backToSettings: '◀️ Back',
+        selectDurationTitle: 'Select duration:',
+        parametersMenuTitle: 'Settings',
     },
 };
+
+function formatSunoDurationEn(seconds: number): string {
+    if (seconds >= 60 && seconds % 60 === 0) {
+        const minutes = seconds / 60;
+        return minutes === 1 ? '1 min' : `${minutes} min`;
+    }
+    return `${seconds}s`;
+}

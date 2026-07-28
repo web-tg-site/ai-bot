@@ -92,6 +92,7 @@ export const ru: I18nBundle = {
 • Higgsfield
 • HeyGen
 • Seedance
+• Luma Ray
 • Topaz AI
 
 🎙️ <b>Работа с голосом и аудио</b>
@@ -99,6 +100,7 @@ export const ru: I18nBundle = {
 • Клонирование голоса
 • Озвучка видео
 • Генерация звуков по запросу
+• Suno
 
 Выберите нужный раздел и начните работу. Все инструменты доступны в одном месте без переключения между десятками сервисов.`,
         registered: `🚀 <b>Все AI-инструменты в одном месте</b>
@@ -129,7 +131,7 @@ export const ru: I18nBundle = {
 Выберите нужную модель ниже.`,
         audioBots: `🎙️ Работа с аудио
 
-Создавайте озвучку, клонируйте голоса, генерируйте звуки и работайте со звуковым контентом.
+Создавайте озвучку, клонируйте голоса, генерируйте звуки и песни, работайте со звуковым контентом.
 
 Выберите нужный инструмент ниже.`,
     },
@@ -271,6 +273,14 @@ ${getTariffIncludesText(type, plan, ru)}
 
 Нажмите кнопку ниже, чтобы перейти к оплате в @send.
 Ссылка действительна 1 час.`,
+        invoiceCreatedRub: (amountRub, tariffName, periodName) =>
+            `💳 <b>Оплата подписки</b>
+
+Тариф: ${tariffName}
+Период: ${periodName}
+Сумма: ${amountRub} ₽
+
+Нажмите кнопку ниже, чтобы перейти к оплате картой или через СБП.`,
         payButton: 'Оплатить',
         success: (tariffName, periodName, endsAt) =>
             `✅ <b>Оплата получена, подписка активирована</b>
@@ -281,10 +291,14 @@ ${getTariffIncludesText(type, plan, ru)}
 
 Доступ ко всем AI-инструментам платформы открыт.`,
         error: 'Не удалось создать счёт на оплату. Попробуйте позже или обратитесь в поддержку.',
-        sbpComingSoon:
-            'Оплата через СБП скоро будет доступна. Пока вы можете оплатить криптовалютой через кнопку USDT.',
+        askEmail:
+            'Для оплаты в рублях укажите ваш email одним сообщением.\nОн сохранится для следующих платежей.',
+        emailInvalid:
+            'Некорректный email. Пример: name@example.com\nОтправьте email ещё раз.',
         notConfigured:
             'Оплата через @send временно недоступна. Обратитесь в поддержку.',
+        rubNotConfigured:
+            'Оплата в рублях временно недоступна. Пока вы можете оплатить криптовалютой через кнопку USDT.',
     },
     support: {
         text: `💬 <b>Поддержка ${BOT_NAME}</b>
@@ -354,6 +368,7 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.VEO]: 'Veo',
             [AiToolId.SORA]: 'Sora',
             [AiToolId.SEEDANCE]: 'Seedance',
+            [AiToolId.LUMA_RAY]: 'Luma Ray',
             [AiToolId.HIGGSFIELD]: 'Higgsfield',
             [AiToolId.HEYGEN]: 'HeyGen',
             [AiToolId.TOPAZ]: 'Topaz AI',
@@ -361,6 +376,7 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.VOICE_CLONE]: 'Клонирование голоса',
             [AiToolId.VIDEO_TO_AUDIO]: 'Озвучка видео',
             [AiToolId.SOUND_GENERATOR]: 'Генерация звуков',
+            [AiToolId.SUNO]: 'Suno',
         },
         instructions: {
             [AiToolId.GPT]: 'Отправьте текст, фото, файл или видео.',
@@ -383,6 +399,8 @@ ${getTariffIncludesText(type, plan, ru)}
                 'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
             [AiToolId.SEEDANCE]:
                 'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
+            [AiToolId.LUMA_RAY]:
+                'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
             [AiToolId.HIGGSFIELD]:
                 'Загрузите референс (можно пропустить), настройте параметры и опишите сцену.',
             [AiToolId.HEYGEN]:
@@ -397,6 +415,8 @@ ${getTariffIncludesText(type, plan, ru)}
                 'Отправьте видео или аудиофайл. Бот сделает дубляж на русский (или укажите язык в подписи: en, es, de…).',
             [AiToolId.SOUND_GENERATOR]:
                 'Опишите именно звук, а не сцену (лучше: «стук каблуков по металлу», а не «девушка идёт»).',
+            [AiToolId.SUNO]:
+                'Отправьте текстом описание песни (жанр, настроение, темп, вокал) — генерация начнётся сразу. Параметры (длительность, формат) — в «⚙️ Параметры».',
         },
     },
     gptChat: {
@@ -424,6 +444,12 @@ ${getTariffIncludesText(type, plan, ru)}
             '⚠️ <b>Очистить историю текущего чата?</b>\n\nСообщения будут удалены без возможности восстановления.',
         confirmClear: '✅ Да, очистить',
         cancelClear: '❌ Отмена',
+        deleteChatConfirm: (title) =>
+            `⚠️ <b>Удалить чат?</b>\n\n«${title}»\n\nЧат и все сообщения будут удалены без возможности восстановления.`,
+        confirmDeleteChat: '✅ Да, удалить',
+        cancelDeleteChat: '❌ Отмена',
+        chatDeleted: '✅ Чат удалён',
+        deleteChatCancelled: 'Удаление отменено',
         noActiveChat: 'Нет активного чата',
         historyCleared: '✅ История чата очищена',
         clearCancelled: 'Очистка отменена',
@@ -650,5 +676,28 @@ ${getTariffIncludesText(type, plan, ru)}
             asFile
                 ? 'Отправка: <b>аудиофайлом</b>'
                 : 'Отправка: <b>голосовым сообщением</b>',
+        durationLine: (seconds, tokens) =>
+            `Длительность: <b>${formatSunoDurationRu(seconds)}</b> · <b>${tokens}</b> ток.`,
+        durationPickerOption: (seconds, tokens) =>
+            `${formatSunoDurationRu(seconds)} · ${tokens} ток.`,
+        durationPickerSelected: (seconds, tokens) =>
+            `✓ ${formatSunoDurationRu(seconds)} · ${tokens} ток.`,
+        durationChanged: (seconds, tokens) =>
+            `Длительность: ${formatSunoDurationRu(seconds)} (${tokens} токенов)`,
+        promptHint:
+            '✍️ Отправьте промпт сообщением — генерация запустится сразу.',
+        settingsButton: '⚙️ Параметры',
+        changeDurationButton: '⏱ Изменить длительность',
+        backToSettings: '◀️ Назад',
+        selectDurationTitle: 'Выберите длительность:',
+        parametersMenuTitle: 'Параметры',
     },
 };
+
+function formatSunoDurationRu(seconds: number): string {
+    if (seconds >= 60 && seconds % 60 === 0) {
+        const minutes = seconds / 60;
+        return minutes === 1 ? '1 мин' : `${minutes} мин`;
+    }
+    return `${seconds} сек`;
+}

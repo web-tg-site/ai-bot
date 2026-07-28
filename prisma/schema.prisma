@@ -37,6 +37,11 @@ enum PaymentStatus {
   EXPIRED
 }
 
+enum PaymentProvider {
+  CRYPTO_PAY
+  ANTILOPAY
+}
+
 datasource db {
   provider = "postgresql"
 }
@@ -67,6 +72,7 @@ model User {
   isSubscriptionActive Boolean @default(false)
 
   tokenLeft Int @default(0)
+  email String?
   language UserLanguage @default(RU)
 
   nextSubscription NextSubscriptionOfUser?
@@ -109,17 +115,20 @@ model UserAiToolSettings {
 }
 
 model Payment {
-  id                 String        @id @default(uuid())
+  id                 String          @id @default(uuid())
   userId             String
-  user               User          @relation(fields: [userId], references: [id])
-  cryptoPayInvoiceId BigInt        @unique
+  user               User            @relation(fields: [userId], references: [id])
+  provider           PaymentProvider
+  cryptoPayInvoiceId BigInt?         @unique
+  antilopayPaymentId String?         @unique
+  orderId            String          @unique
   subscribeType      SubscribeType
   subscribePlan      SubscribePlan
-  amountUsd          String
-  status             PaymentStatus @default(PENDING)
-  payload            String        @unique
+  amountUsd          String?
+  amountRub          String?
+  status             PaymentStatus   @default(PENDING)
   paidAt             DateTime?
-  createdAt          DateTime      @default(now())
+  createdAt          DateTime        @default(now())
 
   @@map("payments")
 }

@@ -46,6 +46,26 @@ export function generateGptClearConfirmKeyboard(i18n: I18nBundle) {
     ]);
 }
 
+export function generateGptDeleteConfirmKeyboard(
+    i18n: I18nBundle,
+    conversationId: string,
+) {
+    return Markup.inlineKeyboard([
+        [
+            Markup.button.callback(
+                i18n.gptChat.confirmDeleteChat,
+                `gpt:delete:confirm:${conversationId}`,
+            ),
+        ],
+        [
+            Markup.button.callback(
+                i18n.gptChat.cancelDeleteChat,
+                'gpt:delete:cancel',
+            ),
+        ],
+    ]);
+}
+
 export function generateGptChatListKeyboard(
     i18n: I18nBundle,
     conversations: Array<{ id: string; title: string }>,
@@ -54,9 +74,10 @@ export function generateGptChatListKeyboard(
 ) {
     const rows = conversations.map((conversation) => [
         Markup.button.callback(
-            conversation.title.slice(0, 64),
+            conversation.title.slice(0, 56),
             `gpt:open:${conversation.id}`,
         ),
+        Markup.button.callback('🗑', `gpt:delete:ask:${conversation.id}`),
     ]);
 
     const navButtons: ReturnType<typeof Markup.button.callback>[] = [];

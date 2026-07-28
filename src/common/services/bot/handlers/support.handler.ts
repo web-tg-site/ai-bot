@@ -24,6 +24,7 @@ function getSession(ctx: Context): BotSession {
 function clearPendingTechSupport(ctx: Context): void {
     const session = getSession(ctx);
     session.pendingTechSupport = undefined;
+    session.pendingRubPayment = undefined;
 }
 
 export const registerSupportHandler = (
@@ -61,6 +62,7 @@ export const registerSupportHandler = (
 
             const session = getSession(ctx);
             session.pendingTechSupport = true;
+            session.pendingRubPayment = undefined;
 
             const user = await userModelService.getUserByTelegramId(
                 ctx.from.id.toString(),

@@ -155,7 +155,8 @@ export function isAudioTool(toolId: AiToolId): boolean {
     return (
         toolId === AiToolId.ELEVENLABS_VOICE ||
         toolId === AiToolId.VOICE_CLONE ||
-        toolId === AiToolId.SOUND_GENERATOR
+        toolId === AiToolId.SOUND_GENERATOR ||
+        toolId === AiToolId.SUNO
     );
 }
 

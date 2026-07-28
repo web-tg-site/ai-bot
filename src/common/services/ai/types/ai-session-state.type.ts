@@ -3,6 +3,7 @@ import { GptReplyMode } from './ai-generation-result.type';
 import { ImageToolSettings } from '@/common/types/image-tool-settings.type';
 import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
 import { VoiceToolSettings } from '@/common/types/voice-tool-settings.type';
+import { SubscribePlan, SubscribeType } from '@/generated/prisma/enums';
 
 export type { GptReplyMode };
 
@@ -28,6 +29,10 @@ export type StoredReference = StoredVoiceSample & { id: string };
 
 export type BotSession = {
     pendingTechSupport?: boolean;
+    pendingRubPayment?: {
+        subscribeType: SubscribeType;
+        subscribePlan: SubscribePlan;
+    };
     ai?: {
         activeToolId?: AiToolId;
         step: AiSessionStep;
@@ -54,7 +59,7 @@ export type BotSession = {
             | 'quality'
             | 'duration'
             | 'style';
-        voiceKeyboardMode?: 'main' | 'settings' | 'preview';
+        voiceKeyboardMode?: 'main' | 'settings' | 'preview' | 'duration';
         pendingElevenLabsVoiceId?: string;
         accessibleElevenLabsVoices?: Array<{
             id: string;

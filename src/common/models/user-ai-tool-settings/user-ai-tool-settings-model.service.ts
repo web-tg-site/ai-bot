@@ -131,6 +131,8 @@ export class UserAiToolSettingsModelService {
             ...DEFAULT_VOICE_TOOL_SETTINGS,
             elevenLabsVoiceId:
                 stored.elevenLabsVoiceId ?? getDefaultElevenLabsVoiceId(),
+            sendAsFile: stored.sendAsFile,
+            durationSeconds: stored.durationSeconds,
         };
     }
 

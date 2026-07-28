@@ -87,6 +87,10 @@ export class SharpiiProvider {
         }
 
         if (tool.category === 'audio') {
+            if (toolId === AiToolId.SUNO) {
+                return this.createMusicJob(tool.model, input);
+            }
+
             if (toolId === AiToolId.VIDEO_TO_AUDIO) {
                 return this.createLipsyncJob(input, tool.model);
             }
@@ -305,6 +309,40 @@ export class SharpiiProvider {
         return this.pollTaskUntilResult(taskId, AiToolId.VOICE_CLONE);
     }
 
+    private async createMusicJob(
+        model: string,
+        input: AiGenerationInput,
+    ): Promise<AiJobCreateResult> {
+        const prompt = input.prompt?.trim();
+        if (!prompt) {
+            throw new Error('Отправьте описание стиля песни');
+        }
+
+        const duration = Math.min(
+            240,
+            Math.max(5, input.durationSeconds ?? 30),
+        );
+
+        const response = await this.post<SharpiiTaskSubmitResponse>(
+            '/v1/audio/music',
+            {
+                model,
+                prompt: prompt.slice(0, 2000),
+                duration,
+            },
+        );
+
+        const taskId = response.data?.task?.id;
+        if (!taskId) {
+            throw new Error('Sharpii did not return music task id');
+        }
+
+        return {
+            providerJobId: taskId,
+            estimatedTokenCost: 0,
+        };
+    }
+
     private async createAudioJob(
         toolId: AiToolId,
         model: string,
@@ -425,7 +463,12 @@ export class SharpiiProvider {
         outputType?: string,
     ): AiGenerationResult['type'] {
         if (
-            [AiToolId.ELEVENLABS_VOICE, AiToolId.VOICE_CLONE].includes(toolId)
+            [
+                AiToolId.ELEVENLABS_VOICE,
+                AiToolId.VOICE_CLONE,
+                AiToolId.SUNO,
+            ].includes(toolId) ||
+            outputType === 'audio'
         ) {
             return 'audio';
         }
@@ -434,6 +477,7 @@ export class SharpiiProvider {
             [
                 AiToolId.SORA,
                 AiToolId.SEEDANCE,
+                AiToolId.LUMA_RAY,
                 AiToolId.VIDEO_TO_AUDIO,
             ].includes(toolId) ||
             outputType === 'video'
@@ -605,6 +649,10 @@ export class SharpiiProvider {
             return Math.min(15, Math.max(4, durationSeconds));
         }
 
+        if (toolId === AiToolId.LUMA_RAY) {
+            return durationSeconds <= 5 ? 5 : 10;
+        }
+
         return durationSeconds;
     }
 
@@ -742,13 +790,10 @@ export class SharpiiProvider {
         if (
             /Insufficient credits.*permanent:|Pre-deduction failed.*insufficient quota/i.test(
                 message,
-            )
+            ) ||
+            message.includes('Insufficient credits')
         ) {
-            return `Недостаточно квоты у провайдера для этой операции. Попробуйте другой инструмент.${suffix}`;
-        }
-
-        if (message.includes('Insufficient credits')) {
-            return `Недостаточно квоты у провайдера для этой генерации.${suffix}`;
+            return `Сбой на стороне провайдера. Попробуйте позже или выберите другой инструмент.${suffix}`;
         }
 
         if (

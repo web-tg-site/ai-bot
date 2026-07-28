@@ -385,15 +385,15 @@ export class OpenRouterProvider {
 
         if (wantsSearch) {
             return {
-                model: 'openai/gpt-4o',
+                model: 'openai/gpt-5.5',
                 tokenCost: webSearchEnabled ? 8 : 15,
             };
         }
         if (hasMedia) {
-            return { model: 'openai/gpt-4o', tokenCost: 8 };
+            return { model: 'openai/gpt-5.5', tokenCost: 8 };
         }
         if (prompt.length > 200) {
-            return { model: 'openai/gpt-4o', tokenCost: 5 };
+            return { model: 'openai/gpt-5.5', tokenCost: 5 };
         }
         return { model: 'openai/gpt-4o-mini', tokenCost: 1 };
     }
@@ -508,14 +508,16 @@ export class OpenRouterProvider {
             return (
                 `Today is ${date}. ` +
                 'If the question is about current events, prices, weather, news, or anything time-sensitive, use web search. ' +
-                'Do not invent up-to-date facts. Answer in the same language as the user.'
+                'Do not invent up-to-date facts. Answer in the same language as the user. ' +
+                'When images are attached, you can see and analyze them (including people) and should give concrete visual feedback — do not claim you cannot see images.'
             );
         }
 
         return (
             `Сегодня ${date}. ` +
             'Если вопрос касается текущих событий, цен, погоды, новостей или другой актуальной информации — используй поиск в интернете. ' +
-            'Не выдумывай актуальные факты. Отвечай на том же языке, что и пользователь.'
+            'Не выдумывай актуальные факты. Отвечай на том же языке, что и пользователь. ' +
+            'Если в сообщении есть изображения — ты их видишь и должен анализировать (в том числе людей, например для стилевых советов), а не отвечать, что не видишь изображения.'
         );
     }
 

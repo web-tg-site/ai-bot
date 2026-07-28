@@ -2,7 +2,8 @@ import { AiFileInput } from '@/common/services/ai/types';
 
 const GPT_MEDIA_MARKER = '"_gptMedia":true';
 const MAX_STORED_GPT_IMAGES = 2;
-const MAX_GPT_IMAGE_BYTES = 800_000;
+/** Max raw image bytes kept in GPT chat history (must match compress target). */
+export const MAX_GPT_IMAGE_BYTES = 800_000;
 
 type StoredGptUserMessage = {
     _gptMedia: true;

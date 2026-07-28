@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '@/common/services/prisma';
 import { UserModelService } from '@/common/models/user';
 import {
+    PaymentProvider,
     PaymentStatus,
     SubscribePlan,
     SubscribeType,
@@ -118,9 +119,9 @@ export class CryptoPayService {
             throw new Error('CRYPTOBOT_KEY is not set');
         }
 
-        const paymentId = randomUUID();
+        const orderId = randomUUID();
         const payload = JSON.stringify({
-            paymentId,
+            paymentId: orderId,
             userId: params.userId,
             plan: params.subscribePlan,
             type: params.subscribeType,
@@ -170,11 +171,12 @@ export class CryptoPayService {
         await this.prismaService.payment.create({
             data: {
                 userId: params.userId,
+                provider: PaymentProvider.CRYPTO_PAY,
                 cryptoPayInvoiceId: BigInt(invoice.invoice_id),
+                orderId,
                 subscribeType: params.subscribeType,
                 subscribePlan: params.subscribePlan,
                 amountUsd: String(params.amountUsd),
-                payload,
             },
         });
 
@@ -190,7 +192,11 @@ export class CryptoPayService {
         }
 
         const pendingPayments = await this.prismaService.payment.findMany({
-            where: { status: PaymentStatus.PENDING },
+            where: {
+                status: PaymentStatus.PENDING,
+                provider: PaymentProvider.CRYPTO_PAY,
+                cryptoPayInvoiceId: { not: null },
+            },
             select: { cryptoPayInvoiceId: true },
         });
 
@@ -199,7 +205,7 @@ export class CryptoPayService {
         }
 
         const invoiceIds = pendingPayments
-            .map((payment) => payment.cryptoPayInvoiceId.toString())
+            .map((payment) => payment.cryptoPayInvoiceId!.toString())
             .join(',');
 
         const response = await firstValueFrom(

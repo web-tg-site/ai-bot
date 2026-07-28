@@ -6,6 +6,7 @@ import {
     ElevenLabsVoiceOption,
     getDefaultElevenLabsVoiceId,
 } from '@/common/config/elevenlabs-voices.config';
+import { normalizeSunoDuration } from '@/common/config/suno-audio.config';
 import { I18nBundle, getToolInstruction, getToolLabel } from '../i18n';
 import { UserLanguage } from '@/generated/prisma/enums';
 import { resolveVoiceSendAsFile } from '@/common/utils/resolve-send-as-file';
@@ -23,11 +24,20 @@ export async function loadVoiceToolSettings(
     settingsService: UserAiToolSettingsModelService,
 ): Promise<VoiceToolSettings> {
     const stored = await settingsService.getVoiceSettings(userId, toolId);
-    return {
+    const settings: VoiceToolSettings = {
         elevenLabsVoiceId:
             stored.elevenLabsVoiceId ?? getDefaultElevenLabsVoiceId(),
         sendAsFile: stored.sendAsFile,
+        durationSeconds: stored.durationSeconds,
     };
+
+    if (toolId === AiToolId.SUNO) {
+        settings.durationSeconds = normalizeSunoDuration(
+            stored.durationSeconds,
+        );
+    }
+
+    return settings;
 }
 
 export function getVoiceKeyboardMode(session: BotSession): VoiceKeyboardMode {

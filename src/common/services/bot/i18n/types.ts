@@ -102,6 +102,11 @@ export type I18nBundle = {
             tariffName: string,
             periodName: string,
         ) => string;
+        invoiceCreatedRub: (
+            amountRub: string,
+            tariffName: string,
+            periodName: string,
+        ) => string;
         payButton: string;
         success: (
             tariffName: string,
@@ -109,8 +114,10 @@ export type I18nBundle = {
             endsAt: string,
         ) => string;
         error: string;
-        sbpComingSoon: string;
+        askEmail: string;
+        emailInvalid: string;
         notConfigured: string;
+        rubNotConfigured: string;
     };
     records: {
         subPlanToPeriod: Record<SubscribePlan, string>;
@@ -142,6 +149,11 @@ export type I18nBundle = {
         clearConfirm: string;
         confirmClear: string;
         cancelClear: string;
+        deleteChatConfirm: (title: string) => string;
+        confirmDeleteChat: string;
+        cancelDeleteChat: string;
+        chatDeleted: string;
+        deleteChatCancelled: string;
         noActiveChat: string;
         historyCleared: string;
         clearCancelled: string;
@@ -289,5 +301,15 @@ export type I18nBundle = {
         sendAsFileButton: (asFile: boolean) => string;
         sendAsFileChanged: (asFile: boolean) => string;
         deliveryLine: (asFile: boolean) => string;
+        durationLine: (seconds: number, tokens: number) => string;
+        durationPickerOption: (seconds: number, tokens: number) => string;
+        durationPickerSelected: (seconds: number, tokens: number) => string;
+        durationChanged: (seconds: number, tokens: number) => string;
+        promptHint: string;
+        settingsButton: string;
+        changeDurationButton: string;
+        backToSettings: string;
+        selectDurationTitle: string;
+        parametersMenuTitle: string;
     };
 };

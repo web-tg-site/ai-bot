@@ -473,7 +473,8 @@ export class AiJobCron {
             toolId === AiToolId.ELEVENLABS_VOICE ||
             toolId === AiToolId.VOICE_CLONE ||
             toolId === AiToolId.SOUND_GENERATOR ||
-            toolId === AiToolId.VIDEO_TO_AUDIO
+            toolId === AiToolId.VIDEO_TO_AUDIO ||
+            toolId === AiToolId.SUNO
         ) {
             const voiceSettings =
                 await this.userAiToolSettingsModelService.getVoiceSettings(

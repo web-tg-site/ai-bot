@@ -9,7 +9,7 @@ import {
 } from '@/common/config/elevenlabs-voices.config';
 import { chunkKeyboardRow } from './keyboard-grid';
 
-export type VoiceKeyboardMode = 'main' | 'settings' | 'preview';
+export type VoiceKeyboardMode = 'main' | 'settings' | 'preview' | 'duration';
 
 export function generateElevenLabsVoiceReplyKeyboard(
     i18n: I18nBundle,
