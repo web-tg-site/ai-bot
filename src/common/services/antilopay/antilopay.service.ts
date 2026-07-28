@@ -57,6 +57,33 @@ export type CreateAntilopayPaymentResult = {
     orderId: string;
 };
 
+function normalizePublicBaseUrl(raw: string | undefined): string | undefined {
+    if (!raw) {
+        return undefined;
+    }
+
+    let value = raw.trim().replace(/^["']|["']$/g, '');
+    if (!value) {
+        return undefined;
+    }
+
+    if (!/^https?:\/\//i.test(value)) {
+        value = `https://${value}`;
+    }
+
+    value = value.replace(/\/$/, '');
+
+    try {
+        const url = new URL(value);
+        if (url.protocol !== 'https:') {
+            return undefined;
+        }
+        return `${url.protocol}//${url.host}`;
+    } catch {
+        return undefined;
+    }
+}
+
 @Injectable()
 export class AntilopayService {
     private readonly secretId: string | undefined;
@@ -87,10 +114,9 @@ export class AntilopayService {
         this.callbackPublicKey = this.configService
             .get<string>('ANTILOPAY_CALLBACK_PUBLIC_KEY')
             ?.trim();
-        this.publicBaseUrl = this.configService
-            .get<string>('PUBLIC_BASE_URL')
-            ?.trim()
-            ?.replace(/\/$/, '');
+        this.publicBaseUrl = normalizePublicBaseUrl(
+            this.configService.get<string>('PUBLIC_BASE_URL'),
+        );
         this.apiBaseUrl = (
             this.configService.get<string>('ANTILOPAY_API_URL')?.trim() ||
             ANTILOPAY_API_URL_DEFAULT
@@ -161,14 +187,17 @@ export class AntilopayService {
             product_name: productName,
             product_type: 'services',
             description,
-            success_url: `${this.publicBaseUrl}/payments/antilopay/success`,
-            fail_url: `${this.publicBaseUrl}/payments/antilopay/fail`,
             customer: {
                 email: params.email,
             },
             prefer_methods: ['SBP', 'CARD_RU'],
             merchant_extra: `userId=${params.userId}`,
         };
+
+        if (this.publicBaseUrl) {
+            body.success_url = `${this.publicBaseUrl}/payments/antilopay/success`;
+            body.fail_url = `${this.publicBaseUrl}/payments/antilopay/fail`;
+        }
 
         if (this.vat != null) {
             body.vat = this.vat;
@@ -195,7 +224,13 @@ export class AntilopayService {
 
         if (response.data.code !== 0 || !response.data.payment_url) {
             this.logger.error(
-                { code: response.data.code, error: response.data.error },
+                {
+                    code: response.data.code,
+                    error: response.data.error,
+                    successUrl: body.success_url,
+                    failUrl: body.fail_url,
+                    publicBaseUrl: this.publicBaseUrl,
+                },
                 'Antilopay payment/create failed',
             );
             throw new Error(
