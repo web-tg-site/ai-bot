@@ -13,7 +13,7 @@ import {
     SubscribeType,
 } from '@/generated/prisma/enums';
 import { BOT_NAME } from '@/common/config';
-import { ANTILOPAY_API_URL } from '@/common/config/antilopay.config';
+import { ANTILOPAY_API_URL_DEFAULT } from '@/common/config/antilopay.config';
 import type { ProcessInvoicePaidResult } from '@/common/services/crypto-pay';
 import {
     amountsEqualRub,
@@ -64,6 +64,7 @@ export class AntilopayService {
     private readonly projectId: string | undefined;
     private readonly callbackPublicKey: string | undefined;
     private readonly publicBaseUrl: string | undefined;
+    private readonly apiBaseUrl: string;
     private readonly vat: number | undefined;
 
     constructor(
@@ -74,25 +75,37 @@ export class AntilopayService {
         private readonly prismaService: PrismaService,
         private readonly userModelService: UserModelService,
     ) {
-        this.secretId = this.configService.get<string>('ANTILOPAY_SECRET_ID');
-        this.privateKey = this.configService.get<string>(
-            'ANTILOPAY_PRIVATE_KEY',
-        );
-        this.projectId = this.configService.get<string>('ANTILOPAY_PROJECT_ID');
-        this.callbackPublicKey = this.configService.get<string>(
-            'ANTILOPAY_CALLBACK_PUBLIC_KEY',
-        );
+        this.secretId = this.configService
+            .get<string>('ANTILOPAY_SECRET_ID')
+            ?.trim();
+        this.privateKey = this.configService
+            .get<string>('ANTILOPAY_PRIVATE_KEY')
+            ?.trim();
+        this.projectId = this.configService
+            .get<string>('ANTILOPAY_PROJECT_ID')
+            ?.trim();
+        this.callbackPublicKey = this.configService
+            .get<string>('ANTILOPAY_CALLBACK_PUBLIC_KEY')
+            ?.trim();
         this.publicBaseUrl = this.configService
             .get<string>('PUBLIC_BASE_URL')
+            ?.trim()
             ?.replace(/\/$/, '');
+        this.apiBaseUrl = (
+            this.configService.get<string>('ANTILOPAY_API_URL')?.trim() ||
+            ANTILOPAY_API_URL_DEFAULT
+        ).replace(/\/$/, '');
 
-        const vatRaw = this.configService.get<string>('ANTILOPAY_VAT');
+        const vatRaw = this.configService.get<string>('ANTILOPAY_VAT')?.trim();
         if (vatRaw === '10' || vatRaw === '22') {
             this.vat = Number(vatRaw);
         }
 
         if (this.isConfigured()) {
-            this.logger.info('Antilopay configured');
+            this.logger.info(
+                { apiBaseUrl: this.apiBaseUrl },
+                'Antilopay configured',
+            );
         }
     }
 
@@ -166,7 +179,7 @@ export class AntilopayService {
 
         const response = await firstValueFrom(
             this.httpService.post<AntilopayCreateResponse>(
-                `${ANTILOPAY_API_URL}/payment/create`,
+                `${this.apiBaseUrl}/payment/create`,
                 bodyJson,
                 {
                     headers: {
@@ -350,7 +363,7 @@ export class AntilopayService {
 
         const response = await firstValueFrom(
             this.httpService.post<AntilopayCheckResponse>(
-                `${ANTILOPAY_API_URL}/payment/check`,
+                `${this.apiBaseUrl}/payment/check`,
                 bodyJson,
                 {
                     headers: {

@@ -8,10 +8,15 @@ ANTILOPAY_SECRET_ID=<X-Apay-Secret-Id мерчанта>
 ANTILOPAY_PRIVATE_KEY=<приватный ключ Base64 или PEM для подписи API>
 ANTILOPAY_PROJECT_ID=<project_identificator проекта>
 ANTILOPAY_CALLBACK_PUBLIC_KEY=<публичный ключ проекта для проверки callback>
+# Prod (default): https://lk.antilopay.com/api/v1
+# Тестовые ключи Antilopay работают только на stage:
+ANTILOPAY_API_URL=https://stage.antilopay.com/api/v1
 # ANTILOPAY_VAT=22   # только если СНО = ОСНО (10 или 22)
 ```
 
 Ключи берут в личном кабинете Antilopay после подтверждения проекта.
+
+`gate.antilopay.com` — платёжный фронт/редиректы, API мерчанта: `lk` (prod) или `stage` (тест).
 
 ## Callback в ЛК
 
