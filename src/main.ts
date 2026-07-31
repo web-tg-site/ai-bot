@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -6,7 +7,7 @@ import { Logger } from 'nestjs-pino';
 import { getCorsConfig } from './core';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule, {
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
         bufferLogs: true,
         rawBody: true,
     });
@@ -28,6 +29,9 @@ async function bootstrap() {
 
     app.enableCors(corsConfig);
 
+    // Railway / reverse proxies: needed for real client IP (Antilopay customer.ip)
+    app.set('trust proxy', 1);
+
     app.useGlobalPipes(
         new ValidationPipe({
             transform: true,
@@ -36,4 +40,4 @@ async function bootstrap() {
 
     await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
-bootstrap();
+void bootstrap();

@@ -18,6 +18,15 @@ ANTILOPAY_API_URL=https://stage.antilopay.com/api/v1
 
 `gate.antilopay.com` — платёжный фронт/редиректы, API мерчанта: `lk` (prod) или `stage` (тест).
 
+## IP покупателя
+
+Antilopay сверяет `customer.ip` с IP, с которого открывают платёжную ссылку.
+В Telegram у бота нет IP пользователя, поэтому:
+
+1. Бот создаёт локальную сессию и шлёт ссылку на `/payments/antilopay/checkout/:orderId`
+2. Пользователь открывает её в браузере — сервер берёт реальный IP (`X-Forwarded-For`)
+3. Только тогда вызывается `payment/create` с `customer.ip`
+
 ## Callback в ЛК
 
 URL для приёма Callback:

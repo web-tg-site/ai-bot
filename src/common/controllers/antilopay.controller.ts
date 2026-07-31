@@ -4,15 +4,21 @@ import {
     Header,
     Headers,
     HttpCode,
+    NotFoundException,
+    Param,
     Post,
     Req,
+    Res,
 } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { Request } from 'express';
-import { AntilopayService } from '@/common/services/antilopay';
+import type { Request, Response } from 'express';
+import { AntilopayService, extractClientIp } from '@/common/services/antilopay';
 import { BotService } from '@/common/services/bot';
 import { UserModelService } from '@/common/models/user';
+import { PrismaService } from '@/common/services/prisma';
 import { notifyPaidSubscriptionActivations } from '@/common/services/payment/notify-paid-subscription';
+import { getI18nForUser } from '@/common/services/bot/i18n';
+import { PaymentProvider, PaymentStatus } from '@/generated/prisma/enums';
 
 type AntilopayPaymentCallback = {
     type?: string;
@@ -23,6 +29,8 @@ type AntilopayPaymentCallback = {
 };
 
 type RawBodyReq = Request & { rawBody?: Buffer };
+type ExpressReq = Request;
+type ExpressRes = Response;
 
 @Controller()
 export class AntilopayController {
@@ -30,9 +38,90 @@ export class AntilopayController {
         private readonly antilopayService: AntilopayService,
         private readonly botService: BotService,
         private readonly userModelService: UserModelService,
+        private readonly prismaService: PrismaService,
         @InjectPinoLogger(AntilopayController.name)
         private readonly logger: PinoLogger,
     ) {}
+
+    @Get('payments/antilopay/checkout/:orderId')
+    async checkout(
+        @Param('orderId') orderId: string,
+        @Req() req: ExpressReq,
+        @Res() res: ExpressRes,
+    ): Promise<void> {
+        const payment = await this.prismaService.payment.findUnique({
+            where: { orderId },
+            include: { user: true },
+        });
+
+        if (
+            !payment ||
+            payment.provider !== PaymentProvider.ANTILOPAY ||
+            payment.status !== PaymentStatus.PENDING
+        ) {
+            throw new NotFoundException();
+        }
+
+        const clientIp = extractClientIp({
+            forwardedFor: req.headers['x-forwarded-for'],
+            ip: req.ip,
+            remoteAddress: req.socket.remoteAddress,
+        });
+
+        if (!clientIp) {
+            this.logger.warn(
+                {
+                    orderId,
+                    forwardedFor: req.headers['x-forwarded-for'],
+                    ip: req.ip,
+                },
+                'Antilopay checkout: could not resolve public client IP',
+            );
+            res.status(400).type('html').send(`<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Ошибка</title></head>
+<body style="font-family:sans-serif;text-align:center;padding:2rem">
+  <h1>Не удалось определить IP</h1>
+  <p>Откройте ссылку оплаты в обычном браузере (не через VPN/localhost) и попробуйте снова.</p>
+</body>
+</html>`);
+            return;
+        }
+
+        const i18n = getI18nForUser(payment.user);
+
+        try {
+            const paymentUrl =
+                await this.antilopayService.startCheckoutWithClientIp(
+                    orderId,
+                    clientIp,
+                    {
+                        periodLabel:
+                            i18n.records.subPlanToPeriod[payment.subscribePlan],
+                        tariffLabel:
+                            i18n.records.subTypeToText[payment.subscribeType],
+                    },
+                );
+            res.redirect(302, paymentUrl);
+        } catch (err) {
+            this.logger.error(
+                {
+                    orderId,
+                    clientIp,
+                    err: err instanceof Error ? err.message : String(err),
+                },
+                'Antilopay checkout failed',
+            );
+            res.status(502).type('html').send(`<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Ошибка оплаты</title></head>
+<body style="font-family:sans-serif;text-align:center;padding:2rem">
+  <h1>Не удалось создать платёж</h1>
+  <p>Вернитесь в Telegram-бот и попробуйте ещё раз.</p>
+</body>
+</html>`);
+        }
+    }
 
     @Post('api/payments/antilopay/callback')
     @HttpCode(200)

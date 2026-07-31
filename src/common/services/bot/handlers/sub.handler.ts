@@ -53,14 +53,12 @@ async function createRubInvoiceAndReply(params: {
     const amountRub = SUB_PLAN_TO_COST[subscribePlan][subscribeType].rub;
 
     try {
-        const invoice = await antilopayService.createSubscriptionPayment({
+        const invoice = await antilopayService.createCheckoutSession({
             userId,
             email,
             subscribeType,
             subscribePlan,
             amountRub,
-            periodLabel: i18n.records.subPlanToPeriod[subscribePlan],
-            tariffLabel: i18n.records.subTypeToText[subscribeType],
         });
 
         await ctx.reply(
@@ -74,7 +72,7 @@ async function createRubInvoiceAndReply(params: {
                 ...Markup.inlineKeyboard([
                     Markup.button.url(
                         i18n.payment.payButton,
-                        invoice.paymentUrl,
+                        invoice.checkoutUrl,
                     ),
                 ]),
             },

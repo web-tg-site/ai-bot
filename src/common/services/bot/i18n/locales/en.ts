@@ -280,7 +280,8 @@ Plan: ${tariffName}
 Period: ${periodName}
 Amount: ${amountRub} ₽
 
-Tap the button below to pay by card or SBP.`,
+Tap the button below to open the payment page (card / SBP).
+Important: open the link in your phone browser (not via VPN).`,
         payButton: 'Pay',
         success: (tariffName, periodName, endsAt) =>
             `✅ <b>Payment received, subscription activated</b>

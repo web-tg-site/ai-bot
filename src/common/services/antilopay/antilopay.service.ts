@@ -41,18 +41,16 @@ type AntilopayCheckResponse = {
     error?: string;
 };
 
-export type CreateAntilopayPaymentParams = {
+export type CreateAntilopayCheckoutParams = {
     userId: string;
     email: string;
     subscribeType: SubscribeType;
     subscribePlan: SubscribePlan;
     amountRub: number;
-    periodLabel: string;
-    tariffLabel: string;
 };
 
-export type CreateAntilopayPaymentResult = {
-    paymentUrl: string;
+export type CreateAntilopayCheckoutResult = {
+    checkoutUrl: string;
     amountRub: number;
     orderId: string;
 };
@@ -82,6 +80,68 @@ function normalizePublicBaseUrl(raw: string | undefined): string | undefined {
     } catch {
         return undefined;
     }
+}
+
+function isNonPublicIp(ip: string): boolean {
+    const v = ip.trim().toLowerCase();
+    if (!v || v === 'unknown') {
+        return true;
+    }
+    if (v === '127.0.0.1' || v === '::1' || v === '0.0.0.0') {
+        return true;
+    }
+    if (
+        v.startsWith('10.') ||
+        v.startsWith('192.168.') ||
+        v.startsWith('169.254.')
+    ) {
+        return true;
+    }
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(v)) {
+        return true;
+    }
+    if (v.startsWith('fc') || v.startsWith('fd') || v.startsWith('fe80:')) {
+        return true;
+    }
+    return false;
+}
+
+/** Public client IP from proxy headers / socket. Rejects localhost & private ranges. */
+export function extractClientIp(input: {
+    forwardedFor?: string | string[];
+    ip?: string;
+    remoteAddress?: string;
+}): string | undefined {
+    const candidates: string[] = [];
+
+    const forwarded = input.forwardedFor;
+    if (typeof forwarded === 'string') {
+        for (const part of forwarded.split(',')) {
+            candidates.push(part.trim());
+        }
+    } else if (Array.isArray(forwarded)) {
+        for (const value of forwarded) {
+            for (const part of value.split(',')) {
+                candidates.push(part.trim());
+            }
+        }
+    }
+
+    if (input.ip) {
+        candidates.push(input.ip);
+    }
+    if (input.remoteAddress) {
+        candidates.push(input.remoteAddress);
+    }
+
+    for (const raw of candidates) {
+        const cleaned = raw.replace(/^::ffff:/i, '').trim();
+        if (cleaned && !isNonPublicIp(cleaned)) {
+            return cleaned;
+        }
+    }
+
+    return undefined;
 }
 
 @Injectable()
@@ -145,6 +205,10 @@ export class AntilopayService {
         );
     }
 
+    public getPublicBaseUrl(): string | undefined {
+        return this.publicBaseUrl;
+    }
+
     public verifyCallback(
         rawBody: string,
         signature: string | undefined,
@@ -168,30 +232,97 @@ export class AntilopayService {
         }
     }
 
-    public async createSubscriptionPayment(
-        params: CreateAntilopayPaymentParams,
-    ): Promise<CreateAntilopayPaymentResult> {
-        if (!this.isConfigured()) {
+    /**
+     * Creates a local PENDING payment and returns our HTTPS checkout URL.
+     * Antilopay payment is created later when the user opens the link (real client IP).
+     */
+    public async createCheckoutSession(
+        params: CreateAntilopayCheckoutParams,
+    ): Promise<CreateAntilopayCheckoutResult> {
+        if (!this.isConfigured() || !this.publicBaseUrl) {
             throw new Error('Antilopay is not configured');
         }
 
         const orderId = randomUUID();
-        const productName = `${BOT_NAME} — ${params.tariffLabel}`;
-        const description = `${params.tariffLabel} / ${params.periodLabel}`;
+
+        await this.prismaService.payment.create({
+            data: {
+                userId: params.userId,
+                provider: PaymentProvider.ANTILOPAY,
+                orderId,
+                subscribeType: params.subscribeType,
+                subscribePlan: params.subscribePlan,
+                amountRub: String(params.amountRub),
+            },
+        });
+
+        return {
+            checkoutUrl: `${this.publicBaseUrl}/payments/antilopay/checkout/${orderId}`,
+            amountRub: params.amountRub,
+            orderId,
+        };
+    }
+
+    /**
+     * Creates Antilopay payment with the browser client IP and returns payment_url.
+     */
+    public async startCheckoutWithClientIp(
+        orderId: string,
+        clientIp: string,
+        labels: { periodLabel: string; tariffLabel: string },
+    ): Promise<string> {
+        if (!this.isConfigured()) {
+            throw new Error('Antilopay is not configured');
+        }
+
+        if (isNonPublicIp(clientIp)) {
+            throw new Error('Client IP is not a public address');
+        }
+
+        const payment = await this.prismaService.payment.findUnique({
+            where: { orderId },
+            include: { user: true },
+        });
+
+        if (
+            !payment ||
+            payment.provider !== PaymentProvider.ANTILOPAY ||
+            payment.status !== PaymentStatus.PENDING
+        ) {
+            throw new Error('Checkout session not found');
+        }
+
+        if (payment.antilopayPaymentId) {
+            const check = await this.checkPaymentStatus(orderId);
+            if (check?.payment_url) {
+                return check.payment_url;
+            }
+            throw new Error('Payment already created but URL is unavailable');
+        }
+
+        const email = payment.user.email;
+        if (!email) {
+            throw new Error('User email is missing');
+        }
+
+        const amountRub = Number(payment.amountRub);
+        const productName = `${BOT_NAME} — ${labels.tariffLabel}`;
+        const description = `${labels.tariffLabel} / ${labels.periodLabel}`;
 
         const body: Record<string, unknown> = {
             project_identificator: this.projectId,
-            amount: params.amountRub,
+            amount: amountRub,
             order_id: orderId,
             currency: 'RUB',
             product_name: productName,
             product_type: 'services',
             description,
             customer: {
-                email: params.email,
+                email,
+                ip: clientIp,
             },
             prefer_methods: ['SBP', 'CARD_RU'],
-            merchant_extra: `userId=${params.userId}`,
+            merchant_extra: `userId=${payment.userId}`,
         };
 
         if (this.publicBaseUrl) {
@@ -227,9 +358,8 @@ export class AntilopayService {
                 {
                     code: response.data.code,
                     error: response.data.error,
-                    successUrl: body.success_url,
-                    failUrl: body.fail_url,
-                    publicBaseUrl: this.publicBaseUrl,
+                    orderId,
+                    clientIp,
                 },
                 'Antilopay payment/create failed',
             );
@@ -239,23 +369,17 @@ export class AntilopayService {
             );
         }
 
-        await this.prismaService.payment.create({
-            data: {
-                userId: params.userId,
-                provider: PaymentProvider.ANTILOPAY,
-                antilopayPaymentId: response.data.payment_id,
-                orderId,
-                subscribeType: params.subscribeType,
-                subscribePlan: params.subscribePlan,
-                amountRub: String(params.amountRub),
-            },
+        await this.prismaService.payment.update({
+            where: { id: payment.id },
+            data: { antilopayPaymentId: response.data.payment_id },
         });
 
-        return {
-            paymentUrl: response.data.payment_url,
-            amountRub: params.amountRub,
-            orderId,
-        };
+        this.logger.info(
+            { orderId, clientIp, paymentId: response.data.payment_id },
+            'Antilopay payment created with client IP',
+        );
+
+        return response.data.payment_url;
     }
 
     public async processPaymentSuccess(
@@ -337,6 +461,7 @@ export class AntilopayService {
             where: {
                 status: PaymentStatus.PENDING,
                 provider: PaymentProvider.ANTILOPAY,
+                antilopayPaymentId: { not: null },
             },
             select: { orderId: true },
             take: 50,
