@@ -27,12 +27,15 @@ export class TelegramJwtGuard implements CanActivate {
             .switchToHttp()
             .getRequest<AuthenticatedRequest>();
         const header = request.headers.authorization;
+        const queryToken =
+            typeof request.query?.access_token === 'string'
+                ? request.query.access_token.trim()
+                : '';
 
-        if (!header?.startsWith('Bearer ')) {
-            throw new UnauthorizedException({ error: 'Missing token' });
-        }
+        const token = header?.startsWith('Bearer ')
+            ? header.slice('Bearer '.length).trim()
+            : queryToken;
 
-        const token = header.slice('Bearer '.length).trim();
         if (!token) {
             throw new UnauthorizedException({ error: 'Missing token' });
         }

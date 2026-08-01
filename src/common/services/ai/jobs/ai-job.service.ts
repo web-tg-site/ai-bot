@@ -26,6 +26,7 @@ export class AiJobService {
         telegramId: string;
         toolId: AiToolId;
         input: AiGenerationInput;
+        notifyTelegram?: boolean;
     }) {
         const tool = getToolById(params.toolId);
         if (!tool) {
@@ -68,6 +69,7 @@ export class AiJobService {
                 status: JobStatus.PENDING,
                 tokenCost,
                 inputJson: params.input,
+                notifyTelegram: params.notifyTelegram ?? true,
             },
         });
 
@@ -167,6 +169,7 @@ export class AiJobService {
                 status: { in: [JobStatus.PENDING, JobStatus.PROCESSING] },
                 createdAt: { lt: cutoff },
                 staleReminderSent: false,
+                notifyTelegram: true,
             },
             include: {
                 user: { select: { telegramId: true, language: true } },

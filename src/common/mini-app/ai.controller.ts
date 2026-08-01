@@ -7,12 +7,16 @@ import {
     Param,
     Patch,
     Post,
+    Query,
+    Res,
+    StreamableFile,
     UploadedFiles,
     UseGuards,
     UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import type { Response } from 'express';
 import {
     IsEnum,
     IsIn,
@@ -25,12 +29,18 @@ import type { CurrentUserPayload } from '@/common/auth';
 import { PrismaService } from '@/common/services/prisma';
 import type { AiFileInput } from '@/common/services/ai/types';
 import { AiToolId } from '@/common/services/ai/types';
+import { JobStatus } from '@/generated/prisma/enums';
 import { UserAiToolSettingsModelService } from '@/common/models/user-ai-tool-settings';
 import { ELEVENLABS_VOICE_CATALOG } from '@/common/config/elevenlabs-voices.config';
 import {
     getToolById,
     AI_TOOLS_REGISTRY,
 } from '@/common/config/ai-tools.registry';
+import {
+    downloadRemoteFile,
+    getAuthHeadersForUrl,
+} from '@/common/utils/download-remote-file';
+import { parseDataUrl } from '@/common/utils/parse-data-url';
 import { GenerationFacade } from './generation.facade';
 
 const uploadInterceptor = FilesInterceptor('files', 10, {
@@ -235,9 +245,19 @@ export class AiController {
     }
 
     @Get('jobs')
-    async listJobs(@CurrentUser() current: CurrentUserPayload) {
+    async listJobs(
+        @CurrentUser() current: CurrentUserPayload,
+        @Query('toolId') toolId?: string,
+    ) {
+        if (toolId) {
+            this.assertToolId(toolId);
+        }
+
         const jobs = await this.prismaService.aiGenerationJob.findMany({
-            where: { userId: current.id },
+            where: {
+                userId: current.id,
+                ...(toolId ? { toolId } : {}),
+            },
             orderBy: { createdAt: 'desc' },
             take: 30,
             select: {
@@ -247,12 +267,28 @@ export class AiController {
                 resultUrl: true,
                 errorMessage: true,
                 tokenCost: true,
+                inputJson: true,
                 createdAt: true,
                 updatedAt: true,
             },
         });
 
-        return { items: jobs };
+        return {
+            items: jobs.map((job) => {
+                const input = job.inputJson as { prompt?: string } | null;
+                return {
+                    id: job.id,
+                    toolId: job.toolId,
+                    status: job.status,
+                    resultUrl: job.resultUrl,
+                    errorMessage: job.errorMessage,
+                    tokenCost: job.tokenCost,
+                    prompt: input?.prompt ?? '',
+                    createdAt: job.createdAt,
+                    updatedAt: job.updatedAt,
+                };
+            }),
+        };
     }
 
     @Get('jobs/:jobId')
@@ -269,6 +305,7 @@ export class AiController {
                 resultUrl: true,
                 errorMessage: true,
                 tokenCost: true,
+                inputJson: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -281,7 +318,65 @@ export class AiController {
             );
         }
 
-        return job;
+        const input = job.inputJson as { prompt?: string } | null;
+
+        return {
+            id: job.id,
+            toolId: job.toolId,
+            status: job.status,
+            resultUrl: job.resultUrl,
+            errorMessage: job.errorMessage,
+            tokenCost: job.tokenCost,
+            prompt: input?.prompt ?? '',
+            createdAt: job.createdAt,
+            updatedAt: job.updatedAt,
+        };
+    }
+
+    @Get('jobs/:jobId/media')
+    async getJobMedia(
+        @CurrentUser() current: CurrentUserPayload,
+        @Param('jobId') jobId: string,
+        @Res({ passthrough: true }) res: Response,
+    ) {
+        const job = await this.prismaService.aiGenerationJob.findFirst({
+            where: { id: jobId, userId: current.id },
+            select: {
+                resultUrl: true,
+                status: true,
+            },
+        });
+
+        if (!job?.resultUrl || job.status !== JobStatus.COMPLETED) {
+            throw new HttpException(
+                { error: 'Media not found' },
+                HttpStatus.NOT_FOUND,
+            );
+        }
+
+        const resultUrl = job.resultUrl;
+        const dataUrl = parseDataUrl(resultUrl);
+        if (dataUrl) {
+            res.setHeader('Content-Type', dataUrl.mimeType);
+            res.setHeader('Cache-Control', 'private, max-age=3600');
+            return new StreamableFile(dataUrl.buffer);
+        }
+
+        try {
+            const { buffer, mimeType } = await downloadRemoteFile(
+                resultUrl,
+                getAuthHeadersForUrl(resultUrl),
+            );
+            res.setHeader('Content-Type', mimeType);
+            res.setHeader('Cache-Control', 'private, max-age=3600');
+            return new StreamableFile(buffer);
+        } catch (error) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : 'Media download failed';
+            throw new HttpException({ error: message }, HttpStatus.BAD_GATEWAY);
+        }
     }
 
     private assertToolId(toolId: string): asserts toolId is AiToolId {

@@ -35,6 +35,10 @@ export class GptConversationModelService {
             if (existing) {
                 return existing;
             }
+
+            // Explicit id was for another tool/user — do not silently reuse a
+            // different conversation; create a fresh one for the requested tool.
+            return this.createConversation(userId, toolId);
         }
 
         const latest = await this.prismaService.gptConversation.findFirst({

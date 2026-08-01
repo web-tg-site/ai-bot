@@ -92,6 +92,8 @@ export class GenerationFacade {
         let input = { ...params.input };
         let conversationId = params.conversationId;
 
+        let effectiveToolId = params.toolId;
+
         if (isChatAssistantTool(params.toolId)) {
             const conversation =
                 await this.gptConversationModelService.getOrCreateActiveConversation(
@@ -100,6 +102,8 @@ export class GenerationFacade {
                     conversationId,
                 );
             conversationId = conversation.id;
+            // Conversation row is source of truth for which assistant runs.
+            effectiveToolId = conversation.toolId as AiToolId;
             const history = await this.gptConversationModelService.getMessages(
                 conversation.id,
             );
@@ -109,13 +113,19 @@ export class GenerationFacade {
             };
         }
 
-        const tokenCost = this.tokenBillingService.calculateCost(tool, {
-            durationSeconds:
-                input.durationSeconds ?? tool.defaultDurationSeconds,
-            topazScale: input.topazScale,
-            quality: input.quality,
-            resolution: input.resolution,
-        });
+        const toolForBilling = getToolById(effectiveToolId) ?? tool;
+
+        const tokenCost = this.tokenBillingService.calculateCost(
+            toolForBilling,
+            {
+                durationSeconds:
+                    input.durationSeconds ??
+                    toolForBilling.defaultDurationSeconds,
+                topazScale: input.topazScale,
+                quality: input.quality,
+                resolution: input.resolution,
+            },
+        );
 
         const balanceCheck = await this.tokenBillingService.checkBalance(
             params.telegramId,
@@ -129,12 +139,14 @@ export class GenerationFacade {
             );
         }
 
-        if (tool.isAsync) {
+        if (toolForBilling.isAsync) {
             const created = await this.aiJobService.createJob({
                 userId: params.userId,
                 telegramId: params.telegramId,
-                toolId: params.toolId,
+                toolId: effectiveToolId,
                 input,
+                // Mini-app shows results in-app; do not mirror to Telegram chat.
+                notifyTelegram: false,
             });
 
             return {
@@ -146,7 +158,7 @@ export class GenerationFacade {
         }
 
         const generationResult = await this.aiService.generate(
-            params.toolId,
+            effectiveToolId,
             input,
         );
         const actualCost = generationResult.actualTokenCost ?? tokenCost;
@@ -164,7 +176,7 @@ export class GenerationFacade {
         }
 
         if (
-            isChatAssistantTool(params.toolId) &&
+            isChatAssistantTool(effectiveToolId) &&
             generationResult.text &&
             conversationId
         ) {
@@ -195,7 +207,7 @@ export class GenerationFacade {
 
             await this.gptConversationModelService.trimOldConversations(
                 params.userId,
-                params.toolId,
+                effectiveToolId,
             );
         }
 

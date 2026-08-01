@@ -328,25 +328,32 @@ export class OpenRouterProvider {
     private async chatGpt(
         input: AiGenerationInput,
     ): Promise<AiGenerationResult> {
-        return this.chatWithReplyMode(input, () => this.resolveGptModel(input));
+        return this.chatWithReplyMode(input, AiToolId.GPT, () =>
+            this.resolveGptModel(input),
+        );
     }
 
     private async chatClaude(
         input: AiGenerationInput,
     ): Promise<AiGenerationResult> {
-        return this.chatWithReplyMode(input, () =>
+        return this.chatWithReplyMode(input, AiToolId.CLAUDE_SONNET, () =>
             this.resolveClaudeModel(input),
         );
     }
 
     private async chatWithReplyMode(
         input: AiGenerationInput,
+        toolId: AiToolId.GPT | AiToolId.CLAUDE_SONNET,
         resolveModel: () => { model: string; tokenCost: number },
     ): Promise<AiGenerationResult> {
         const replyMode = input.gptReplyMode ?? 'text';
 
         if (replyMode === 'audio') {
-            const textResult = await this.chatUnified(input, resolveModel);
+            const textResult = await this.chatUnified(
+                input,
+                toolId,
+                resolveModel,
+            );
             const speech = await this.synthesizeSpeech(textResult.text ?? '');
             return {
                 type: 'audio',
@@ -358,7 +365,7 @@ export class OpenRouterProvider {
             };
         }
 
-        const textResult = await this.chatUnified(input, resolveModel);
+        const textResult = await this.chatUnified(input, toolId, resolveModel);
 
         if (replyMode === 'both' && textResult.text) {
             const speech = await this.synthesizeSpeech(textResult.text);
@@ -424,6 +431,7 @@ export class OpenRouterProvider {
 
     private async chatUnified(
         input: AiGenerationInput,
+        toolId: AiToolId.GPT | AiToolId.CLAUDE_SONNET,
         resolveModel: () => { model: string; tokenCost: number },
     ): Promise<AiGenerationResult> {
         const prompt = input.prompt ?? '';
@@ -437,7 +445,7 @@ export class OpenRouterProvider {
         }> = [
             {
                 role: 'system',
-                content: this.buildSystemPrompt(input.localeTag),
+                content: this.buildSystemPrompt(toolId, input.localeTag),
             },
         ];
 
@@ -497,27 +505,42 @@ export class OpenRouterProvider {
         };
     }
 
-    private buildSystemPrompt(localeTag?: 'ru-RU' | 'en-US'): string {
+    private buildSystemPrompt(
+        toolId: AiToolId.GPT | AiToolId.CLAUDE_SONNET,
+        localeTag?: 'ru-RU' | 'en-US',
+    ): string {
         const date = new Date().toLocaleDateString(localeTag ?? 'ru-RU', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
         });
 
+        const identityEn =
+            toolId === AiToolId.CLAUDE_SONNET
+                ? 'You are Claude Sonnet, created by Anthropic. If asked who you are or which model you are, say you are Claude Sonnet by Anthropic. Never claim to be ChatGPT, GPT, or created by OpenAI.'
+                : 'You are GPT, powered by OpenAI models. If asked who you are or which model you are, say you are GPT. Do not claim to be Claude or created by Anthropic.';
+
+        const identityRu =
+            toolId === AiToolId.CLAUDE_SONNET
+                ? 'Ты — Claude Sonnet, созданный компанией Anthropic. Если спрашивают, кто ты или какая ты нейросеть — отвечай, что ты Claude Sonnet от Anthropic. Никогда не называй себя ChatGPT, GPT и не говори, что тебя создала OpenAI.'
+                : 'Ты — GPT на моделях OpenAI. Если спрашивают, кто ты или какая ты нейросеть — отвечай, что ты GPT. Не называй себя Claude и не говори, что тебя создала Anthropic.';
+
         if (localeTag === 'en-US') {
             return (
-                `Today is ${date}. ` +
+                `${identityEn} Today is ${date}. ` +
                 'If the question is about current events, prices, weather, news, or anything time-sensitive, use web search. ' +
                 'Do not invent up-to-date facts. Answer in the same language as the user. ' +
-                'When images are attached, you can see and analyze them (including people) and should give concrete visual feedback — do not claim you cannot see images.'
+                'When images are attached, you can see and analyze them (including people) and should give concrete visual feedback — do not claim you cannot see images. ' +
+                'Use Markdown formatting (bold, lists, code) when it improves readability.'
             );
         }
 
         return (
-            `Сегодня ${date}. ` +
+            `${identityRu} Сегодня ${date}. ` +
             'Если вопрос касается текущих событий, цен, погоды, новостей или другой актуальной информации — используй поиск в интернете. ' +
             'Не выдумывай актуальные факты. Отвечай на том же языке, что и пользователь. ' +
-            'Если в сообщении есть изображения — ты их видишь и должен анализировать (в том числе людей, например для стилевых советов), а не отвечать, что не видишь изображения.'
+            'Если в сообщении есть изображения — ты их видишь и должен анализировать (в том числе людей, например для стилевых советов), а не отвечать, что не видишь изображения. ' +
+            'Используй Markdown-форматирование (жирный текст, списки, код), когда это улучшает читаемость.'
         );
     }
 

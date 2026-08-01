@@ -243,18 +243,7 @@ export class AiJobCron {
                 result,
             );
 
-            await this.sendResult(
-                botService,
-                job.user.telegramId,
-                job.toolId as AiToolId,
-                resolved.type,
-                resolved,
-                await this.resolveSendAsFile(
-                    job.userId,
-                    job.toolId as AiToolId,
-                ),
-            );
-
+            // Persist URL first so mini-app polling is not blocked by Telegram delivery.
             await this.aiJobService.updateJobStatus(
                 job.id,
                 JobStatus.COMPLETED,
@@ -263,16 +252,37 @@ export class AiJobCron {
                 },
             );
 
-            await botService.sendMessage(
-                job.user.telegramId,
-                AI_JOB_COMPLETED_TEXT,
-                { parse_mode: 'HTML' },
-            );
+            if (job.notifyTelegram === false) {
+                return;
+            }
+
+            try {
+                await this.sendResult(
+                    botService,
+                    job.user.telegramId,
+                    job.toolId as AiToolId,
+                    resolved.type,
+                    resolved,
+                    await this.resolveSendAsFile(
+                        job.userId,
+                        job.toolId as AiToolId,
+                    ),
+                );
+
+                await botService.sendMessage(
+                    job.user.telegramId,
+                    AI_JOB_COMPLETED_TEXT,
+                    { parse_mode: 'HTML' },
+                );
+            } catch (error) {
+                // Generation succeeded; only Telegram mirror failed.
+                this.logJobError(job, 'delivery', error);
+            }
         } catch (error) {
             const message =
                 error instanceof Error
                     ? error.message
-                    : 'Не удалось отправить результат';
+                    : 'Не удалось получить результат';
             this.logJobError(job, 'delivery', error);
             await this.failJob(botService, job, message);
         }
@@ -292,6 +302,10 @@ export class AiJobCron {
             tokenCost: job.tokenCost,
             errorMessage,
         });
+
+        if (job.notifyTelegram === false) {
+            return;
+        }
 
         const refundSuffix =
             job.tokenCost > 0
@@ -370,22 +384,8 @@ export class AiJobCron {
         const i18n = getI18n(job.user.language);
 
         try {
-            await botService.sendMessage(
-                job.user.telegramId,
-                i18n.aiResult.generationTakingLonger,
-                { parse_mode: 'HTML' },
-            );
-
             const result =
                 await this.aiService.generateNanoBananaFallback(input);
-            await this.sendResult(
-                botService,
-                job.user.telegramId,
-                AiToolId.NANO_BANANA,
-                result.type,
-                result,
-                await this.resolveSendAsFile(job.userId, AiToolId.NANO_BANANA),
-            );
 
             await this.aiJobService.updateJobStatus(
                 job.id,
@@ -395,11 +395,29 @@ export class AiJobCron {
                 },
             );
 
-            await botService.sendMessage(
-                job.user.telegramId,
-                AI_JOB_COMPLETED_TEXT,
-                { parse_mode: 'HTML' },
-            );
+            if (job.notifyTelegram !== false) {
+                await botService.sendMessage(
+                    job.user.telegramId,
+                    i18n.aiResult.generationTakingLonger,
+                    { parse_mode: 'HTML' },
+                );
+                await this.sendResult(
+                    botService,
+                    job.user.telegramId,
+                    AiToolId.NANO_BANANA,
+                    result.type,
+                    result,
+                    await this.resolveSendAsFile(
+                        job.userId,
+                        AiToolId.NANO_BANANA,
+                    ),
+                );
+                await botService.sendMessage(
+                    job.user.telegramId,
+                    AI_JOB_COMPLETED_TEXT,
+                    { parse_mode: 'HTML' },
+                );
+            }
         } catch (error) {
             const message =
                 error instanceof Error
@@ -417,21 +435,7 @@ export class AiJobCron {
         const input = job.inputJson as AiGenerationInput;
 
         try {
-            await botService.sendMessage(
-                job.user.telegramId,
-                AI_MIDJOURNEY_FALLBACK_TEXT,
-                { parse_mode: 'HTML' },
-            );
-
             const result = await this.aiService.generate(AiToolId.FLUX, input);
-            await this.sendResult(
-                botService,
-                job.user.telegramId,
-                AiToolId.FLUX,
-                result.type,
-                result,
-                await this.resolveSendAsFile(job.userId, AiToolId.FLUX),
-            );
 
             await this.aiJobService.updateJobStatus(
                 job.id,
@@ -441,11 +445,26 @@ export class AiJobCron {
                 },
             );
 
-            await botService.sendMessage(
-                job.user.telegramId,
-                AI_JOB_COMPLETED_TEXT,
-                { parse_mode: 'HTML' },
-            );
+            if (job.notifyTelegram !== false) {
+                await botService.sendMessage(
+                    job.user.telegramId,
+                    AI_MIDJOURNEY_FALLBACK_TEXT,
+                    { parse_mode: 'HTML' },
+                );
+                await this.sendResult(
+                    botService,
+                    job.user.telegramId,
+                    AiToolId.FLUX,
+                    result.type,
+                    result,
+                    await this.resolveSendAsFile(job.userId, AiToolId.FLUX),
+                );
+                await botService.sendMessage(
+                    job.user.telegramId,
+                    AI_JOB_COMPLETED_TEXT,
+                    { parse_mode: 'HTML' },
+                );
+            }
         } catch (error) {
             const message =
                 error instanceof Error
