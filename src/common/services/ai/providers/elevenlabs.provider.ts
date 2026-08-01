@@ -195,25 +195,39 @@ export class ElevenLabsProvider {
             throw new Error(`ElevenLabs async job not supported for ${toolId}`);
         }
 
-        const mediaFile = input.files?.find(
-            (f) =>
-                f.mimeType.startsWith('video/') ||
-                f.mimeType.startsWith('audio/'),
-        );
+        const mediaFile = input.files?.find((f) => this.isDubbingMediaFile(f));
 
         if (!mediaFile) {
             throw new Error('Отправьте видео или аудиофайл для дубляжа');
         }
 
         const targetLang = this.resolveTargetLang(input.prompt);
+        const safeName = this.sanitizeUploadFileName(
+            mediaFile.fileName,
+            mediaFile.mimeType,
+        );
+        const mimeType = this.resolveUploadMimeType(
+            mediaFile.mimeType,
+            safeName,
+        );
         const formData = new FormData();
         const blob = new Blob([new Uint8Array(mediaFile.buffer)], {
-            type: mediaFile.mimeType,
+            type: mimeType,
         });
-        formData.append('file', blob, mediaFile.fileName ?? 'media.mp4');
+        formData.append('file', blob, safeName);
         formData.append('target_lang', targetLang);
         formData.append('source_lang', 'auto');
-        formData.append('mode', 'automatic');
+
+        this.logger.info(
+            {
+                toolId,
+                fileName: safeName,
+                mimeType,
+                bytes: mediaFile.buffer.length,
+                targetLang,
+            },
+            'Submitting ElevenLabs dubbing job',
+        );
 
         const response = await this.post<{ dubbing_id: string }>(
             '/dubbing',
@@ -244,9 +258,10 @@ export class ElevenLabsProvider {
         if (status === 'failed') {
             return {
                 status,
-                errorMessage:
+                errorMessage: this.localizeDubbingError(
                     response.error ??
-                    'Не удалось выполнить дубляж — сбой на стороне провайдера.',
+                        'Не удалось выполнить дубляж — сбой на стороне провайдера.',
+                ),
             };
         }
 
@@ -524,6 +539,92 @@ export class ElevenLabsProvider {
                 `Failed to delete cloned voice ${voiceId}: ${this.formatError(error)}`,
             );
         }
+    }
+
+    private isDubbingMediaFile(file: {
+        mimeType: string;
+        fileName?: string;
+    }): boolean {
+        const mime = file.mimeType?.toLowerCase() ?? '';
+        if (mime.startsWith('video/') || mime.startsWith('audio/')) {
+            return true;
+        }
+        if (mime === 'application/octet-stream' || mime === '') {
+            return /\.(mp4|mov|webm|mkv|mp3|wav|m4a|ogg|aac)$/i.test(
+                file.fileName ?? '',
+            );
+        }
+        return false;
+    }
+
+    private sanitizeUploadFileName(
+        fileName: string | undefined,
+        mimeType: string,
+    ): string {
+        const original = fileName?.trim() || 'media';
+        const extensionMatch = original.match(/(\.[a-z0-9]{2,5})$/i);
+        const fromMime = mimeType.includes('audio')
+            ? '.mp3'
+            : mimeType.includes('video')
+              ? '.mp4'
+              : '';
+        const extension = (
+            extensionMatch?.[1] ||
+            fromMime ||
+            '.mp4'
+        ).toLowerCase();
+        const base = original
+            .replace(/\.[a-z0-9]{2,5}$/i, '')
+            .replace(/[^a-zA-Z0-9._-]+/g, '_')
+            .replace(/_+/g, '_')
+            .replace(/^_|_$/g, '')
+            .slice(0, 64);
+        return `${base || 'media'}${extension}`;
+    }
+
+    private resolveUploadMimeType(mimeType: string, fileName: string): string {
+        const mime = mimeType?.toLowerCase() ?? '';
+        if (mime.startsWith('video/') || mime.startsWith('audio/')) {
+            return mime;
+        }
+        const ext = fileName.split('.').pop()?.toLowerCase();
+        switch (ext) {
+            case 'mp4':
+                return 'video/mp4';
+            case 'mov':
+                return 'video/quicktime';
+            case 'webm':
+                return 'video/webm';
+            case 'mkv':
+                return 'video/x-matroska';
+            case 'mp3':
+                return 'audio/mpeg';
+            case 'wav':
+                return 'audio/wav';
+            case 'm4a':
+                return 'audio/mp4';
+            case 'ogg':
+                return 'audio/ogg';
+            case 'aac':
+                return 'audio/aac';
+            default:
+                return mime || 'application/octet-stream';
+        }
+    }
+
+    private localizeDubbingError(message: string): string {
+        const lower = message.toLowerCase();
+        if (
+            lower.includes("couldn't extract audio") ||
+            lower.includes('could not extract audio') ||
+            lower.includes('extract audio')
+        ) {
+            return (
+                'Не удалось извлечь речь из файла. Для озвучки нужно видео/аудио ' +
+                'с голосом (не беззвучный ролик). Попробуйте другой файл.'
+            );
+        }
+        return message;
     }
 
     private resolveTargetLang(prompt?: string): string {
