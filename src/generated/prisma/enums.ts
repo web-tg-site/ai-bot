@@ -54,3 +54,11 @@ export const PaymentStatus = {
 } as const
 
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
+
+
+export const PaymentProvider = {
+  CRYPTO_PAY: 'CRYPTO_PAY',
+  ANTILOPAY: 'ANTILOPAY'
+} as const
+
+export type PaymentProvider = (typeof PaymentProvider)[keyof typeof PaymentProvider]

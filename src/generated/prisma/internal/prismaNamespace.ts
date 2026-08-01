@@ -1140,7 +1140,9 @@ export const UserScalarFieldEnum = {
   useFreeSub: 'useFreeSub',
   isSubscriptionActive: 'isSubscriptionActive',
   tokenLeft: 'tokenLeft',
+  email: 'email',
   language: 'language',
+  hasCompletedOnboarding: 'hasCompletedOnboarding',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1176,12 +1178,15 @@ export type UserAiToolSettingsScalarFieldEnum = (typeof UserAiToolSettingsScalar
 export const PaymentScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  provider: 'provider',
   cryptoPayInvoiceId: 'cryptoPayInvoiceId',
+  antilopayPaymentId: 'antilopayPaymentId',
+  orderId: 'orderId',
   subscribeType: 'subscribeType',
   subscribePlan: 'subscribePlan',
   amountUsd: 'amountUsd',
+  amountRub: 'amountRub',
   status: 'status',
-  payload: 'payload',
   paidAt: 'paidAt',
   createdAt: 'createdAt'
 } as const
@@ -1394,6 +1399,20 @@ export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'J
  * Reference to a field of type 'QueryMode'
  */
 export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
+ * Reference to a field of type 'PaymentProvider'
+ */
+export type EnumPaymentProviderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentProvider'>
+    
+
+
+/**
+ * Reference to a field of type 'PaymentProvider[]'
+ */
+export type ListEnumPaymentProviderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentProvider[]'>
     
 
 

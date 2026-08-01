@@ -74,6 +74,7 @@ model User {
   tokenLeft Int @default(0)
   email String?
   language UserLanguage @default(RU)
+  hasCompletedOnboarding Boolean @default(false)
 
   nextSubscription NextSubscriptionOfUser?
   aiGenerationJobs AiGenerationJob[]

@@ -54,6 +54,7 @@ export const en: I18nBundle = {
         privacyPolicy: 'Personal Data Processing Policy',
         userAgreement: 'User Agreement',
         refundPolicy: 'Refund Policy',
+        openApp: 'Open app',
         sbp: (amount) => `SBP ${amount} ₽`,
         usdt: (amount) => `USDT ${amount} ₮`,
     },

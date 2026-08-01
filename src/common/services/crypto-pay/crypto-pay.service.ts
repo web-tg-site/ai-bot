@@ -49,6 +49,7 @@ export type CreateSubscriptionInvoiceParams = {
 export type CreateSubscriptionInvoiceResult = {
     botInvoiceUrl: string;
     amountUsd: number;
+    orderId: string;
 };
 
 export type ProcessInvoicePaidResult =
@@ -183,6 +184,7 @@ export class CryptoPayService {
         return {
             botInvoiceUrl: resolveSendPaymentUrl(invoice),
             amountUsd: params.amountUsd,
+            orderId,
         };
     }
 

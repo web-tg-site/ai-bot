@@ -11,6 +11,11 @@ import { resetAiSessionPreservingGpt } from './gpt-session';
 
 type BotContext = Context & { session: BotSession };
 
+function getMiniAppUrl(): string | undefined {
+    const url = process.env.MINI_APP_URL?.trim();
+    return url || undefined;
+}
+
 export async function showHome(
     ctx: Context,
     userModelService: UserModelService,
@@ -29,11 +34,13 @@ export async function showHome(
         ctx.from.id.toString(),
     );
     const i18n = getI18nForUser(user);
+    const miniAppUrl = getMiniAppUrl();
 
     if (!user || user.subscribeType === SubscribeType.NOT_SUBSCRIBED) {
         const keyboard = generateHomeKeyboardNotRegistered(
             i18n,
             user ? !user.useFreeSub : true,
+            miniAppUrl,
         );
 
         if (user) {
@@ -52,7 +59,7 @@ export async function showHome(
 
     await userModelService.updateUserLastActivityAt(ctx.from.id.toString());
     await ctx.reply(i18n.home.registered, {
-        ...getHomeKeyboardRegistered(i18n),
+        ...getHomeKeyboardRegistered(i18n, miniAppUrl),
         parse_mode: 'HTML',
     });
 }

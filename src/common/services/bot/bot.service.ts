@@ -93,6 +93,33 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         this.cryptoPayService.setBotUsername(me.username);
         this.logger.info({ username: me.username }, 'Bot starting');
 
+        const miniAppUrl = this.configService
+            .get<string>('MINI_APP_URL')
+            ?.trim();
+        if (miniAppUrl) {
+            try {
+                await this.bot.telegram.setChatMenuButton({
+                    menuButton: {
+                        type: 'web_app',
+                        text: 'App',
+                        web_app: { url: miniAppUrl },
+                    },
+                });
+                this.logger.info(
+                    { miniAppUrl },
+                    'Chat menu button set to mini-app',
+                );
+            } catch (err) {
+                this.logger.warn(
+                    `Failed to set chat menu button: ${err instanceof Error ? err.message : String(err)}`,
+                );
+            }
+        } else {
+            this.logger.warn(
+                'MINI_APP_URL is not set — mini-app button disabled',
+            );
+        }
+
         void this.bot
             .launch({
                 dropPendingUpdates: true,

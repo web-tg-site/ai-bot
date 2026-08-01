@@ -7,13 +7,16 @@ import {
     parseInitDataUser,
     validateInitData,
 } from './utils/validate-init-data';
+import { JwtTokenService } from './jwt-token.service';
 
 const INIT_DATA_MAX_AGE_SEC = 60 * 60;
 
 export type TelegramAuthUserResponse = {
-    id: number;
+    id: string;
+    telegramId: number;
     firstName: string;
     username?: string;
+    hasCompletedOnboarding: boolean;
 };
 
 @Injectable()
@@ -21,6 +24,7 @@ export class AuthService {
     constructor(
         private readonly configService: ConfigService,
         private readonly userModelService: UserModelService,
+        private readonly jwtTokenService: JwtTokenService,
     ) {}
 
     async authenticateByInitData(initData: string) {
@@ -78,12 +82,32 @@ export class AuthService {
             await this.userModelService.updateUserByTelegramId(telegramId, {
                 telegramUsername: telegramUser.username,
             });
+            user = await this.userModelService.getUserByTelegramId(telegramId);
+        }
+
+        if (!user) {
+            throw new HttpException(
+                { error: 'User not found' },
+                HttpStatus.UNAUTHORIZED,
+            );
         }
 
         await this.userModelService.updateUserLastActivityAt(telegramId);
 
+        const token = this.jwtTokenService.sign({
+            sub: user.id,
+            telegramId: user.telegramId,
+        });
+
         return {
-            user: this.toAuthUserResponse(telegramUser),
+            token,
+            user: {
+                id: user.id,
+                telegramId: telegramUser.id,
+                firstName: telegramUser.first_name,
+                username: telegramUser.username,
+                hasCompletedOnboarding: user.hasCompletedOnboarding,
+            } satisfies TelegramAuthUserResponse,
         };
     }
 
@@ -91,17 +115,5 @@ export class AuthService {
         return languageCode?.toLowerCase().startsWith('en')
             ? UserLanguage.EN
             : UserLanguage.RU;
-    }
-
-    private toAuthUserResponse(telegramUser: {
-        id: number;
-        first_name: string;
-        username?: string;
-    }): TelegramAuthUserResponse {
-        return {
-            id: telegramUser.id,
-            firstName: telegramUser.first_name,
-            username: telegramUser.username,
-        };
     }
 }

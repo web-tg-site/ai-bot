@@ -101,7 +101,9 @@ export const UserScalarFieldEnum = {
   useFreeSub: 'useFreeSub',
   isSubscriptionActive: 'isSubscriptionActive',
   tokenLeft: 'tokenLeft',
+  email: 'email',
   language: 'language',
+  hasCompletedOnboarding: 'hasCompletedOnboarding',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -137,12 +139,15 @@ export type UserAiToolSettingsScalarFieldEnum = (typeof UserAiToolSettingsScalar
 export const PaymentScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  provider: 'provider',
   cryptoPayInvoiceId: 'cryptoPayInvoiceId',
+  antilopayPaymentId: 'antilopayPaymentId',
+  orderId: 'orderId',
   subscribeType: 'subscribeType',
   subscribePlan: 'subscribePlan',
   amountUsd: 'amountUsd',
+  amountRub: 'amountRub',
   status: 'status',
-  payload: 'payload',
   paidAt: 'paidAt',
   createdAt: 'createdAt'
 } as const

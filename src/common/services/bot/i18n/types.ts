@@ -26,6 +26,7 @@ export type I18nBundle = {
         privacyPolicy: string;
         userAgreement: string;
         refundPolicy: string;
+        openApp: string;
         sbp: (amount: string) => string;
         usdt: (amount: number) => string;
     };

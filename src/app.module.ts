@@ -19,6 +19,7 @@ import {
     HealthController,
 } from '@/common/controllers';
 import { AuthModule } from '@/common/auth';
+import { MiniAppModule } from '@/common/mini-app';
 import { CryptoPayModule } from '@/common/services/crypto-pay';
 import { AntilopayModule } from '@/common/services/antilopay';
 import { PaymentCron } from '@/common/crons/payment';
@@ -42,6 +43,7 @@ import { PaymentCron } from '@/common/crons/payment';
         CryptoPayModule,
         AntilopayModule,
         AuthModule,
+        MiniAppModule,
     ],
     controllers: [
         HealthController,
