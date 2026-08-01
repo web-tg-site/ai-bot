@@ -76,6 +76,28 @@ export class AiJobService {
         return { job, tokenCost, balance: deductResult.balance };
     }
 
+    /** Persist a finished sync generation so mini-app history works for all tools. */
+    async recordCompletedJob(params: {
+        userId: string;
+        toolId: AiToolId;
+        input: AiGenerationInput;
+        resultUrl?: string | null;
+        tokenCost: number;
+        notifyTelegram?: boolean;
+    }) {
+        return this.prismaService.aiGenerationJob.create({
+            data: {
+                userId: params.userId,
+                toolId: params.toolId,
+                status: JobStatus.COMPLETED,
+                tokenCost: params.tokenCost,
+                inputJson: params.input,
+                resultUrl: params.resultUrl ?? null,
+                notifyTelegram: params.notifyTelegram ?? true,
+            },
+        });
+    }
+
     async getPendingJobs() {
         return this.prismaService.aiGenerationJob.findMany({
             where: {

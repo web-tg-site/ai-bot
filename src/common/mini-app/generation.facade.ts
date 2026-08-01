@@ -36,6 +36,7 @@ export type GenerationSyncResult = {
     tokenCost: number;
     tokenLeft: number;
     conversationId?: string;
+    jobId?: string;
 };
 
 export type GenerationAsyncResult = {
@@ -211,12 +212,33 @@ export class GenerationFacade {
             );
         }
 
+        const serialized = this.serializeResult(generationResult);
+        let jobId: string | undefined;
+
+        // Media/audio sync tools previously left no DB trail — history only
+        // existed for GPT chats and async jobs.
+        if (!isChatAssistantTool(effectiveToolId)) {
+            const resultUrl = serialized.url ?? serialized.dataUrl ?? null;
+            if (resultUrl) {
+                const recorded = await this.aiJobService.recordCompletedJob({
+                    userId: params.userId,
+                    toolId: effectiveToolId,
+                    input,
+                    resultUrl,
+                    tokenCost: actualCost,
+                    notifyTelegram: false,
+                });
+                jobId = recorded.id;
+            }
+        }
+
         return {
             mode: 'sync',
-            result: this.serializeResult(generationResult),
+            result: serialized,
             tokenCost: actualCost,
             tokenLeft: deduct.balance ?? 0,
             conversationId,
+            jobId,
         };
     }
 
