@@ -1,9 +1,13 @@
 import { ConfigService } from '@nestjs/config';
 
+export type ElevenLabsVoiceGender = 'Женский' | 'Мужской';
+
 export type ElevenLabsVoiceOption = {
     id: string;
     labelRu: string;
     labelEn: string;
+    gender?: ElevenLabsVoiceGender;
+    previewUrl?: string | null;
 };
 
 export const ELEVENLABS_VOICE_CATALOG: readonly ElevenLabsVoiceOption[] = [
@@ -11,61 +15,73 @@ export const ELEVENLABS_VOICE_CATALOG: readonly ElevenLabsVoiceOption[] = [
         id: '21m00Tcm4TlvDq8ikWAM',
         labelRu: 'Рейчел',
         labelEn: 'Rachel',
+        gender: 'Женский',
     },
     {
         id: 'pNInz6obpgDQGcFmaJgB',
         labelRu: 'Адам',
         labelEn: 'Adam',
+        gender: 'Мужской',
     },
     {
         id: 'EXAVITQu4vr4xnSDxMaL',
         labelRu: 'Сара',
         labelEn: 'Sarah',
+        gender: 'Женский',
     },
     {
         id: 'ErXwobaYiN019PkySvjV',
         labelRu: 'Антони',
         labelEn: 'Antoni',
+        gender: 'Мужской',
     },
     {
         id: 'TxGEqnHWrfWFTfGW9XjX',
         labelRu: 'Джош',
         labelEn: 'Josh',
+        gender: 'Мужской',
     },
     {
         id: 'MF3mGyEYCl7XYWbV9V6O',
         labelRu: 'Элли',
         labelEn: 'Elli',
+        gender: 'Женский',
     },
     {
         id: 'VR6AewLTigWG4xSOukaG',
         labelRu: 'Арнольд',
         labelEn: 'Arnold',
+        gender: 'Мужской',
     },
     {
         id: 'AZnzlk1XvdvUeBnXmlld',
         labelRu: 'Доми',
         labelEn: 'Domi',
+        gender: 'Женский',
     },
     {
         id: 'yoZ06aMxZJJ28mfd3POQ',
         labelRu: 'Сэм',
         labelEn: 'Sam',
+        gender: 'Мужской',
     },
     {
         id: 'XB0fDUnXU5powFXDhCwa',
         labelRu: 'Шарлотта',
         labelEn: 'Charlotte',
+        gender: 'Женский',
     },
     {
         id: 'onwK4e9ZLuTAKqWW03F9',
         labelRu: 'Дэниел',
         labelEn: 'Daniel',
+        gender: 'Мужской',
     },
     {
         id: 'pFZP5JQG7iQjIQuC4Bku',
         labelRu: 'Лили',
         labelEn: 'Lily',
+        gender: 'Женский',
     },
 ] as const;
 
@@ -85,18 +101,62 @@ const ELEVENLABS_VOICE_LABELS_RU: Record<string, string> = {
     daniel: 'Дэниел',
     domi: 'Доми',
     ell: 'Элли',
+    elli: 'Элли',
+    emily: 'Эмили',
     eric: 'Эрик',
+    freya: 'Фрейя',
     george: 'Джордж',
+    gigi: 'Джиджи',
+    glasgow: 'Глазго',
+    glinda: 'Глинда',
+    grace: 'Грейс',
     harry: 'Гарри',
+    james: 'Джеймс',
+    jeremy: 'Джереми',
     jessica: 'Джессика',
+    jessie: 'Джесси',
+    joseph: 'Джозеф',
     josh: 'Джош',
+    nicole: 'Николь',
+    patrick: 'Патрик',
+    paul: 'Пол',
+    rachel: 'Рейчел',
+    roxy: 'Рокси',
+    sam: 'Сэм',
+    sarah: 'Сара',
+    serena: 'Серена',
+    thomas: 'Томас',
+    will: 'Уилл',
     laura: 'Лора',
     liam: 'Лиам',
     lily: 'Лили',
-    rachel: 'Рейчел',
-    sam: 'Сэм',
-    sarah: 'Сара',
+    matilda: 'Матильда',
+    michael: 'Майкл',
 };
+
+export function mapElevenLabsGender(
+    raw?: string | null,
+): ElevenLabsVoiceGender | undefined {
+    const value = raw?.trim().toLowerCase();
+    if (!value) return undefined;
+    if (
+        value === 'female' ||
+        value === 'woman' ||
+        value === 'f' ||
+        value.includes('female')
+    ) {
+        return 'Женский';
+    }
+    if (
+        value === 'male' ||
+        value === 'man' ||
+        value === 'm' ||
+        value.includes('male')
+    ) {
+        return 'Мужской';
+    }
+    return undefined;
+}
 
 function parseElevenLabsApiVoiceName(apiName: string): {
     shortName: string;

@@ -42,6 +42,7 @@ import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/eleve
         AiJobService,
         ImageCapabilitiesService,
         VideoCapabilitiesService,
+        ElevenLabsProvider,
         ElevenLabsVoicePreviewService,
     ],
 })

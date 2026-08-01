@@ -31,7 +31,6 @@ import type { AiFileInput } from '@/common/services/ai/types';
 import { AiToolId } from '@/common/services/ai/types';
 import { JobStatus } from '@/generated/prisma/enums';
 import { UserAiToolSettingsModelService } from '@/common/models/user-ai-tool-settings';
-import { ELEVENLABS_VOICE_CATALOG } from '@/common/config/elevenlabs-voices.config';
 import {
     getToolById,
     AI_TOOLS_REGISTRY,
@@ -41,6 +40,8 @@ import {
     getAuthHeadersForUrl,
 } from '@/common/utils/download-remote-file';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
+import { ElevenLabsProvider } from '@/common/services/ai/providers/elevenlabs.provider';
+import { ElevenLabsVoicePreviewService } from '@/common/services/elevenlabs-voice-preview';
 import { GenerationFacade } from './generation.facade';
 
 const uploadInterceptor = FilesInterceptor('files', 10, {
@@ -104,6 +105,8 @@ export class AiController {
         private readonly generationFacade: GenerationFacade,
         private readonly prismaService: PrismaService,
         private readonly userAiToolSettingsModelService: UserAiToolSettingsModelService,
+        private readonly elevenLabsProvider: ElevenLabsProvider,
+        private readonly elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService,
     ) {}
 
     @Get('tools')
@@ -118,12 +121,48 @@ export class AiController {
     }
 
     @Get('voices')
-    listVoices() {
-        return ELEVENLABS_VOICE_CATALOG.map((voice) => ({
+    async listVoices() {
+        const voices = await this.elevenLabsProvider.listAccessibleVoices();
+        return voices.map((voice) => ({
             id: voice.id,
             labelRu: voice.labelRu,
             labelEn: voice.labelEn,
+            gender: voice.gender ?? null,
+            previewUrl: voice.previewUrl ?? null,
         }));
+    }
+
+    @Get('voices/:voiceId/preview')
+    async getVoicePreview(
+        @Param('voiceId') voiceId: string,
+        @Query('locale') locale: string | undefined,
+        @Res({ passthrough: true }) res: Response,
+    ) {
+        const trimmed = voiceId?.trim();
+        if (!trimmed) {
+            throw new HttpException(
+                { error: 'Voice id required' },
+                HttpStatus.BAD_REQUEST,
+            );
+        }
+
+        const localeTag =
+            locale === 'en-US' || locale === 'en' ? 'en-US' : 'ru-RU';
+
+        try {
+            const buffer =
+                await this.elevenLabsVoicePreviewService.getOrCreatePreview(
+                    trimmed,
+                    localeTag,
+                );
+            res.setHeader('Content-Type', 'audio/mpeg');
+            res.setHeader('Cache-Control', 'private, max-age=86400');
+            return new StreamableFile(buffer);
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : 'Voice preview failed';
+            throw new HttpException({ error: message }, HttpStatus.BAD_GATEWAY);
+        }
     }
 
     @Get('tools/:toolId/settings')

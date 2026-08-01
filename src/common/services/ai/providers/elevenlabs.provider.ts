@@ -15,6 +15,7 @@ import { OpenRouterProvider } from './openrouter.provider';
 import {
     ELEVENLABS_VOICE_CATALOG,
     ElevenLabsVoiceOption,
+    mapElevenLabsGender,
     resolveElevenLabsVoiceLabels,
 } from '@/common/config/elevenlabs-voices.config';
 
@@ -136,6 +137,8 @@ export class ElevenLabsProvider {
                 voices?: Array<{
                     voice_id: string;
                     name: string;
+                    preview_url?: string | null;
+                    labels?: { gender?: string | null } | null;
                 }>;
             }>('/voices');
 
@@ -146,10 +149,17 @@ export class ElevenLabsProvider {
                         voice.voice_id,
                         voice.name,
                     );
+                    const catalogVoice = ELEVENLABS_VOICE_CATALOG.find(
+                        (item) => item.id === voice.voice_id,
+                    );
                     return {
                         id: voice.voice_id,
                         labelRu: labels.labelRu,
                         labelEn: labels.labelEn,
+                        gender:
+                            mapElevenLabsGender(voice.labels?.gender) ??
+                            catalogVoice?.gender,
+                        previewUrl: voice.preview_url ?? null,
                     };
                 })
                 .sort((left, right) =>
