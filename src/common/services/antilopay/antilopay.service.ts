@@ -257,6 +257,8 @@ export class AntilopayService {
     private readonly publicBaseUrl: string | undefined;
     private readonly apiBaseUrl: string;
     private readonly vat: number | undefined;
+    /** Empty = omit prefer_methods (use whatever gateways the project has). */
+    private readonly preferMethods: string[];
 
     constructor(
         @InjectPinoLogger(AntilopayService.name)
@@ -291,9 +293,20 @@ export class AntilopayService {
             this.vat = Number(vatRaw);
         }
 
+        // Optional: "SBP,CARD_RU". Empty/unset = do not send prefer_methods (code 25 on prod if methods not enabled).
+        this.preferMethods = (
+            this.configService.get<string>('ANTILOPAY_PREFER_METHODS') ?? ''
+        )
+            .split(',')
+            .map((m) => m.trim())
+            .filter(Boolean);
+
         if (this.isConfigured()) {
             this.logger.info(
-                { apiBaseUrl: this.apiBaseUrl },
+                {
+                    apiBaseUrl: this.apiBaseUrl,
+                    preferMethods: this.preferMethods,
+                },
                 'Antilopay configured',
             );
         }
@@ -425,9 +438,12 @@ export class AntilopayService {
                 email,
                 ip: clientIp,
             },
-            prefer_methods: ['SBP', 'CARD_RU'],
             merchant_extra: `userId=${payment.userId}`,
         };
+
+        if (this.preferMethods.length > 0) {
+            body.prefer_methods = this.preferMethods;
+        }
 
         if (this.publicBaseUrl) {
             body.success_url = `${this.publicBaseUrl}/payments/antilopay/success`;
