@@ -293,13 +293,21 @@ export class AntilopayService {
             this.vat = Number(vatRaw);
         }
 
-        // Optional: "SBP,CARD_RU". Empty/unset = do not send prefer_methods (code 25 on prod if methods not enabled).
-        this.preferMethods = (
-            this.configService.get<string>('ANTILOPAY_PREFER_METHODS') ?? ''
-        )
-            .split(',')
-            .map((m) => m.trim())
-            .filter(Boolean);
+        // Default SBP (prod has SBP only). Override via ANTILOPAY_PREFER_METHODS=SBP,CARD_RU
+        // Set to "-" to omit prefer_methods entirely.
+        const preferRaw = this.configService
+            .get<string>('ANTILOPAY_PREFER_METHODS')
+            ?.trim();
+        if (preferRaw === '-' || preferRaw === 'none') {
+            this.preferMethods = [];
+        } else if (preferRaw) {
+            this.preferMethods = preferRaw
+                .split(',')
+                .map((m) => m.trim())
+                .filter(Boolean);
+        } else {
+            this.preferMethods = ['SBP'];
+        }
 
         if (this.isConfigured()) {
             this.logger.info(
