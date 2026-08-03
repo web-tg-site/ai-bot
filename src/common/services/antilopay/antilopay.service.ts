@@ -106,37 +106,141 @@ function isNonPublicIp(ip: string): boolean {
     return false;
 }
 
-/** Public client IP from proxy headers / socket. Rejects localhost & private ranges. */
-export function extractClientIp(input: {
-    forwardedFor?: string | string[];
-    ip?: string;
-    remoteAddress?: string;
-}): string | undefined {
-    const candidates: string[] = [];
+function ipv4ToInt(ip: string): number | null {
+    const parts = ip.split('.').map((p) => Number(p));
+    if (
+        parts.length !== 4 ||
+        parts.some((p) => !Number.isInteger(p) || p < 0 || p > 255)
+    ) {
+        return null;
+    }
+    return (
+        (((parts[0] << 24) >>> 0) +
+            (parts[1] << 16) +
+            (parts[2] << 8) +
+            parts[3]) >>>
+        0
+    );
+}
 
-    const forwarded = input.forwardedFor;
+function ipv4InCidr(ip: string, cidr: string): boolean {
+    const [base, bitsRaw] = cidr.split('/');
+    if (!base || bitsRaw === undefined) {
+        return false;
+    }
+    const bits = Number(bitsRaw);
+    const ipInt = ipv4ToInt(ip);
+    const baseInt = ipv4ToInt(base);
+    if (ipInt === null || baseInt === null || !Number.isInteger(bits)) {
+        return false;
+    }
+    if (bits < 0 || bits > 32) {
+        return false;
+    }
+    const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
+    return (ipInt & mask) === (baseInt & mask);
+}
+
+/** Cloudflare edge ranges — must not be sent as Antilopay customer.ip. */
+const CLOUDFLARE_IPV4_CIDRS = [
+    '173.245.48.0/20',
+    '103.21.244.0/22',
+    '103.22.200.0/22',
+    '103.31.4.0/22',
+    '141.101.64.0/18',
+    '108.162.192.0/18',
+    '190.93.240.0/20',
+    '188.114.96.0/20',
+    '197.234.240.0/22',
+    '198.41.128.0/17',
+    '162.158.0.0/15',
+    '104.16.0.0/13',
+    '104.24.0.0/14',
+    '172.64.0.0/13',
+    '131.0.72.0/22',
+] as const;
+
+function isCloudflareIp(ip: string): boolean {
+    const v = ip.trim().toLowerCase();
+    if (!v) {
+        return false;
+    }
+    if (v.includes(':')) {
+        return (
+            v.startsWith('2400:cb00:') ||
+            v.startsWith('2606:4700:') ||
+            v.startsWith('2803:f800:') ||
+            v.startsWith('2405:b500:') ||
+            v.startsWith('2405:8100:') ||
+            v.startsWith('2a06:98c0:') ||
+            v.startsWith('2c0f:f248:')
+        );
+    }
+    return CLOUDFLARE_IPV4_CIDRS.some((cidr) => ipv4InCidr(v, cidr));
+}
+
+function isUsableClientIp(ip: string): boolean {
+    return Boolean(ip) && !isNonPublicIp(ip) && !isCloudflareIp(ip);
+}
+
+function pushForwardedCandidates(
+    candidates: string[],
+    forwarded?: string | string[],
+): void {
     if (typeof forwarded === 'string') {
         for (const part of forwarded.split(',')) {
             candidates.push(part.trim());
         }
-    } else if (Array.isArray(forwarded)) {
+        return;
+    }
+    if (Array.isArray(forwarded)) {
         for (const value of forwarded) {
             for (const part of value.split(',')) {
                 candidates.push(part.trim());
             }
         }
     }
+}
 
+/**
+ * Public client IP from proxy headers / socket.
+ * Prefers CF-Connecting-IP (Cloudflare), skips private + Cloudflare edge IPs.
+ */
+export function extractClientIp(input: {
+    cfConnectingIp?: string | string[];
+    trueClientIp?: string | string[];
+    forwardedFor?: string | string[];
+    ip?: string;
+    remoteAddress?: string;
+}): string | undefined {
+    const preferred: string[] = [];
+    const rest: string[] = [];
+
+    const pushOne = (target: string[], value?: string | string[]) => {
+        if (typeof value === 'string' && value.trim()) {
+            target.push(value.trim());
+        } else if (Array.isArray(value)) {
+            for (const item of value) {
+                if (item?.trim()) {
+                    target.push(item.trim());
+                }
+            }
+        }
+    };
+
+    pushOne(preferred, input.cfConnectingIp);
+    pushOne(preferred, input.trueClientIp);
+    pushForwardedCandidates(rest, input.forwardedFor);
     if (input.ip) {
-        candidates.push(input.ip);
+        rest.push(input.ip);
     }
     if (input.remoteAddress) {
-        candidates.push(input.remoteAddress);
+        rest.push(input.remoteAddress);
     }
 
-    for (const raw of candidates) {
+    for (const raw of [...preferred, ...rest]) {
         const cleaned = raw.replace(/^::ffff:/i, '').trim();
-        if (cleaned && !isNonPublicIp(cleaned)) {
+        if (isUsableClientIp(cleaned)) {
             return cleaned;
         }
     }

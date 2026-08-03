@@ -63,6 +63,8 @@ export class AntilopayController {
         }
 
         const clientIp = extractClientIp({
+            cfConnectingIp: req.headers['cf-connecting-ip'],
+            trueClientIp: req.headers['true-client-ip'],
             forwardedFor: req.headers['x-forwarded-for'],
             ip: req.ip,
             remoteAddress: req.socket.remoteAddress,
@@ -72,6 +74,7 @@ export class AntilopayController {
             this.logger.warn(
                 {
                     orderId,
+                    cfConnectingIp: req.headers['cf-connecting-ip'],
                     forwardedFor: req.headers['x-forwarded-for'],
                     ip: req.ip,
                 },

@@ -29,8 +29,8 @@ async function bootstrap() {
 
     app.enableCors(corsConfig);
 
-    // Railway / reverse proxies: needed for real client IP (Antilopay customer.ip)
-    app.set('trust proxy', 1);
+    // Cloudflare → Railway: two hops; needed for real client IP (Antilopay customer.ip)
+    app.set('trust proxy', 2);
 
     app.useGlobalPipes(
         new ValidationPipe({
