@@ -7,18 +7,35 @@ const JPEG_QUALITY = 82;
 const GPT_HISTORY_DIMENSION = 1600;
 const GPT_HISTORY_QUALITIES = [82, 70, 58, 45] as const;
 
+const HEIC_UNSUPPORTED_MESSAGE =
+    'Формат HEIC/HEIF не поддерживается. Сохраните фото как JPEG или PNG и попробуйте снова.';
+
+const isHeicLike = (mimeType: string, fileName?: string): boolean => {
+    const mime = mimeType.toLowerCase();
+    const name = (fileName ?? '').toLowerCase();
+    return (
+        mime === 'image/heic' ||
+        mime === 'image/heif' ||
+        name.endsWith('.heic') ||
+        name.endsWith('.heif')
+    );
+};
+
 /**
  * Compresses large reference images before session storage / API upload.
+ * Always converts HEIC/HEIF when sharp can decode them.
  * Falls back to the original file when compression is unavailable.
  */
 export async function compressReferenceImage(
     file: AiFileInput,
 ): Promise<AiFileInput> {
-    if (!file.mimeType.startsWith('image/')) {
+    const heic = isHeicLike(file.mimeType, file.fileName);
+    if (!file.mimeType.startsWith('image/') && !heic) {
         return file;
     }
 
-    if (file.buffer.byteLength <= MAX_REFERENCE_BYTES) {
+    // Small JPEG/PNG/WebP can pass through; HEIC must be normalized.
+    if (!heic && file.buffer.byteLength <= MAX_REFERENCE_BYTES) {
         return file;
     }
 
@@ -42,6 +59,10 @@ export async function compressReferenceImage(
                 file.fileName?.replace(/\.\w+$/, '.jpg') ?? 'reference.jpg',
         };
     } catch {
+        if (heic) {
+            throw new Error(HEIC_UNSUPPORTED_MESSAGE);
+        }
+
         if (file.buffer.byteLength > MAX_REFERENCE_BYTES * 3) {
             throw new Error(
                 'Изображение слишком большое. Отправьте файл меньшего размера.',
