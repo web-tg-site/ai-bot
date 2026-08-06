@@ -7,10 +7,19 @@ const JPEG_QUALITY = 82;
 const GPT_HISTORY_DIMENSION = 1600;
 const GPT_HISTORY_QUALITIES = [82, 70, 58, 45] as const;
 
-const HEIC_UNSUPPORTED_MESSAGE =
-    'Формат HEIC/HEIF не поддерживается. Сохраните фото как JPEG или PNG и попробуйте снова.';
+const HEIC_BRANDS = new Set([
+    'heic',
+    'heif',
+    'heix',
+    'hevc',
+    'hevx',
+    'mif1',
+    'msf1',
+]);
 
-const isHeicLike = (mimeType: string, fileName?: string): boolean => {
+const PROVIDER_SAFE_MIME = /^(image\/jpeg|image\/png|image\/webp)$/i;
+
+const isHeicMimeOrName = (mimeType: string, fileName?: string): boolean => {
     const mime = mimeType.toLowerCase();
     const name = (fileName ?? '').toLowerCase();
     return (
@@ -21,55 +30,123 @@ const isHeicLike = (mimeType: string, fileName?: string): boolean => {
     );
 };
 
+const bufferLooksLikeHeic = (buffer: Buffer): boolean => {
+    if (buffer.length < 12) return false;
+    if (buffer.toString('ascii', 4, 8) !== 'ftyp') return false;
+    return HEIC_BRANDS.has(buffer.toString('ascii', 8, 12));
+};
+
+const isHeicLike = (file: AiFileInput): boolean =>
+    isHeicMimeOrName(file.mimeType, file.fileName) ||
+    bufferLooksLikeHeic(file.buffer);
+
+const toJpegFileName = (fileName?: string): string =>
+    fileName?.replace(/\.\w+$/i, '.jpg') ?? 'reference.jpg';
+
+type HeicConvertFn = (options: {
+    buffer: Buffer;
+    format: 'JPEG' | 'PNG';
+    quality?: number;
+}) => Promise<ArrayBuffer>;
+
+const loadHeicConvert = async (): Promise<HeicConvertFn> => {
+    const mod = await import('heic-convert');
+    const convert = (mod as { default?: HeicConvertFn }).default ?? mod;
+    return convert as HeicConvertFn;
+};
+
+const convertHeicToJpeg = async (file: AiFileInput): Promise<AiFileInput> => {
+    const convert = await loadHeicConvert();
+    const output = await convert({
+        buffer: file.buffer,
+        format: 'JPEG',
+        quality: 0.9,
+    });
+
+    return {
+        buffer: Buffer.from(output),
+        mimeType: 'image/jpeg',
+        fileName: toJpegFileName(file.fileName),
+    };
+};
+
+const resizeToJpeg = async (file: AiFileInput): Promise<AiFileInput> => {
+    const sharp = (await import('sharp')).default;
+    const compressed = await sharp(file.buffer)
+        .rotate()
+        .resize({
+            width: MAX_REFERENCE_DIMENSION,
+            height: MAX_REFERENCE_DIMENSION,
+            fit: 'inside',
+            withoutEnlargement: true,
+        })
+        .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
+        .toBuffer();
+
+    return {
+        buffer: compressed,
+        mimeType: 'image/jpeg',
+        fileName: toJpegFileName(file.fileName),
+    };
+};
+
 /**
- * Compresses large reference images before session storage / API upload.
- * Always converts HEIC/HEIF when sharp can decode them.
- * Falls back to the original file when compression is unavailable.
+ * Compresses / normalizes reference images before session storage / API upload.
+ * HEIC/HEIF is converted via heic-convert (sharp prebuilds omit HEVC).
+ * Other rasters are JPEG-normalized when oversized or not provider-safe.
  */
 export async function compressReferenceImage(
     file: AiFileInput,
 ): Promise<AiFileInput> {
-    const heic = isHeicLike(file.mimeType, file.fileName);
-    if (!file.mimeType.startsWith('image/') && !heic) {
-        return file;
+    let working = file;
+
+    if (isHeicLike(working)) {
+        try {
+            working = await convertHeicToJpeg(working);
+        } catch {
+            // Fall through: sharp may still handle some HEIF variants.
+        }
     }
 
-    // Small JPEG/PNG/WebP can pass through; HEIC must be normalized.
-    if (!heic && file.buffer.byteLength <= MAX_REFERENCE_BYTES) {
-        return file;
+    const looksLikeRaster =
+        working.mimeType.startsWith('image/') || isHeicLike(working);
+    if (!looksLikeRaster) {
+        return working;
+    }
+
+    const needsNormalize =
+        working.buffer.byteLength > MAX_REFERENCE_BYTES ||
+        !PROVIDER_SAFE_MIME.test(working.mimeType) ||
+        isHeicLike(working);
+
+    if (!needsNormalize) {
+        return working;
     }
 
     try {
-        const sharp = (await import('sharp')).default;
-        const compressed = await sharp(file.buffer)
-            .rotate()
-            .resize({
-                width: MAX_REFERENCE_DIMENSION,
-                height: MAX_REFERENCE_DIMENSION,
-                fit: 'inside',
-                withoutEnlargement: true,
-            })
-            .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
-            .toBuffer();
-
-        return {
-            buffer: compressed,
-            mimeType: 'image/jpeg',
-            fileName:
-                file.fileName?.replace(/\.\w+$/, '.jpg') ?? 'reference.jpg',
-        };
+        return await resizeToJpeg(working);
     } catch {
-        if (heic) {
-            throw new Error(HEIC_UNSUPPORTED_MESSAGE);
+        // Sharp prebuilds cannot decode HEVC-HEIC; try libheif as a last resort.
+        if (working === file || isHeicLike(working)) {
+            try {
+                const converted = await convertHeicToJpeg(working);
+                try {
+                    return await resizeToJpeg(converted);
+                } catch {
+                    return converted;
+                }
+            } catch {
+                // continue to size guard
+            }
         }
 
-        if (file.buffer.byteLength > MAX_REFERENCE_BYTES * 3) {
+        if (working.buffer.byteLength > MAX_REFERENCE_BYTES * 3) {
             throw new Error(
                 'Изображение слишком большое. Отправьте файл меньшего размера.',
             );
         }
 
-        return file;
+        return working;
     }
 }
 
@@ -81,12 +158,22 @@ export async function compressGptHistoryImage(
     file: AiFileInput,
     maxBytes: number = MAX_GPT_IMAGE_BYTES,
 ): Promise<AiFileInput> {
-    if (!file.mimeType.startsWith('image/')) {
-        return file;
+    let working = file;
+
+    if (isHeicLike(working)) {
+        try {
+            working = await convertHeicToJpeg(working);
+        } catch {
+            // keep original and try sharp below
+        }
     }
 
-    if (file.buffer.byteLength <= maxBytes) {
-        return file;
+    if (!working.mimeType.startsWith('image/')) {
+        return working;
+    }
+
+    if (working.buffer.byteLength <= maxBytes) {
+        return working;
     }
 
     try {
@@ -94,7 +181,7 @@ export async function compressGptHistoryImage(
         let best: Buffer | null = null;
 
         for (const quality of GPT_HISTORY_QUALITIES) {
-            const compressed = await sharp(file.buffer)
+            const compressed = await sharp(working.buffer)
                 .rotate()
                 .resize({
                     width: GPT_HISTORY_DIMENSION,
@@ -112,16 +199,15 @@ export async function compressGptHistoryImage(
         }
 
         if (!best) {
-            return file;
+            return working;
         }
 
         return {
             buffer: best,
             mimeType: 'image/jpeg',
-            fileName:
-                file.fileName?.replace(/\.\w+$/, '.jpg') ?? 'reference.jpg',
+            fileName: toJpegFileName(working.fileName),
         };
     } catch {
-        return file;
+        return working;
     }
 }
