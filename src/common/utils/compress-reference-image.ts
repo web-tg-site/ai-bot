@@ -104,7 +104,9 @@ export async function compressReferenceImage(
         try {
             working = await convertHeicToJpeg(working);
         } catch {
-            // Fall through: sharp may still handle some HEIF variants.
+            throw new Error(
+                'Не удалось обработать HEIC-фото. Попробуйте ещё раз или сохраните снимок как JPEG в Фото.',
+            );
         }
     }
 
@@ -136,8 +138,14 @@ export async function compressReferenceImage(
                     return converted;
                 }
             } catch {
-                // continue to size guard
+                // continue
             }
+        }
+
+        if (isHeicLike(working)) {
+            throw new Error(
+                'Не удалось обработать HEIC-фото. Попробуйте ещё раз или сохраните снимок как JPEG в Фото.',
+            );
         }
 
         if (working.buffer.byteLength > MAX_REFERENCE_BYTES * 3) {
