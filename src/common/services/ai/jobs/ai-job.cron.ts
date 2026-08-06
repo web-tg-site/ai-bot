@@ -248,7 +248,7 @@ export class AiJobCron {
                 job.id,
                 JobStatus.COMPLETED,
                 {
-                    resultUrl: resolved.url,
+                    resultUrl: resolved.url ?? result.url,
                 },
             );
 

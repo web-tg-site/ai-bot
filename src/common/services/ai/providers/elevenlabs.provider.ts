@@ -271,7 +271,7 @@ export class ElevenLabsProvider {
                 response.target_languages?.[0] ||
                 this.dubbingTargetLang;
             const contentType =
-                response.media_metadata?.content_type ?? 'audio/mpeg';
+                response.media_metadata?.content_type ?? 'video/mp4';
             const isVideo = contentType.startsWith('video/');
 
             return {
@@ -297,12 +297,31 @@ export class ElevenLabsProvider {
     ): Promise<AiGenerationResult> {
         const [dubbingId, targetLang] = this.parseDubbingJobId(providerJobId);
         const lang = targetLang || this.dubbingTargetLang;
-        const buffer = await this.downloadDubbedMedia(dubbingId, lang);
+        const { buffer, mimeType } = await this.downloadDubbedMedia(
+            dubbingId,
+            lang,
+        );
+        const resolvedMime =
+            mimeType || result.mimeType || 'application/octet-stream';
+        const isVideo =
+            resolvedMime.startsWith('video/') || this.looksLikeMp4(buffer);
 
         return {
-            type: result.type,
+            type: isVideo ? 'video' : 'audio',
             buffer,
-            mimeType: result.mimeType,
+            mimeType: isVideo
+                ? resolvedMime.startsWith('video/')
+                    ? resolvedMime
+                    : 'video/mp4'
+                : resolvedMime.startsWith('audio/')
+                  ? resolvedMime
+                  : 'audio/mpeg',
+            // Keep a resolvable URL so mini-app / media proxy can fetch again.
+            url: buildElevenLabsDubbingResultUrl(
+                dubbingId,
+                lang,
+                isVideo ? 'video/mp4' : 'audio/mpeg',
+            ),
         };
     }
 
@@ -472,10 +491,18 @@ export class ElevenLabsProvider {
     private async downloadDubbedMedia(
         dubbingId: string,
         languageCode: string,
-    ): Promise<Buffer> {
-        return this.getBinary(
+    ): Promise<{ buffer: Buffer; mimeType: string }> {
+        return this.getBinaryWithMime(
             `/dubbing/${dubbingId}/audio/${languageCode}`,
             300000,
+        );
+    }
+
+    private looksLikeMp4(buffer: Buffer): boolean {
+        if (buffer.length < 12) return false;
+        return (
+            buffer.subarray(4, 8).toString('ascii') === 'ftyp' ||
+            buffer.subarray(0, 3).toString('ascii') === 'F4V'
         );
     }
 
@@ -509,6 +536,14 @@ export class ElevenLabsProvider {
     }
 
     private async getBinary(path: string, timeout = 30000): Promise<Buffer> {
+        const { buffer } = await this.getBinaryWithMime(path, timeout);
+        return buffer;
+    }
+
+    private async getBinaryWithMime(
+        path: string,
+        timeout = 30000,
+    ): Promise<{ buffer: Buffer; mimeType: string }> {
         try {
             const response = await firstValueFrom(
                 this.httpService.get<ArrayBuffer>(`${this.baseUrl}${path}`, {
@@ -517,7 +552,15 @@ export class ElevenLabsProvider {
                     timeout,
                 }),
             );
-            return Buffer.from(response.data);
+            const headerType = response.headers?.['content-type'];
+            const mimeType =
+                typeof headerType === 'string'
+                    ? headerType.split(';')[0].trim()
+                    : 'application/octet-stream';
+            return {
+                buffer: Buffer.from(response.data),
+                mimeType,
+            };
         } catch (error) {
             this.logger.error(
                 `ElevenLabs GET ${path} failed: ${this.formatError(error)}`,

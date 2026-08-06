@@ -41,8 +41,14 @@ import {
 } from '@/common/utils/download-remote-file';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
 import { ElevenLabsProvider } from '@/common/services/ai/providers/elevenlabs.provider';
+import {
+    ELEVENLABS_DUBBING_RESULT_PREFIX,
+    isElevenLabsDubbingResultUrl,
+} from '@/common/services/ai/providers/elevenlabs.provider';
 import { ElevenLabsVoicePreviewService } from '@/common/services/elevenlabs-voice-preview';
 import { GenerationFacade } from './generation.facade';
+import { ModuleRef } from '@nestjs/core';
+import { BotService } from '@/common/services/bot';
 
 const uploadInterceptor = FilesInterceptor('files', 10, {
     storage: memoryStorage(),
@@ -107,6 +113,7 @@ export class AiController {
         private readonly userAiToolSettingsModelService: UserAiToolSettingsModelService,
         private readonly elevenLabsProvider: ElevenLabsProvider,
         private readonly elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService,
+        private readonly moduleRef: ModuleRef,
     ) {}
 
     @Get('tools')
@@ -372,6 +379,72 @@ export class AiController {
         };
     }
 
+    @Post('jobs/:jobId/send')
+    async sendJobToTelegram(
+        @CurrentUser() current: CurrentUserPayload,
+        @Param('jobId') jobId: string,
+    ) {
+        const job = await this.prismaService.aiGenerationJob.findFirst({
+            where: { id: jobId, userId: current.id },
+            select: {
+                id: true,
+                toolId: true,
+                status: true,
+                resultUrl: true,
+                providerJobId: true,
+            },
+        });
+
+        if (!job || job.status !== JobStatus.COMPLETED || !job.resultUrl) {
+            throw new HttpException(
+                { error: 'Media not found' },
+                HttpStatus.NOT_FOUND,
+            );
+        }
+
+        const { buffer, mimeType } = await this.resolveJobMedia(
+            job.resultUrl,
+            job.providerJobId,
+            job.toolId as AiToolId,
+        );
+        const type = this.resolveMediaType(job.toolId as AiToolId, mimeType);
+
+        try {
+            const botService = this.moduleRef.get(BotService, {
+                strict: false,
+            });
+            if (type === 'video') {
+                await botService.sendVideoBuffer(
+                    current.telegramId,
+                    buffer,
+                    mimeType,
+                );
+            } else if (type === 'audio') {
+                await botService.sendAudioBuffer(
+                    current.telegramId,
+                    buffer,
+                    mimeType,
+                    true,
+                );
+            } else {
+                await botService.sendPhotoBuffer(
+                    current.telegramId,
+                    buffer,
+                    mimeType,
+                );
+            }
+            await botService.sendMessage(
+                current.telegramId,
+                '✅ Файл из мини-приложения',
+            );
+            return { ok: true };
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : 'Send failed';
+            throw new HttpException({ error: message }, HttpStatus.BAD_GATEWAY);
+        }
+    }
+
     @Get('jobs/:jobId/media')
     async getJobMedia(
         @CurrentUser() current: CurrentUserPayload,
@@ -383,6 +456,8 @@ export class AiController {
             select: {
                 resultUrl: true,
                 status: true,
+                providerJobId: true,
+                toolId: true,
             },
         });
 
@@ -393,18 +468,11 @@ export class AiController {
             );
         }
 
-        const resultUrl = job.resultUrl;
-        const dataUrl = parseDataUrl(resultUrl);
-        if (dataUrl) {
-            res.setHeader('Content-Type', dataUrl.mimeType);
-            res.setHeader('Cache-Control', 'private, max-age=3600');
-            return new StreamableFile(dataUrl.buffer);
-        }
-
         try {
-            const { buffer, mimeType } = await downloadRemoteFile(
-                resultUrl,
-                getAuthHeadersForUrl(resultUrl),
+            const { buffer, mimeType } = await this.resolveJobMedia(
+                job.resultUrl,
+                job.providerJobId,
+                job.toolId as AiToolId,
             );
             res.setHeader('Content-Type', mimeType);
             res.setHeader('Cache-Control', 'private, max-age=3600');
@@ -416,6 +484,66 @@ export class AiController {
                     : 'Media download failed';
             throw new HttpException({ error: message }, HttpStatus.BAD_GATEWAY);
         }
+    }
+
+    private async resolveJobMedia(
+        resultUrl: string,
+        providerJobId: string | null,
+        toolId: AiToolId,
+    ): Promise<{ buffer: Buffer; mimeType: string }> {
+        const dataUrl = parseDataUrl(resultUrl);
+        if (dataUrl) {
+            return { buffer: dataUrl.buffer, mimeType: dataUrl.mimeType };
+        }
+
+        if (isElevenLabsDubbingResultUrl(resultUrl) && providerJobId) {
+            const parsed = this.parseElevenLabsDubbingUrl(resultUrl);
+            const downloaded =
+                await this.elevenLabsProvider.downloadDubbingResult(
+                    providerJobId,
+                    {
+                        type: parsed.mimeType.startsWith('video/')
+                            ? 'video'
+                            : 'audio',
+                        url: resultUrl,
+                        mimeType: parsed.mimeType,
+                    },
+                );
+            if (!downloaded.buffer || !downloaded.mimeType) {
+                throw new Error('Empty dubbing result');
+            }
+            return {
+                buffer: downloaded.buffer,
+                mimeType: downloaded.mimeType,
+            };
+        }
+
+        return downloadRemoteFile(
+            resultUrl,
+            getAuthHeadersForUrl(resultUrl),
+        );
+    }
+
+    private parseElevenLabsDubbingUrl(url: string): { mimeType: string } {
+        const raw = url.slice(ELEVENLABS_DUBBING_RESULT_PREFIX.length);
+        const parts = raw.split('/');
+        const encodedMime = parts[2] ?? 'audio/mpeg';
+        try {
+            return { mimeType: decodeURIComponent(encodedMime) };
+        } catch {
+            return { mimeType: 'audio/mpeg' };
+        }
+    }
+
+    private resolveMediaType(
+        toolId: AiToolId,
+        mimeType: string,
+    ): 'image' | 'video' | 'audio' {
+        if (mimeType.startsWith('video/')) return 'video';
+        if (mimeType.startsWith('audio/')) return 'audio';
+        if (this.isVideoTool(toolId)) return 'video';
+        if (this.isVoiceTool(toolId)) return 'audio';
+        return 'image';
     }
 
     private assertToolId(toolId: string): asserts toolId is AiToolId {
