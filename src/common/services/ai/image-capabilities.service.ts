@@ -3,15 +3,14 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { AiProviderId, AiToolId } from '@/common/services/ai/types';
-import { getToolById } from '@/common/config/ai-tools.registry';
+import { AiToolId } from '@/common/services/ai/types';
 import {
     DEFAULT_ASPECT_RATIOS,
     DEFAULT_IMAGE_QUALITIES,
     DEFAULT_RESOLUTIONS,
     ImageCapabilityDescriptor,
     ImageModelCapabilities,
-    SHARPII_NANO_BANANA_RESOLUTIONS,
+    NANO_BANANA_RESOLUTIONS,
     STATIC_IMAGE_ASPECT_RATIOS,
     TOPAZ_SCALES,
     getOpenRouterModelForTool,
@@ -63,8 +62,8 @@ export class ImageCapabilitiesService implements OnModuleInit {
             return [];
         }
 
-        if (this.isSharpiiNanoBanana(toolId)) {
-            return [...SHARPII_NANO_BANANA_RESOLUTIONS];
+        if (toolId === AiToolId.NANO_BANANA) {
+            return [...NANO_BANANA_RESOLUTIONS];
         }
 
         const model = getOpenRouterModelForTool(toolId);
@@ -80,7 +79,7 @@ export class ImageCapabilitiesService implements OnModuleInit {
         if (
             toolId === AiToolId.MIDJOURNEY ||
             isTopazTool(toolId) ||
-            this.isSharpiiNanoBanana(toolId)
+            toolId === AiToolId.NANO_BANANA
         ) {
             return [];
         }
@@ -166,6 +165,7 @@ export class ImageCapabilitiesService implements OnModuleInit {
             getOpenRouterModelForTool(AiToolId.GPT_IMAGES),
             getOpenRouterModelForTool(AiToolId.FLUX),
             getOpenRouterModelForTool(AiToolId.SEEDREAM),
+            getOpenRouterModelForTool(AiToolId.NANO_BANANA),
         ].filter(Boolean) as string[];
 
         await Promise.all(
@@ -250,13 +250,5 @@ export class ImageCapabilitiesService implements OnModuleInit {
             return descriptor.values;
         }
         return [...fallback];
-    }
-
-    private isSharpiiNanoBanana(toolId: AiToolId): boolean {
-        const tool = getToolById(toolId);
-        return (
-            toolId === AiToolId.NANO_BANANA &&
-            tool?.provider === AiProviderId.SHARPII
-        );
     }
 }

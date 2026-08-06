@@ -9,7 +9,6 @@ import {
     AiJobCreateResult,
     AiJobStatusResult,
 } from '../types';
-import { OPENROUTER_NANO_BANANA_MODEL } from '@/common/config/image-editor-capabilities.config';
 import { getToolById } from '@/common/config/ai-tools.registry';
 import { AiToolId } from '../types';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
@@ -54,6 +53,7 @@ export class OpenRouterProvider {
                 return this.chatClaude(input);
             case AiToolId.GPT_IMAGES:
             case AiToolId.FLUX:
+            case AiToolId.NANO_BANANA:
             case AiToolId.SEEDREAM: {
                 const tool = getToolById(toolId);
                 if (!tool?.model) {
@@ -66,15 +66,6 @@ export class OpenRouterProvider {
                     `OpenRouter sync generate not supported for ${toolId}`,
                 );
         }
-    }
-
-    async generateNanoBananaFallback(
-        input: AiGenerationInput,
-    ): Promise<AiGenerationResult> {
-        return this.generateImage(OPENROUTER_NANO_BANANA_MODEL, {
-            ...input,
-            resolution: '1K',
-        });
     }
 
     async prepareSoundEffectPrompt(userDescription: string): Promise<string> {

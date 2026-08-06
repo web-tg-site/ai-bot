@@ -18,27 +18,13 @@ export const MIDJOURNEY_ASPECT_RATIOS = [
 
 export const DEFAULT_RESOLUTIONS = ['1K', '2K', '4K'];
 
-/** Sharpii Nano Banana 2 native output tiers (model suffix -2k / -4k). */
-export const SHARPII_NANO_BANANA_RESOLUTIONS = ['1K', '2K', '4K'] as const;
+/** OpenRouter Nano Banana 2 (gemini-3.1-flash-image) output tiers. */
+export const NANO_BANANA_RESOLUTIONS = ['1K', '2K', '4K', '512'] as const;
 
-/** Sharpii Nano Banana 2 supported aspect ratios. */
-export const SHARPII_NANO_BANANA_ASPECT_RATIOS = [
-    '9:16',
-    '3:4',
-    '4:3',
-    '1:1',
-    '16:9',
-] as const;
+/** OpenRouter Nano Banana 2 aspect ratios (subset shown in UI picker). */
+export const NANO_BANANA_ASPECT_RATIOS = [...UI_ASPECT_RATIOS] as const;
 
-export const SHARPII_NANO_BANANA_MAX_REFERENCES = 4;
-
-/** OpenRouter model for Nano Banana 2 (1K fallback when Sharpii fails). */
-export const OPENROUTER_NANO_BANANA_MODEL = 'google/gemini-3.1-flash-image';
-
-export function isNanoBanana1KResolution(resolution?: string): boolean {
-    const normalized = (resolution ?? '1K').trim().toUpperCase();
-    return normalized === '1K';
-}
+export const NANO_BANANA_MAX_REFERENCES = 4;
 
 export const DEFAULT_IMAGE_QUALITIES = [
     'auto',
@@ -67,7 +53,7 @@ export type ImageModelCapabilities = {
 export const STATIC_IMAGE_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.GPT_IMAGES]: [...UI_ASPECT_RATIOS],
     [AiToolId.FLUX]: [...UI_ASPECT_RATIOS],
-    [AiToolId.NANO_BANANA]: [...SHARPII_NANO_BANANA_ASPECT_RATIOS],
+    [AiToolId.NANO_BANANA]: [...NANO_BANANA_ASPECT_RATIOS],
     [AiToolId.SEEDREAM]: [...UI_ASPECT_RATIOS],
     [AiToolId.MIDJOURNEY]: [...UI_ASPECT_RATIOS],
 };
@@ -101,7 +87,7 @@ export function isTopazTool(toolId: AiToolId): boolean {
 
 export function getImageMaxReferences(toolId: AiToolId): number {
     if (toolId === AiToolId.NANO_BANANA) {
-        return SHARPII_NANO_BANANA_MAX_REFERENCES;
+        return NANO_BANANA_MAX_REFERENCES;
     }
     return 10;
 }

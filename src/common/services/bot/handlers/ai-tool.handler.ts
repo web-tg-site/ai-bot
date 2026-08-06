@@ -18,7 +18,6 @@ import {
 import {
     isImageToolWithAspectSettings,
     isImageToolWithReferences,
-    isNanoBanana1KResolution,
     isTopazTool,
     calculateTopazTokenCost,
     formatImageQualityLabel,
@@ -2618,42 +2617,6 @@ async function runGeneration(
                         ctx,
                         generationResult,
                         AiToolId.FLUX,
-                        sendAsFile,
-                    );
-                    return;
-                }
-
-                if (
-                    toolId === AiToolId.NANO_BANANA &&
-                    isNanoBanana1KResolution(input.resolution) &&
-                    message !== 'INSUFFICIENT_TOKENS'
-                ) {
-                    await ctx.reply(i18n.aiResult.generationTakingLonger);
-                    await ctx.reply(i18n.aiResult.generating);
-
-                    const generationResult =
-                        await deps.aiService.generateNanoBananaFallback(input);
-                    const deduct = await deps.tokenBillingService.commit(
-                        ctx.from.id.toString(),
-                        tokenCost,
-                    );
-                    if (!deduct.success) {
-                        await ctx.reply(i18n.aiResult.insufficientTokens, {
-                            parse_mode: 'HTML',
-                        });
-                        return;
-                    }
-
-                    const sendAsFile = await resolveSendAsFileForTool(
-                        deps,
-                        user.id,
-                        AiToolId.NANO_BANANA,
-                        session,
-                    );
-                    await sendGenerationResult(
-                        ctx,
-                        generationResult,
-                        AiToolId.NANO_BANANA,
                         sendAsFile,
                     );
                     return;

@@ -22,7 +22,6 @@ import {
     AI_JOB_STALE_REMINDER_TEXT,
     AI_MIDJOURNEY_FALLBACK_TEXT,
 } from '@/common/services/bot/texts';
-import { isNanoBanana1KResolution } from '@/common/config/image-editor-capabilities.config';
 import { getI18n } from '@/common/services/bot/i18n';
 import { formatUserBotErrorMessage } from '@/common/services/bot/errors/bot-error.mapper';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
@@ -181,7 +180,6 @@ export class AiJobCron {
                 const errorMessage =
                     status.errorMessage ?? 'Неизвестная ошибка';
                 const toolId = job.toolId as AiToolId;
-                const input = job.inputJson as AiGenerationInput;
 
                 if (
                     toolId === AiToolId.MIDJOURNEY &&
@@ -190,20 +188,6 @@ export class AiJobCron {
                 ) {
                     this.fallbackJobIds.add(job.id);
                     void this.handleMidjourneyFluxFallback(
-                        botService,
-                        job,
-                    ).finally(() => {
-                        this.fallbackJobIds.delete(job.id);
-                    });
-                    return;
-                }
-
-                if (
-                    toolId === AiToolId.NANO_BANANA &&
-                    isNanoBanana1KResolution(input.resolution)
-                ) {
-                    this.fallbackJobIds.add(job.id);
-                    void this.handleNanoBananaOpenRouterFallback(
                         botService,
                         job,
                     ).finally(() => {
@@ -374,58 +358,6 @@ export class AiJobCron {
             },
             `AI job ${phase} failed [${toolLabel}/${provider}]: ${message}`,
         );
-    }
-
-    private async handleNanoBananaOpenRouterFallback(
-        botService: BotService,
-        job: PendingJob,
-    ) {
-        const input = job.inputJson as AiGenerationInput;
-        const i18n = getI18n(job.user.language);
-
-        try {
-            const result =
-                await this.aiService.generateNanoBananaFallback(input);
-
-            await this.aiJobService.updateJobStatus(
-                job.id,
-                JobStatus.COMPLETED,
-                {
-                    resultUrl: result.url,
-                },
-            );
-
-            if (job.notifyTelegram !== false) {
-                await botService.sendMessage(
-                    job.user.telegramId,
-                    i18n.aiResult.generationTakingLonger,
-                    { parse_mode: 'HTML' },
-                );
-                await this.sendResult(
-                    botService,
-                    job.user.telegramId,
-                    AiToolId.NANO_BANANA,
-                    result.type,
-                    result,
-                    await this.resolveSendAsFile(
-                        job.userId,
-                        AiToolId.NANO_BANANA,
-                    ),
-                );
-                await botService.sendMessage(
-                    job.user.telegramId,
-                    AI_JOB_COMPLETED_TEXT,
-                    { parse_mode: 'HTML' },
-                );
-            }
-        } catch (error) {
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : 'Не удалось завершить генерацию';
-            this.logJobError(job, 'delivery', error);
-            await this.failJob(botService, job, message);
-        }
     }
 
     private async handleMidjourneyFluxFallback(

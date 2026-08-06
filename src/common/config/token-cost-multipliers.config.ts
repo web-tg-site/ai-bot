@@ -1,6 +1,7 @@
 import { AiToolId } from '@/common/services/ai/types';
 
 const IMAGE_RESOLUTION_MULTIPLIERS: Record<string, number> = {
+    '512': 0.75,
     '1K': 1.0,
     '2K': 1.5,
     '4K': 2.0,
