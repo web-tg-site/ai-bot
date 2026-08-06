@@ -432,11 +432,50 @@ export class AiController {
                     true,
                 );
             } else {
-                await botService.sendPhotoBuffer(
+                // Photo (Telegram-compressed) + document (original quality file).
+                // Large images often fail sendPhoto; still deliver the file.
+                let photoSent = false;
+                try {
+                    await botService.sendPhotoBuffer(
+                        current.telegramId,
+                        buffer,
+                        mimeType,
+                        false,
+                    );
+                    photoSent = true;
+                } catch {
+                    // continue — document delivery is the reliable path
+                }
+
+                try {
+                    await botService.sendPhotoBuffer(
+                        current.telegramId,
+                        buffer,
+                        mimeType,
+                        true,
+                    );
+                } catch (fileError) {
+                    if (photoSent) {
+                        await botService.sendMessage(
+                            current.telegramId,
+                            '⚠️ Фото отправлено, но файл не удалось отправить',
+                        );
+                        return { ok: true };
+                    }
+                    const message =
+                        fileError instanceof Error
+                            ? fileError.message
+                            : 'Send failed';
+                    throw new Error(message);
+                }
+
+                await botService.sendMessage(
                     current.telegramId,
-                    buffer,
-                    mimeType,
+                    photoSent
+                        ? '✅ Фото и файл из мини-приложения'
+                        : '✅ Файл из мини-приложения (фото не удалось отправить — слишком большое)',
                 );
+                return { ok: true };
             }
             await botService.sendMessage(
                 current.telegramId,
