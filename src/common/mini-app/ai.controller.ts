@@ -49,6 +49,7 @@ import { ElevenLabsVoicePreviewService } from '@/common/services/elevenlabs-voic
 import { GenerationFacade } from './generation.facade';
 import { ModuleRef } from '@nestjs/core';
 import { BotService } from '@/common/services/bot';
+import { compressReferenceImage } from '@/common/utils/compress-reference-image';
 
 const uploadInterceptor = FilesInterceptor('files', 10, {
     storage: memoryStorage(),
@@ -237,11 +238,15 @@ export class AiController {
         @UploadedFiles() files?: Express.Multer.File[],
     ) {
         const fileInputs: AiFileInput[] | undefined = files?.length
-            ? files.map((file) => ({
-                  buffer: file.buffer,
-                  mimeType: file.mimetype,
-                  fileName: file.originalname,
-              }))
+            ? await Promise.all(
+                  files.map(async (file) =>
+                      compressReferenceImage({
+                          buffer: file.buffer,
+                          mimeType: file.mimetype,
+                          fileName: file.originalname,
+                      }),
+                  ),
+              )
             : undefined;
 
         try {
