@@ -669,6 +669,17 @@ export class AiController {
             );
             res.setHeader('Content-Type', mimeType);
             res.setHeader('Cache-Control', 'private, max-age=3600');
+            const ext = mimeType.startsWith('video/')
+                ? 'mp4'
+                : mimeType.startsWith('audio/')
+                  ? 'mp3'
+                  : mimeType.includes('png')
+                    ? 'png'
+                    : 'jpg';
+            res.setHeader(
+                'Content-Disposition',
+                `attachment; filename="generation-${jobId.slice(0, 8)}.${ext}"`,
+            );
             return new StreamableFile(buffer);
         } catch (error) {
             const message =
