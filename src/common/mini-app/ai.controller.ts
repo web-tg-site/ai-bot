@@ -1,6 +1,7 @@
 import {
     Body,
     Controller,
+    Delete,
     Get,
     HttpException,
     HttpStatus,
@@ -23,6 +24,8 @@ import {
     IsNumberString,
     IsOptional,
     IsString,
+    MaxLength,
+    MinLength,
 } from 'class-validator';
 import { CurrentUser, TelegramJwtGuard } from '@/common/auth';
 import type { CurrentUserPayload } from '@/common/auth';
@@ -51,9 +54,11 @@ import { ModuleRef } from '@nestjs/core';
 import { BotService } from '@/common/services/bot';
 import { compressReferenceImage } from '@/common/utils/compress-reference-image';
 
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+
 const uploadInterceptor = FilesInterceptor('files', 10, {
     storage: memoryStorage(),
-    limits: { fileSize: 25 * 1024 * 1024 },
+    limits: { fileSize: MAX_UPLOAD_BYTES },
 });
 
 class GenerateBodyDto {
@@ -105,6 +110,17 @@ class GenerateBodyDto {
     gptReplyMode?: 'text' | 'audio' | 'both';
 }
 
+class SavedPromptBodyDto {
+    @IsString()
+    @MinLength(1)
+    @MaxLength(8000)
+    prompt!: string;
+
+    @IsOptional()
+    @IsString()
+    toolId?: string;
+}
+
 @Controller('api/ai')
 @UseGuards(TelegramJwtGuard)
 export class AiController {
@@ -124,7 +140,9 @@ export class AiController {
             category: tool.category,
             isAsync: tool.isAsync,
             baseTokenCost: tool.baseTokenCost,
+            perSecondCost: tool.perSecondCost ?? null,
             defaultDurationSeconds: tool.defaultDurationSeconds,
+            label: tool.label,
         }));
     }
 
@@ -299,15 +317,31 @@ export class AiController {
     async listJobs(
         @CurrentUser() current: CurrentUserPayload,
         @Query('toolId') toolId?: string,
+        @Query('category') category?: string,
     ) {
         if (toolId) {
             this.assertToolId(toolId);
         }
 
+        const categoryToolIds =
+            category === 'image' ||
+            category === 'video' ||
+            category === 'audio' ||
+            category === 'text'
+                ? AI_TOOLS_REGISTRY.filter(
+                      (tool) =>
+                          tool.category === category ||
+                          (category === 'image' && tool.id === AiToolId.TOPAZ),
+                  ).map((tool) => tool.id)
+                : undefined;
+
         const jobs = await this.prismaService.aiGenerationJob.findMany({
             where: {
                 userId: current.id,
                 ...(toolId ? { toolId } : {}),
+                ...(categoryToolIds && !toolId
+                    ? { toolId: { in: categoryToolIds } }
+                    : {}),
             },
             orderBy: { createdAt: 'desc' },
             take: 30,
@@ -331,7 +365,7 @@ export class AiController {
                     id: job.id,
                     toolId: job.toolId,
                     status: job.status,
-                    resultUrl: job.resultUrl,
+                    hasResult: Boolean(job.resultUrl),
                     errorMessage: job.errorMessage,
                     tokenCost: job.tokenCost,
                     prompt: input?.prompt ?? '',
@@ -340,6 +374,123 @@ export class AiController {
                 };
             }),
         };
+    }
+
+    @Delete('jobs')
+    async clearJobs(
+        @CurrentUser() current: CurrentUserPayload,
+        @Query('category') category?: string,
+        @Query('toolId') toolId?: string,
+    ) {
+        if (toolId) {
+            this.assertToolId(toolId);
+        }
+
+        const categoryToolIds =
+            category === 'image' ||
+            category === 'video' ||
+            category === 'audio' ||
+            category === 'text'
+                ? AI_TOOLS_REGISTRY.filter(
+                      (tool) =>
+                          tool.category === category ||
+                          (category === 'image' && tool.id === AiToolId.TOPAZ),
+                  ).map((tool) => tool.id)
+                : undefined;
+
+        const result = await this.prismaService.aiGenerationJob.deleteMany({
+            where: {
+                userId: current.id,
+                ...(toolId ? { toolId } : {}),
+                ...(categoryToolIds && !toolId
+                    ? { toolId: { in: categoryToolIds } }
+                    : {}),
+            },
+        });
+
+        return { deleted: result.count };
+    }
+
+    @Get('saved-prompts')
+    async listSavedPrompts(
+        @CurrentUser() current: CurrentUserPayload,
+        @Query('toolId') toolId?: string,
+    ) {
+        if (toolId) {
+            this.assertToolId(toolId);
+        }
+
+        const items = await this.prismaService.savedPrompt.findMany({
+            where: {
+                userId: current.id,
+                ...(toolId ? { toolId } : {}),
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 100,
+            select: {
+                id: true,
+                toolId: true,
+                prompt: true,
+                createdAt: true,
+            },
+        });
+
+        return { items };
+    }
+
+    @Post('saved-prompts')
+    async createSavedPrompt(
+        @CurrentUser() current: CurrentUserPayload,
+        @Body() body: SavedPromptBodyDto,
+    ) {
+        const trimmed = body.prompt.trim();
+        if (!trimmed) {
+            throw new HttpException(
+                { error: 'Prompt required' },
+                HttpStatus.BAD_REQUEST,
+            );
+        }
+
+        if (body.toolId) {
+            this.assertToolId(body.toolId);
+        }
+
+        const item = await this.prismaService.savedPrompt.create({
+            data: {
+                userId: current.id,
+                toolId: body.toolId ?? null,
+                prompt: trimmed,
+            },
+            select: {
+                id: true,
+                toolId: true,
+                prompt: true,
+                createdAt: true,
+            },
+        });
+
+        return item;
+    }
+
+    @Delete('saved-prompts/:id')
+    async deleteSavedPrompt(
+        @CurrentUser() current: CurrentUserPayload,
+        @Param('id') id: string,
+    ) {
+        const existing = await this.prismaService.savedPrompt.findFirst({
+            where: { id, userId: current.id },
+            select: { id: true },
+        });
+
+        if (!existing) {
+            throw new HttpException(
+                { error: 'Prompt not found' },
+                HttpStatus.NOT_FOUND,
+            );
+        }
+
+        await this.prismaService.savedPrompt.delete({ where: { id } });
+        return { ok: true };
     }
 
     @Get('jobs/:jobId')
@@ -375,7 +526,7 @@ export class AiController {
             id: job.id,
             toolId: job.toolId,
             status: job.status,
-            resultUrl: job.resultUrl,
+            hasResult: Boolean(job.resultUrl),
             errorMessage: job.errorMessage,
             tokenCost: job.tokenCost,
             prompt: input?.prompt ?? '',
@@ -432,8 +583,6 @@ export class AiController {
                     true,
                 );
             } else {
-                // Photo (Telegram-compressed) + document (original quality file).
-                // Large images often fail sendPhoto; still deliver the file.
                 let photoSent = false;
                 try {
                     await botService.sendPhotoBuffer(

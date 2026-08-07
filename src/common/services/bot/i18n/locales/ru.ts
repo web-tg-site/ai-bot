@@ -85,7 +85,7 @@ export const ru: I18nBundle = {
 • Nano Banana
 • Seedream
 • Flux
-• GPT Images
+• Sora
 
 🎬 <b>Создание и обработка видео</b>
 • Kling
@@ -361,12 +361,13 @@ ${getTariffIncludesText(type, plan, ru)}
         labels: {
             [AiToolId.GPT]: 'GPT',
             [AiToolId.CLAUDE_SONNET]: 'Claude Sonnet',
-            [AiToolId.GPT_IMAGES]: 'GPT Images',
+            [AiToolId.GPT_IMAGES]: 'Sora',
             [AiToolId.FLUX]: 'Flux',
             [AiToolId.NANO_BANANA]: 'Nano Banana',
             [AiToolId.SEEDREAM]: 'Seedream',
             [AiToolId.MIDJOURNEY]: 'Midjourney',
             [AiToolId.KLING]: 'Kling',
+            [AiToolId.KLING_MOTION]: 'Kling Motion',
             [AiToolId.VEO]: 'Veo',
             [AiToolId.SORA]: 'Sora',
             [AiToolId.SEEDANCE]: 'Seedance',
@@ -388,13 +389,15 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.FLUX]:
                 'Опишите задачу и при желании добавьте референсы (до 10 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
             [AiToolId.NANO_BANANA]:
-                'Опишите задачу и при желании добавьте референсы (до 4 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
+                'Опишите задачу и при желании добавьте референсы (до 10 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
             [AiToolId.SEEDREAM]:
                 'Опишите задачу и при желании добавьте референсы (до 10 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
             [AiToolId.MIDJOURNEY]:
-                'Отправьте промпт для генерации изображения.',
+                'Опишите задачу и при желании добавьте референсы (до 10 изображений).',
             [AiToolId.KLING]:
                 'Загрузите референсы (можно пропустить), настройте параметры и опишите сцену.',
+            [AiToolId.KLING_MOTION]:
+                'Загрузите фото персонажа и видео с движением, затем опишите сцену (опционально).',
             [AiToolId.VEO]:
                 'Загрузите референсы (можно пропустить), настройте параметры и опишите сцену.',
             [AiToolId.SORA]:

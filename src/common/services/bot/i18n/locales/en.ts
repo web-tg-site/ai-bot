@@ -85,7 +85,7 @@ Inside you'll find the world's best AI models:
 • Nano Banana
 • Seedream
 • Flux
-• GPT Images
+• Sora
 
 🎬 <b>Video creation & processing</b>
 • Kling
@@ -361,12 +361,13 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         labels: {
             [AiToolId.GPT]: 'GPT',
             [AiToolId.CLAUDE_SONNET]: 'Claude Sonnet',
-            [AiToolId.GPT_IMAGES]: 'GPT Images',
+            [AiToolId.GPT_IMAGES]: 'Sora',
             [AiToolId.FLUX]: 'Flux',
             [AiToolId.NANO_BANANA]: 'Nano Banana',
             [AiToolId.SEEDREAM]: 'Seedream',
             [AiToolId.MIDJOURNEY]: 'Midjourney',
             [AiToolId.KLING]: 'Kling',
+            [AiToolId.KLING_MOTION]: 'Kling Motion',
             [AiToolId.VEO]: 'Veo',
             [AiToolId.SORA]: 'Sora',
             [AiToolId.SEEDANCE]: 'Seedance',
@@ -388,12 +389,15 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.FLUX]:
                 "Describe the task and optionally add references (up to 10 images). The more precisely you specify each image's role, the more predictable the result.",
             [AiToolId.NANO_BANANA]:
-                "Describe the task and optionally add references (up to 4 images). The more precisely you specify each image's role, the more predictable the result.",
+                "Describe the task and optionally add references (up to 10 images). The more precisely you specify each image's role, the more predictable the result.",
             [AiToolId.SEEDREAM]:
                 "Describe the task and optionally add references (up to 10 images). The more precisely you specify each image's role, the more predictable the result.",
-            [AiToolId.MIDJOURNEY]: 'Send a prompt to generate an image.',
+            [AiToolId.MIDJOURNEY]:
+                'Describe the task and optionally add references (up to 10 images).',
             [AiToolId.KLING]:
                 'Upload references (optional), adjust settings, then describe the scene.',
+            [AiToolId.KLING_MOTION]:
+                'Upload a character photo and a motion reference video, then optionally describe the scene.',
             [AiToolId.VEO]:
                 'Upload references (optional), adjust settings, then describe the scene.',
             [AiToolId.SORA]:

@@ -50,7 +50,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
     },
     {
         id: AiToolId.GPT_IMAGES,
-        label: 'GPT Images',
+        label: 'Sora',
         category: 'image',
         provider: AiProviderId.OPENROUTER,
         model: 'openai/gpt-5-image-mini',
@@ -103,9 +103,10 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         provider: AiProviderId.SHARPII,
         model: 'mj-imagine',
         baseTokenCost: 30,
-        accepts: ['text'],
+        accepts: ['text', 'photo'],
         isAsync: true,
-        instruction: 'Отправьте промпт для генерации изображения.',
+        instruction:
+            'Опишите задачу и при желании добавьте референсы (до 10 изображений).',
     },
     {
         id: AiToolId.KLING,
@@ -120,6 +121,20 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         isAsync: true,
         instruction:
             'Загрузите референсы (можно пропустить), настройте параметры и опишите сцену.',
+    },
+    {
+        id: AiToolId.KLING_MOTION,
+        label: 'Kling Motion',
+        category: 'video',
+        provider: AiProviderId.OPENROUTER,
+        model: 'kwaivgi/kling-v2.6-motion-control',
+        baseTokenCost: 0,
+        perSecondCost: 63,
+        defaultDurationSeconds: 5,
+        accepts: ['text', 'photo', 'video'],
+        isAsync: true,
+        instruction:
+            'Загрузите фото персонажа и видео с движением, затем опишите сцену (опционально).',
     },
     {
         id: AiToolId.VEO,

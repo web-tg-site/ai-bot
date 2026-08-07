@@ -2,7 +2,7 @@ import { AiToolId } from '@/common/services/ai/types';
 import { getToolById } from '@/common/config/ai-tools.registry';
 import { UI_ASPECT_RATIOS } from '@/common/config/aspect-ratio.config';
 
-export const VIDEO_DURATION_TIERS = [5, 10, 15] as const;
+export const VIDEO_DURATION_TIERS = [5, 10, 15, 30] as const;
 
 export type VideoDurationTier = (typeof VIDEO_DURATION_TIERS)[number];
 
@@ -231,6 +231,7 @@ export const STATIC_VIDEO_QUALITIES: Partial<
 
 export const VIDEO_TOOLS_WITH_REFERENCES: AiToolId[] = [
     AiToolId.KLING,
+    AiToolId.KLING_MOTION,
     AiToolId.VEO,
     AiToolId.SORA,
     AiToolId.SEEDANCE,
@@ -240,6 +241,7 @@ export const VIDEO_TOOLS_WITH_REFERENCES: AiToolId[] = [
 
 export const VIDEO_FLOW_TOOLS: AiToolId[] = [
     AiToolId.KLING,
+    AiToolId.KLING_MOTION,
     AiToolId.VEO,
     AiToolId.SORA,
     AiToolId.SEEDANCE,
@@ -250,6 +252,7 @@ export const VIDEO_FLOW_TOOLS: AiToolId[] = [
 
 export const VIDEO_TOOLS_WITH_ASPECT_SETTINGS: AiToolId[] = [
     AiToolId.KLING,
+    AiToolId.KLING_MOTION,
     AiToolId.VEO,
     AiToolId.SORA,
     AiToolId.SEEDANCE,
@@ -260,6 +263,7 @@ export const VIDEO_TOOLS_WITH_ASPECT_SETTINGS: AiToolId[] = [
 
 export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
     [AiToolId.KLING]: 10,
+    [AiToolId.KLING_MOTION]: 2,
     [AiToolId.VEO]: 10,
     [AiToolId.SORA]: 2,
     [AiToolId.SEEDANCE]: 2,
@@ -268,16 +272,19 @@ export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
 };
 
 export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
+    [AiToolId.KLING]: [5, 10, 15],
+    [AiToolId.KLING_MOTION]: [5, 10, 15, 30],
     [AiToolId.VEO]: [4, 6, 8],
     [AiToolId.SORA]: [10, 15],
-    [AiToolId.SEEDANCE]: [5, 15],
+    [AiToolId.SEEDANCE]: [5, 10, 15],
     [AiToolId.LUMA_RAY]: [5, 10],
-    [AiToolId.HIGGSFIELD]: [5, 15],
+    [AiToolId.HIGGSFIELD]: [5, 10, 15],
     [AiToolId.HEYGEN]: [5, 15],
 };
 
 export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.KLING]: [...UI_ASPECT_RATIOS],
+    [AiToolId.KLING_MOTION]: [...UI_ASPECT_RATIOS],
     [AiToolId.VEO]: [...UI_ASPECT_RATIOS],
     [AiToolId.SORA]: [...UI_ASPECT_RATIOS],
     [AiToolId.SEEDANCE]: [...UI_ASPECT_RATIOS],
@@ -287,6 +294,8 @@ export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
 };
 
 export const STATIC_VIDEO_RESOLUTIONS: Partial<Record<AiToolId, string[]>> = {
+    [AiToolId.KLING]: ['720p', '1080p'],
+    [AiToolId.KLING_MOTION]: ['720p', '1080p'],
     [AiToolId.SORA]: ['720p', '1080p'],
     [AiToolId.SEEDANCE]: ['720p', '1080p'],
     [AiToolId.LUMA_RAY]: ['1080p', '720p'],

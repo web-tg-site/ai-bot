@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { UserModelService } from '@/common/models/user';
 import { GptConversationModelService } from '@/common/models/gpt-conversation';
 import { getToolById } from '@/common/config/ai-tools.registry';
+import { isVideoFlowTool } from '@/common/config/video-editor-capabilities.config';
 import { compressGptHistoryImage } from '@/common/utils/compress-reference-image';
 import { serializeGptUserMessage } from '@/common/utils/gpt-message-content';
 import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
@@ -14,6 +15,7 @@ import {
     TokenBillingService,
 } from '@/common/services/ai';
 import { AiJobService } from '@/common/services/ai/jobs/ai-job.service';
+import { VideoCapabilitiesService } from '@/common/services/ai/video-capabilities.service';
 
 export type GenerationRequest = {
     userId: string;
@@ -58,6 +60,7 @@ export class GenerationFacade {
         private readonly aiJobService: AiJobService,
         private readonly tokenBillingService: TokenBillingService,
         private readonly gptConversationModelService: GptConversationModelService,
+        private readonly videoCapabilitiesService: VideoCapabilitiesService,
     ) {}
 
     async generate(params: GenerationRequest): Promise<GenerationFacadeResult> {
@@ -112,6 +115,10 @@ export class GenerationFacade {
                 ...input,
                 chatHistory: history,
             };
+        }
+
+        if (isVideoFlowTool(effectiveToolId) && input.videoStyleId) {
+            input = this.applyVideoStyle(effectiveToolId, input);
         }
 
         const toolForBilling = getToolById(effectiveToolId) ?? tool;
@@ -239,6 +246,30 @@ export class GenerationFacade {
             tokenLeft: deduct.balance ?? 0,
             conversationId,
             jobId,
+        };
+    }
+
+    private applyVideoStyle(
+        toolId: AiToolId,
+        input: AiGenerationInput,
+    ): AiGenerationInput {
+        const styleOption = this.videoCapabilitiesService.resolveStyleOption(
+            toolId,
+            input.videoStyleId,
+        );
+
+        let prompt = input.prompt;
+        if (styleOption.source === 'builtin' && styleOption.promptSuffix) {
+            const trimmed = prompt?.trim();
+            prompt = trimmed
+                ? `${trimmed}. ${styleOption.promptSuffix}`
+                : styleOption.promptSuffix;
+        }
+
+        return {
+            ...input,
+            prompt,
+            videoStylePassthrough: styleOption.passthrough,
         };
     }
 

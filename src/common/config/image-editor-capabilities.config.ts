@@ -24,7 +24,7 @@ export const NANO_BANANA_RESOLUTIONS = ['1K', '2K', '4K', '512'] as const;
 /** OpenRouter Nano Banana 2 aspect ratios (subset shown in UI picker). */
 export const NANO_BANANA_ASPECT_RATIOS = [...UI_ASPECT_RATIOS] as const;
 
-export const NANO_BANANA_MAX_REFERENCES = 4;
+export const NANO_BANANA_MAX_REFERENCES = 10;
 
 export const DEFAULT_IMAGE_QUALITIES = [
     'auto',
@@ -63,6 +63,7 @@ export const IMAGE_TOOLS_WITH_REFERENCES: AiToolId[] = [
     AiToolId.FLUX,
     AiToolId.NANO_BANANA,
     AiToolId.SEEDREAM,
+    AiToolId.MIDJOURNEY,
 ];
 
 export const IMAGE_TOOLS_WITH_ASPECT_SETTINGS: AiToolId[] = [

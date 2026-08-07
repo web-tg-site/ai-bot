@@ -81,6 +81,7 @@ model User {
   payments Payment[]
   gptConversations GptConversation[]
   aiToolSettings UserAiToolSettings[]
+  savedPrompts SavedPrompt[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -200,4 +201,16 @@ model GptMessage {
 
   @@index([conversationId, createdAt])
   @@map("gpt_messages")
+}
+
+model SavedPrompt {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  toolId    String?
+  prompt    String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("saved_prompts")
 }
