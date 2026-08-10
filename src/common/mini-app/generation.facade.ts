@@ -80,7 +80,10 @@ export class GenerationFacade {
             user.subscribeType === SubscribeType.NOT_SUBSCRIBED
         ) {
             throw new HttpException(
-                { error: 'NO_SUBSCRIPTION' },
+                {
+                    error: 'NO_SUBSCRIPTION',
+                    message: 'Нужна активная подписка',
+                },
                 HttpStatus.FORBIDDEN,
             );
         }
