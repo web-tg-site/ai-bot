@@ -233,15 +233,26 @@ export class HiggsfieldProvider {
         this.ensurePlatformCredentials();
 
         const imageUrl = await this.uploadPlatformImage(imageFile);
+        const endImageFile = input.files?.find(
+            (file, index) =>
+                index > 0 &&
+                file !== imageFile &&
+                file.mimeType.startsWith('image/'),
+        );
+        const endImageUrl = endImageFile
+            ? await this.uploadPlatformImage(endImageFile)
+            : undefined;
+
         const response = await this.platformPost<{
             request_id?: string;
             id?: string;
             status?: string;
-        }>('/v1/image2video/dop', {
-            model: 'dop-turbo',
+        }>('/higgsfield-ai/dop/turbo', {
             prompt: input.prompt ?? '',
-            input_images: [{ type: 'image_url', image_url: imageUrl }],
+            image_url: imageUrl,
+            ...(endImageUrl ? { end_image_url: endImageUrl } : {}),
             motions: [{ id: motionId, strength }],
+            enhance_prompt: true,
         });
 
         const requestId = response.request_id ?? response.id;
@@ -295,16 +306,29 @@ export class HiggsfieldProvider {
         const link = await this.platformPost<{
             upload_url: string;
             public_url: string;
+            content_type?: string;
+            upload_headers?: Record<string, string>;
         }>('/files/generate-upload-url', { content_type: contentType });
 
-        await firstValueFrom(
-            this.httpService.put(link.upload_url, file.buffer, {
-                headers: { 'Content-Type': contentType },
-                timeout: 60000,
-                maxBodyLength: Infinity,
-                maxContentLength: Infinity,
-            }),
-        );
+        const uploadContentType = link.content_type || contentType;
+        try {
+            await firstValueFrom(
+                this.httpService.put(link.upload_url, file.buffer, {
+                    headers: {
+                        ...(link.upload_headers ?? {}),
+                        'Content-Type': uploadContentType,
+                    },
+                    timeout: 60000,
+                    maxBodyLength: Infinity,
+                    maxContentLength: Infinity,
+                }),
+            );
+        } catch (error) {
+            this.logger.error(
+                `Higgsfield platform image upload failed: ${this.formatError(error)}`,
+            );
+            throw new Error(this.formatError(error));
+        }
 
         return link.public_url;
     }
