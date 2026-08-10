@@ -5,7 +5,9 @@ import { AiToolId } from '@/common/services/ai/types';
 import { resolveVoiceSendAsFile } from '@/common/utils/resolve-send-as-file';
 import {
     ElevenLabsVoiceOption,
+    getElevenLabsUseCaseLabel,
     getElevenLabsVoiceLabel,
+    getElevenLabsVoiceOption,
 } from '@/common/config/elevenlabs-voices.config';
 import { chunkKeyboardRow } from './keyboard-grid';
 
@@ -68,7 +70,9 @@ function getVoiceLabel(
     voice: ElevenLabsVoiceOption,
     localeTag: 'ru-RU' | 'en-US',
 ): string {
-    return localeTag === 'ru-RU' ? voice.labelRu : voice.labelEn;
+    const name = localeTag === 'ru-RU' ? voice.labelRu : voice.labelEn;
+    const useCase = getElevenLabsUseCaseLabel(voice.useCase, localeTag);
+    return useCase ? `${name} · ${useCase}` : name;
 }
 
 export function resolveVoiceIdFromPickerLabel(
@@ -97,6 +101,10 @@ export function getVoiceLabelById(
     const fromList = voices?.find((voice) => voice.id === voiceId);
     if (fromList) {
         return getVoiceLabel(fromList, localeTag);
+    }
+    const fromCatalog = getElevenLabsVoiceOption(voiceId);
+    if (fromCatalog) {
+        return getVoiceLabel(fromCatalog, localeTag);
     }
     return getElevenLabsVoiceLabel(voiceId, localeTag);
 }

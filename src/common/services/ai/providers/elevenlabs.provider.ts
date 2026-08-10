@@ -16,6 +16,7 @@ import {
     ELEVENLABS_VOICE_CATALOG,
     ElevenLabsVoiceOption,
     mapElevenLabsGender,
+    mapElevenLabsUseCase,
     resolveElevenLabsVoiceLabels,
 } from '@/common/config/elevenlabs-voices.config';
 
@@ -138,7 +139,10 @@ export class ElevenLabsProvider {
                     voice_id: string;
                     name: string;
                     preview_url?: string | null;
-                    labels?: { gender?: string | null } | null;
+                    labels?: {
+                        gender?: string | null;
+                        use_case?: string | null;
+                    } | null;
                 }>;
             }>('/voices');
 
@@ -159,6 +163,9 @@ export class ElevenLabsProvider {
                         gender:
                             mapElevenLabsGender(voice.labels?.gender) ??
                             catalogVoice?.gender,
+                        useCase:
+                            mapElevenLabsUseCase(voice.labels?.use_case) ??
+                            catalogVoice?.useCase,
                         previewUrl: voice.preview_url ?? null,
                     };
                 })

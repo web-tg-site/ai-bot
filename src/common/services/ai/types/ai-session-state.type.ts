@@ -66,6 +66,16 @@ export type BotSession = {
             id: string;
             labelRu: string;
             labelEn: string;
+            gender?: 'Женский' | 'Мужской';
+            useCase?:
+                | 'social_media'
+                | 'narrative_story'
+                | 'conversational'
+                | 'entertainment_tv'
+                | 'characters_animation'
+                | 'informative_educational'
+                | 'advertisement';
+            previewUrl?: string | null;
         }>;
         accessibleHiggsfieldMotions?: Array<{
             id: string;
