@@ -536,6 +536,7 @@ export class HiggsfieldProvider {
         if (error && typeof error === 'object' && 'response' in error) {
             const axiosError = error as {
                 response?: {
+                    status?: number;
                     data?: {
                         message?: string;
                         detail?: string | { msg?: string };
@@ -543,6 +544,7 @@ export class HiggsfieldProvider {
                     };
                 };
             };
+            const status = axiosError.response?.status;
             const data = axiosError.response?.data;
             if (typeof data?.message === 'string') return data.message;
             if (typeof data?.error === 'string') return data.error;
@@ -554,7 +556,12 @@ export class HiggsfieldProvider {
             ) {
                 return data.detail.msg;
             }
-            return 'Сбой на стороне провайдера';
+            if (status === 401 || status === 403) {
+                return `Higgsfield отклонил ключи (HTTP ${status}). Проверьте HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET и баланс на cloud.higgsfield.ai`;
+            }
+            return status
+                ? `Сбой Higgsfield (HTTP ${status})`
+                : 'Сбой на стороне провайдера';
         }
         return error instanceof Error
             ? error.message
