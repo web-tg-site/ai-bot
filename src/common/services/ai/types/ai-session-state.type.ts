@@ -58,13 +58,18 @@ export type BotSession = {
             | 'resolution'
             | 'quality'
             | 'duration'
-            | 'style';
+            | 'style'
+            | 'effect';
         voiceKeyboardMode?: 'main' | 'settings' | 'preview' | 'duration';
         pendingElevenLabsVoiceId?: string;
         accessibleElevenLabsVoices?: Array<{
             id: string;
             labelRu: string;
             labelEn: string;
+        }>;
+        accessibleHiggsfieldMotions?: Array<{
+            id: string;
+            name: string;
         }>;
     };
 };

@@ -11,6 +11,7 @@ import {
     ImageCapabilityDescriptor,
     ImageModelCapabilities,
     NANO_BANANA_RESOLUTIONS,
+    SEEDREAM_RESOLUTIONS,
     STATIC_IMAGE_ASPECT_RATIOS,
     TOPAZ_SCALES,
     getOpenRouterModelForTool,
@@ -64,6 +65,10 @@ export class ImageCapabilitiesService implements OnModuleInit {
 
         if (toolId === AiToolId.NANO_BANANA) {
             return [...NANO_BANANA_RESOLUTIONS];
+        }
+
+        if (toolId === AiToolId.SEEDREAM) {
+            return [...SEEDREAM_RESOLUTIONS];
         }
 
         const model = getOpenRouterModelForTool(toolId);

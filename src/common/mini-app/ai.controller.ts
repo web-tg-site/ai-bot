@@ -48,6 +48,7 @@ import {
     ELEVENLABS_DUBBING_RESULT_PREFIX,
     isElevenLabsDubbingResultUrl,
 } from '@/common/services/ai/providers/elevenlabs.provider';
+import { HiggsfieldProvider } from '@/common/services/ai/providers/higgsfield.provider';
 import { ElevenLabsVoicePreviewService } from '@/common/services/elevenlabs-voice-preview';
 import { GenerationFacade } from './generation.facade';
 import { ModuleRef } from '@nestjs/core';
@@ -99,6 +100,10 @@ class GenerateBodyDto {
 
     @IsOptional()
     @IsString()
+    higgsfieldMotionId?: string;
+
+    @IsOptional()
+    @IsString()
     elevenLabsVoiceId?: string;
 
     @IsOptional()
@@ -121,6 +126,13 @@ class SavedPromptBodyDto {
     toolId?: string;
 }
 
+class SendPromptBodyDto {
+    @IsString()
+    @MinLength(1)
+    @MaxLength(8000)
+    prompt!: string;
+}
+
 @Controller('api/ai')
 @UseGuards(TelegramJwtGuard)
 export class AiController {
@@ -129,6 +141,7 @@ export class AiController {
         private readonly prismaService: PrismaService,
         private readonly userAiToolSettingsModelService: UserAiToolSettingsModelService,
         private readonly elevenLabsProvider: ElevenLabsProvider,
+        private readonly higgsfieldProvider: HiggsfieldProvider,
         private readonly elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService,
         private readonly moduleRef: ModuleRef,
     ) {}
@@ -156,6 +169,11 @@ export class AiController {
             gender: voice.gender ?? null,
             previewUrl: voice.previewUrl ?? null,
         }));
+    }
+
+    @Get('higgsfield/motions')
+    async listHiggsfieldMotions() {
+        return this.higgsfieldProvider.listMotions();
     }
 
     @Get('voices/:voiceId/preview')
@@ -287,6 +305,7 @@ export class AiController {
                         ? Number(body.topazScale)
                         : undefined,
                     videoStyleId: body.videoStyleId,
+                    higgsfieldMotionId: body.higgsfieldMotionId,
                     elevenLabsVoiceId: body.elevenLabsVoiceId,
                     gptWebSearch:
                         body.gptWebSearch === 'true' ||
@@ -411,6 +430,30 @@ export class AiController {
         return { deleted: result.count };
     }
 
+    @Delete('jobs/:jobId')
+    async deleteJob(
+        @CurrentUser() current: CurrentUserPayload,
+        @Param('jobId') jobId: string,
+    ) {
+        const existing = await this.prismaService.aiGenerationJob.findFirst({
+            where: { id: jobId, userId: current.id },
+            select: { id: true },
+        });
+
+        if (!existing) {
+            throw new HttpException(
+                { error: 'Job not found' },
+                HttpStatus.NOT_FOUND,
+            );
+        }
+
+        await this.prismaService.aiGenerationJob.delete({
+            where: { id: jobId },
+        });
+
+        return { ok: true };
+    }
+
     @Get('saved-prompts')
     async listSavedPrompts(
         @CurrentUser() current: CurrentUserPayload,
@@ -470,6 +513,35 @@ export class AiController {
         });
 
         return item;
+    }
+
+    @Post('send-prompt')
+    async sendPromptToTelegram(
+        @CurrentUser() current: CurrentUserPayload,
+        @Body() body: SendPromptBodyDto,
+    ) {
+        const trimmed = body.prompt.trim();
+        if (!trimmed) {
+            throw new HttpException(
+                { error: 'Prompt required' },
+                HttpStatus.BAD_REQUEST,
+            );
+        }
+
+        try {
+            const botService = this.moduleRef.get(BotService, {
+                strict: false,
+            });
+            await botService.sendMessage(
+                current.telegramId,
+                `📝 Промпт из мини-приложения:\n\n${trimmed}`,
+            );
+            return { ok: true };
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : 'Send failed';
+            throw new HttpException({ error: message }, HttpStatus.BAD_GATEWAY);
+        }
     }
 
     @Delete('saved-prompts/:id')

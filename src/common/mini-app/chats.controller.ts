@@ -72,6 +72,21 @@ export class ChatsController {
         );
     }
 
+    @Delete()
+    async clearAll(
+        @CurrentUser() current: CurrentUserPayload,
+        @Query('toolId') toolId: string,
+    ) {
+        this.assertChatTool(toolId);
+        const result = await this.prismaService.gptConversation.deleteMany({
+            where: {
+                userId: current.id,
+                toolId: toolId as AiToolId,
+            },
+        });
+        return { deleted: result.count };
+    }
+
     @Post()
     async create(
         @CurrentUser() current: CurrentUserPayload,

@@ -173,10 +173,10 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         baseTokenCost: 0,
         perSecondCost: 34,
         defaultDurationSeconds: 5,
-        accepts: ['text', 'photo'],
+        accepts: ['text', 'photo', 'video'],
         isAsync: true,
         instruction:
-            'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
+            'Загрузите до 2 референсов: видео и/или фото (одно видео + фото), настройте параметры и опишите сцену.',
     },
     {
         id: AiToolId.LUMA_RAY,

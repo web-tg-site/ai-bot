@@ -769,7 +769,10 @@ export class OpenRouterProvider {
         }
 
         if (input.resolution) {
-            body.resolution = input.resolution;
+            body.resolution = this.normalizeImageResolutionForModel(
+                model,
+                input.resolution,
+            );
         }
 
         if (input.quality) {
@@ -839,6 +842,20 @@ export class OpenRouterProvider {
             model.startsWith('openai/gpt-') ||
             (model.includes('gemini') && model.includes('image'))
         );
+    }
+
+    private normalizeImageResolutionForModel(
+        model: string,
+        resolution: string,
+    ): string {
+        if (!model.startsWith('bytedance-seed/seedream')) {
+            return resolution;
+        }
+        // Seedream 4.5 needs >= ~3.7M pixels; OpenRouter maps 1K → 1024².
+        if (resolution === '1K' || resolution === '512') {
+            return '2K';
+        }
+        return resolution;
     }
 
     private buildUserContent(

@@ -233,12 +233,15 @@ export type I18nBundle = {
         changeQualityButton: string;
         changeDurationButton: string;
         changeStyleButton: string;
+        changeEffectButton: string;
         resolutionToolbarButton: (resolution: string) => string;
         selectAspectRatioTitle: string;
         selectResolutionTitle: string;
         selectQualityTitle: string;
         selectDurationTitle: string;
         selectStyleTitle: string;
+        selectEffectTitle: string;
+        noEffectLabel: string;
         aspectRatioPickerOption: (ratio: string) => string;
         aspectRatioPickerSelected: (ratio: string) => string;
         resolutionPickerOption: (resolution: string, tokens: number) => string;
@@ -259,6 +262,9 @@ export type I18nBundle = {
         stylePickerOption: (styleLabel: string) => string;
         stylePickerSelected: (styleLabel: string) => string;
         styleChanged: (styleLabel: string) => string;
+        effectPickerOption: (effectLabel: string) => string;
+        effectPickerSelected: (effectLabel: string) => string;
+        effectChanged: (effectLabel: string) => string;
         continueToPrompt: string;
         skipRefs: string;
         settingsButton: string;
@@ -277,6 +283,7 @@ export type I18nBundle = {
             qualityLabel?: string;
             durationSeconds?: number;
             styleLabel?: string;
+            effectLabel?: string;
             credits?: number;
         }) => string;
         durationLabel: (seconds: number) => string;

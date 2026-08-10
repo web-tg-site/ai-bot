@@ -23,9 +23,15 @@ export type VideoKeyboardMode =
     | 'resolution'
     | 'quality'
     | 'duration'
-    | 'style';
+    | 'style'
+    | 'effect';
 
 type VideoStyleOption = {
+    id: string;
+    label: string;
+};
+
+type VideoEffectOption = {
     id: string;
     label: string;
 };
@@ -62,6 +68,7 @@ export function generateVideoEditorReplyKeyboard(
         qualities: VideoQualityOption[];
         durations: number[];
         stylePresets: VideoStyleOption[];
+        effectPresets?: VideoEffectOption[];
         step: AiSessionStep;
         keyboardMode: VideoKeyboardMode;
         localeTag: 'ru-RU' | 'en-US';
@@ -115,6 +122,14 @@ export function generateVideoEditorReplyKeyboard(
         );
     }
 
+    if (options.keyboardMode === 'effect') {
+        return generateEffectPickerKeyboard(
+            i18n,
+            options.effectPresets ?? [],
+            options.settings.higgsfieldMotionId ?? 'none',
+        );
+    }
+
     const rows: string[][] = [];
 
     if (
@@ -153,6 +168,7 @@ function generateSettingsMenuKeyboard(
         qualities: VideoQualityOption[];
         durations: number[];
         stylePresets: VideoStyleOption[];
+        effectPresets?: VideoEffectOption[];
     },
 ) {
     const settingButtons: string[] = [];
@@ -178,6 +194,13 @@ function generateSettingsMenuKeyboard(
 
     if (options.stylePresets.length) {
         settingButtons.push(i18n.videoTool.changeStyleButton);
+    }
+
+    if (
+        options.toolId === AiToolId.HIGGSFIELD &&
+        (options.effectPresets?.length ?? 0) > 0
+    ) {
+        settingButtons.push(i18n.videoTool.changeEffectButton);
     }
 
     const rows = chunkKeyboardRow(settingButtons).map((chunk) => [...chunk]);
@@ -302,6 +325,23 @@ function generateStylePickerKeyboard(
             preset.id === currentStyleId
                 ? i18n.videoTool.stylePickerSelected(preset.label)
                 : i18n.videoTool.stylePickerOption(preset.label),
+        ),
+    );
+
+    rows.push([i18n.videoTool.backToSettings]);
+    return Markup.keyboard(rows).resize();
+}
+
+function generateEffectPickerKeyboard(
+    i18n: I18nBundle,
+    effectPresets: VideoEffectOption[],
+    currentEffectId: string,
+) {
+    const rows = chunkKeyboardRow(effectPresets).map((chunk) =>
+        chunk.map((preset) =>
+            preset.id === currentEffectId
+                ? i18n.videoTool.effectPickerSelected(preset.label)
+                : i18n.videoTool.effectPickerOption(preset.label),
         ),
     );
 

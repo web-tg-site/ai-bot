@@ -403,7 +403,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.SORA]:
                 'Upload up to 2 frames for a transition, adjust settings, then describe the scene.',
             [AiToolId.SEEDANCE]:
-                'Upload up to 2 frames for a transition, adjust settings, then describe the scene.',
+                'Upload up to 2 references: video and/or photo (one video + photo), adjust settings, then describe the scene.',
             [AiToolId.LUMA_RAY]:
                 'Upload up to 2 frames for a transition, adjust settings, then describe the scene.',
             [AiToolId.HIGGSFIELD]:
@@ -546,7 +546,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         refLimitReached: (max) =>
             `⚠️ Reference limit (${max}). Tap "Continue to prompt".`,
         needPhotoOnRefStep:
-            'Send reference photos or tap "Skip" / "Continue to prompt".',
+            'Send photo references (for Seedance — also a short MP4/MOV video) or tap "Skip" / "Continue to prompt".',
         needPrompt: 'Send a prompt to generate video.',
         aspectRatioButton: (ratio) => `📐 Aspect: ${ratio}`,
         resolutionButton: (resolution) => `🖼 Resolution: ${resolution}`,
@@ -557,12 +557,15 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         changeQualityButton: '✨ Change quality',
         changeDurationButton: '⏱ Change duration',
         changeStyleButton: '🎨 Change style',
+        changeEffectButton: '✨ Change effect',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Choose aspect ratio:',
         selectResolutionTitle: 'Choose resolution:',
         selectQualityTitle: 'Choose quality:',
         selectDurationTitle: 'Choose duration:',
         selectStyleTitle: 'Choose style:',
+        selectEffectTitle: 'Choose effect:',
+        noEffectLabel: 'No effect',
         aspectRatioPickerOption: (ratio) => formatAspectRatioLabelEn(ratio),
         aspectRatioPickerSelected: (ratio) =>
             `✓ ${formatAspectRatioLabelEn(ratio)}`,
@@ -590,6 +593,9 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         stylePickerOption: (styleLabel) => styleLabel,
         stylePickerSelected: (styleLabel) => `✓ ${styleLabel}`,
         styleChanged: (styleLabel) => `Style: ${styleLabel}`,
+        effectPickerOption: (effectLabel) => effectLabel,
+        effectPickerSelected: (effectLabel) => `✓ ${effectLabel}`,
+        effectChanged: (effectLabel) => `Effect: ${effectLabel}`,
         continueToPrompt: '➡️ Continue to prompt',
         skipRefs: '⏭ Skip',
         settingsButton: '⚙️ Parameters',
@@ -616,6 +622,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             qualityLabel,
             durationSeconds,
             styleLabel,
+            effectLabel,
             credits,
         }) => {
             const parts: string[] = [];
@@ -639,6 +646,9 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             }
             if (styleLabel) {
                 parts.push(`<b>${styleLabel}</b>`);
+            }
+            if (effectLabel) {
+                parts.push(`✨ <b>${effectLabel}</b>`);
             }
             if (credits) {
                 parts.push(`~<b>${credits}</b> tokens`);

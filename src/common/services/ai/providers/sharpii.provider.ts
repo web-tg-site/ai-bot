@@ -34,6 +34,8 @@ export function isSharpiiMidjourneyGenericFailure(message: string): boolean {
 
 /** Max total base64 payload for Sharpii video frame uploads (~8 MB raw images). */
 const SHARPII_MAX_FRAME_PAYLOAD_BYTES = 8 * 1024 * 1024;
+/** Data-URI overhead for Seedance ref2vid (provider allows ~50MB video). */
+const SHARPII_MAX_VIDEO_REF_PAYLOAD_BYTES = 70 * 1024 * 1024;
 
 type SharpiiTaskSubmitResponse = {
     data?: {
@@ -497,9 +499,13 @@ export class SharpiiProvider {
         const images =
             input.files?.filter((file) => file.mimeType.startsWith('image/')) ??
             [];
+        const videos =
+            input.files?.filter((file) => file.mimeType.startsWith('video/')) ??
+            [];
+        const hasMedia = images.length > 0 || videos.length > 0;
         const prompt = this.resolveGenerationPrompt(
             input.prompt,
-            images.length > 0,
+            hasMedia,
             isVideo ? 'video' : 'image',
         );
 
@@ -523,16 +529,35 @@ export class SharpiiProvider {
             );
             body.aspect_ratio = input.aspectRatio ?? '16:9';
 
-            if (images[0]) {
-                body.first_frame_url = this.toDataUrl(images[0]);
-            }
-
-            if (images.length >= 2) {
-                body.last_frame_url = this.toDataUrl(images[images.length - 1]);
-            }
-
-            if (toolId === AiToolId.SEEDANCE) {
+            if (toolId === AiToolId.SEEDANCE && videos.length > 0) {
+                if (videos.length > 1) {
+                    throw new Error(
+                        'Seedance принимает одно видео-референс. Оставьте одно видео и при необходимости фото.',
+                    );
+                }
+                body.video_url = this.toDataUrl(videos[0]);
+                if (images.length) {
+                    body.reference_images = images
+                        .slice(0, 9)
+                        .map((file) => this.toDataUrl(file));
+                }
                 body.audio_sync = false;
+            } else {
+                if (images[0]) {
+                    body.first_frame_url = this.toDataUrl(images[0]);
+                }
+
+                if (images.length >= 2) {
+                    const endFrame = this.toDataUrl(images[images.length - 1]);
+                    body.last_frame_url = endFrame;
+                    if (toolId === AiToolId.SEEDANCE) {
+                        body.end_frame_url = endFrame;
+                    }
+                }
+
+                if (toolId === AiToolId.SEEDANCE) {
+                    body.audio_sync = false;
+                }
             }
 
             if (input.videoStylePassthrough) {
@@ -592,14 +617,34 @@ export class SharpiiProvider {
             (value): value is string => typeof value === 'string',
         );
 
-        const totalBytes = frameUrls.reduce(
+        const frameBytes = frameUrls.reduce(
             (sum, url) => sum + Buffer.byteLength(url, 'utf8'),
             0,
         );
 
-        if (totalBytes > SHARPII_MAX_FRAME_PAYLOAD_BYTES) {
+        if (frameBytes > SHARPII_MAX_FRAME_PAYLOAD_BYTES) {
             throw new Error(
                 'Референсные кадры слишком большие. Отправьте изображения меньшего размера или сожмите их.',
+            );
+        }
+
+        const videoUrl =
+            typeof body.video_url === 'string' ? body.video_url : undefined;
+        const referenceImages = Array.isArray(body.reference_images)
+            ? body.reference_images.filter(
+                  (value): value is string => typeof value === 'string',
+              )
+            : [];
+        const ref2vidBytes =
+            (videoUrl ? Buffer.byteLength(videoUrl, 'utf8') : 0) +
+            referenceImages.reduce(
+                (sum, url) => sum + Buffer.byteLength(url, 'utf8'),
+                0,
+            );
+
+        if (ref2vidBytes > SHARPII_MAX_VIDEO_REF_PAYLOAD_BYTES) {
+            throw new Error(
+                'Видео-референс слишком большой. Отправьте клип до ~40 МБ (лучше 2–15 сек, MP4/MOV).',
             );
         }
     }
@@ -610,6 +655,13 @@ export class SharpiiProvider {
         input: AiGenerationInput,
     ): string {
         if (toolId === AiToolId.SEEDANCE) {
+            const hasVideoRef = input.files?.some((file) =>
+                file.mimeType.startsWith('video/'),
+            );
+            if (hasVideoRef) {
+                // Sharpii ref2vid is 480p/720p only
+                return 'seedance-2.0-ref2vid-720p';
+            }
             return input.resolution === '1080p'
                 ? 'seedance-2.0-1080p'
                 : 'seedance-2.0-720p';

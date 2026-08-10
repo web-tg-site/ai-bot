@@ -4,6 +4,7 @@ export type VideoToolSettings = {
     quality?: string;
     durationSeconds?: number;
     styleId?: string;
+    higgsfieldMotionId?: string;
     sendAsFile?: boolean;
 };
 
@@ -12,4 +13,5 @@ export const DEFAULT_VIDEO_TOOL_SETTINGS: VideoToolSettings = {
     resolution: '720p',
     durationSeconds: 5,
     styleId: 'none',
+    higgsfieldMotionId: 'none',
 };

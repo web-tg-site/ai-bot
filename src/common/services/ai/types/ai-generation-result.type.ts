@@ -34,6 +34,8 @@ export type AiGenerationInput = {
     topazScale?: number;
     videoStyleId?: string;
     videoStylePassthrough?: Record<string, string | number | boolean>;
+    higgsfieldMotionId?: string;
+    higgsfieldMotionStrength?: number;
 };
 
 export type AiFileInput = {

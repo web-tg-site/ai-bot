@@ -7,6 +7,10 @@ import {
     isVideoToolWithAspectSettings,
 } from '@/common/config/video-editor-capabilities.config';
 import {
+    filterCuratedHiggsfieldMotions,
+    type HiggsfieldMotionOption,
+} from '@/common/config/higgsfield-motions.config';
+import {
     calculateToolTokenCost,
     getToolById,
 } from '@/common/config/ai-tools.registry';
@@ -22,11 +26,13 @@ export type VideoToolButtonAction =
     | { type: 'open_quality_picker' }
     | { type: 'open_duration_picker' }
     | { type: 'open_style_picker' }
+    | { type: 'open_effect_picker' }
     | { type: 'set_aspect'; value: string }
     | { type: 'set_resolution'; value: string }
     | { type: 'set_quality'; value: string }
     | { type: 'set_duration'; value: number }
     | { type: 'set_style'; value: string }
+    | { type: 'set_effect'; value: string }
     | { type: 'toggle_send_as_file' }
     | { type: 'continue_prompt' }
     | { type: 'skip_refs' }
@@ -45,6 +51,7 @@ export function resolveVideoToolButtonAction(
         qualities: Array<{ value: string; label: string }>;
         durations: number[];
         stylePresets: Array<{ id: string; label: string }>;
+        effectPresets?: Array<{ id: string; label: string }>;
         currentSettings: VideoToolSettings;
         localeTag: 'ru-RU' | 'en-US';
     },
@@ -164,6 +171,18 @@ export function resolveVideoToolButtonAction(
         return null;
     }
 
+    if (options.keyboardMode === 'effect') {
+        for (const preset of options.effectPresets ?? []) {
+            if (
+                text === i18n.videoTool.effectPickerOption(preset.label) ||
+                text === i18n.videoTool.effectPickerSelected(preset.label)
+            ) {
+                return { type: 'set_effect', value: preset.id };
+            }
+        }
+        return null;
+    }
+
     if (options.keyboardMode === 'settings') {
         if (
             isVideoToolWithAspectSettings(options.toolId) &&
@@ -199,6 +218,13 @@ export function resolveVideoToolButtonAction(
             text === i18n.videoTool.changeStyleButton
         ) {
             return { type: 'open_style_picker' };
+        }
+
+        if (
+            (options.effectPresets?.length ?? 0) > 0 &&
+            text === i18n.videoTool.changeEffectButton
+        ) {
+            return { type: 'open_effect_picker' };
         }
 
         if (
@@ -246,7 +272,8 @@ export function isVideoToolControlButton(text: string | undefined): boolean {
             text === i18n.videoTool.changeResolutionButton ||
             text === i18n.videoTool.changeQualityButton ||
             text === i18n.videoTool.changeDurationButton ||
-            text === i18n.videoTool.changeStyleButton
+            text === i18n.videoTool.changeStyleButton ||
+            text === i18n.videoTool.changeEffectButton
         ) {
             return true;
         }
@@ -307,6 +334,18 @@ export function getVideoToolCapabilities(
     };
 }
 
+export function buildHiggsfieldEffectPresets(
+    i18n: I18nBundle,
+    motions: HiggsfieldMotionOption[],
+): Array<{ id: string; label: string }> {
+    const curated = filterCuratedHiggsfieldMotions(motions);
+    const list = curated.length > 0 ? curated : motions.slice(0, 30);
+    return [
+        { id: 'none', label: i18n.videoTool.noEffectLabel },
+        ...list.map((motion) => ({ id: motion.id, label: motion.name })),
+    ];
+}
+
 export function buildVideoSummaryLine(
     i18n: I18nBundle,
     options: {
@@ -316,6 +355,7 @@ export function buildVideoSummaryLine(
         toolId: AiToolId;
         localeTag: 'ru-RU' | 'en-US';
         capabilitiesService: VideoCapabilitiesService;
+        effectPresets?: Array<{ id: string; label: string }>;
     },
 ): string | null {
     const tool = getToolById(options.toolId);
@@ -361,6 +401,14 @@ export function buildVideoSummaryLine(
                       ),
                   )
                 : undefined,
+        effectLabel:
+            options.settings.higgsfieldMotionId &&
+            options.settings.higgsfieldMotionId !== 'none'
+                ? (options.effectPresets?.find(
+                      (preset) =>
+                          preset.id === options.settings.higgsfieldMotionId,
+                  )?.label ?? options.settings.higgsfieldMotionId)
+                : undefined,
         credits,
     };
 
@@ -369,7 +417,8 @@ export function buildVideoSummaryLine(
         !parts.resolution &&
         !parts.qualityLabel &&
         !parts.durationSeconds &&
-        !parts.styleLabel
+        !parts.styleLabel &&
+        !parts.effectLabel
     ) {
         return null;
     }

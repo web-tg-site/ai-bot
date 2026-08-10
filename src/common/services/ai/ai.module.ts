@@ -44,6 +44,7 @@ import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/eleve
         VideoCapabilitiesService,
         ElevenLabsProvider,
         ElevenLabsVoicePreviewService,
+        HiggsfieldProvider,
     ],
 })
 export class AiModule {}

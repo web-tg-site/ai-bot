@@ -403,7 +403,7 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.SORA]:
                 'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
             [AiToolId.SEEDANCE]:
-                'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
+                'Загрузите до 2 референсов: видео и/или фото (одно видео + фото), настройте параметры и опишите сцену.',
             [AiToolId.LUMA_RAY]:
                 'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
             [AiToolId.HIGGSFIELD]:
@@ -546,7 +546,7 @@ ${getTariffIncludesText(type, plan, ru)}
         refLimitReached: (max) =>
             `⚠️ Лимит референсов (${max}). Нажмите «К промпту».`,
         needPhotoOnRefStep:
-            'Отправьте фото-референсы или нажмите «Пропустить» / «К промпту».',
+            'Отправьте фото-референсы (для Seedance — также короткое видео MP4/MOV) или нажмите «Пропустить» / «К промпту».',
         needPrompt: 'Отправьте промпт для генерации видео.',
         aspectRatioButton: (ratio) => `📐 Формат: ${ratio}`,
         resolutionButton: (resolution) => `🖼 Разрешение: ${resolution}`,
@@ -557,12 +557,15 @@ ${getTariffIncludesText(type, plan, ru)}
         changeQualityButton: '✨ Изменить качество',
         changeDurationButton: '⏱ Изменить длительность',
         changeStyleButton: '🎨 Изменить стиль',
+        changeEffectButton: '✨ Изменить эффект',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Выберите формат:',
         selectResolutionTitle: 'Выберите разрешение:',
         selectQualityTitle: 'Выберите качество:',
         selectDurationTitle: 'Выберите длительность:',
         selectStyleTitle: 'Выберите стиль:',
+        selectEffectTitle: 'Выберите эффект:',
+        noEffectLabel: 'Без эффекта',
         aspectRatioPickerOption: (ratio) => formatAspectRatioLabelRu(ratio),
         aspectRatioPickerSelected: (ratio) =>
             `✓ ${formatAspectRatioLabelRu(ratio)}`,
@@ -590,6 +593,9 @@ ${getTariffIncludesText(type, plan, ru)}
         stylePickerOption: (styleLabel) => styleLabel,
         stylePickerSelected: (styleLabel) => `✓ ${styleLabel}`,
         styleChanged: (styleLabel) => `Стиль: ${styleLabel}`,
+        effectPickerOption: (effectLabel) => effectLabel,
+        effectPickerSelected: (effectLabel) => `✓ ${effectLabel}`,
+        effectChanged: (effectLabel) => `Эффект: ${effectLabel}`,
         continueToPrompt: '➡️ К промпту',
         skipRefs: '⏭ Пропустить',
         settingsButton: '⚙️ Параметры',
@@ -617,6 +623,7 @@ ${getTariffIncludesText(type, plan, ru)}
             qualityLabel,
             durationSeconds,
             styleLabel,
+            effectLabel,
             credits,
         }) => {
             const parts: string[] = [];
@@ -640,6 +647,9 @@ ${getTariffIncludesText(type, plan, ru)}
             }
             if (styleLabel) {
                 parts.push(`<b>${styleLabel}</b>`);
+            }
+            if (effectLabel) {
+                parts.push(`✨ <b>${effectLabel}</b>`);
             }
             if (credits) {
                 parts.push(`~<b>${credits}</b> токенов`);

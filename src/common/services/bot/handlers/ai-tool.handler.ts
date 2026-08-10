@@ -84,6 +84,7 @@ import {
     resolveImageToolButtonAction,
 } from '../utils/image-tool-buttons';
 import {
+    buildHiggsfieldEffectPresets,
     buildVideoSummaryLine,
     getVideoToolCapabilities,
     isVideoToolControlButton,
@@ -343,6 +344,11 @@ async function selectTool(
             deps.videoCapabilitiesService,
         );
 
+        const accessibleHiggsfieldMotions =
+            toolId === AiToolId.HIGGSFIELD
+                ? await deps.aiService.listHiggsfieldMotions()
+                : undefined;
+
         session.ai = {
             activeToolId: toolId,
             step: getInitialVideoToolStep(toolId),
@@ -352,6 +358,7 @@ async function selectTool(
             referenceFiles: [],
             toolSettings,
             videoKeyboardMode: 'main',
+            accessibleHiggsfieldMotions,
             activeCategory: session.ai?.activeCategory,
         };
     } else if (toolId === AiToolId.ELEVENLABS_VOICE) {
@@ -467,6 +474,13 @@ async function selectTool(
                     qualities: caps.qualities,
                     durations: caps.durations,
                     stylePresets: caps.stylePresets,
+                    effectPresets:
+                        toolId === AiToolId.HIGGSFIELD
+                            ? buildHiggsfieldEffectPresets(
+                                  i18n,
+                                  session.ai.accessibleHiggsfieldMotions ?? [],
+                              )
+                            : [],
                     step: session.ai.step,
                     keyboardMode: 'main',
                     localeTag: i18n.localeTag,
@@ -1110,11 +1124,9 @@ async function processVideoReferencesStep(
     files: AiFileInput[],
     i18n: ReturnType<typeof getI18nForUser>,
 ) {
-    const imageFiles = files.filter((file) =>
-        file.mimeType.startsWith('image/'),
-    );
+    const mediaFiles = filterVideoReferenceFiles(toolId, files);
 
-    if (!imageFiles.length) {
+    if (!mediaFiles.length) {
         await ctx.reply(i18n.videoTool.needPhotoOnRefStep, {
             parse_mode: 'HTML',
         });
@@ -1134,7 +1146,7 @@ async function processVideoReferencesStep(
                 ctx,
                 session,
                 toolId,
-                imageFiles,
+                mediaFiles,
                 i18n,
                 deps,
             );
@@ -1144,7 +1156,7 @@ async function processVideoReferencesStep(
         collectMediaGroupMessage({
             mediaGroupId,
             messageId,
-            files: imageFiles,
+            files: mediaFiles,
             finalize: async (batch) => {
                 await withPersistedSession(
                     deps.redisService.getClient(),
@@ -1170,7 +1182,7 @@ async function processVideoReferencesStep(
         return;
     }
 
-    await appendVideoReferences(ctx, session, toolId, imageFiles, i18n, deps);
+    await appendVideoReferences(ctx, session, toolId, mediaFiles, i18n, deps);
 }
 
 async function processVideoPromptStep(
@@ -1236,20 +1248,48 @@ async function appendVideoReferences(
         session.ai.referenceFiles = [];
     }
 
-    const imageFiles = files.filter((file) =>
-        file.mimeType.startsWith('image/'),
-    );
-    if (!imageFiles.length) {
+    let mediaFiles = filterVideoReferenceFiles(toolId, files);
+    if (!mediaFiles.length) {
         await ctx.reply(i18n.videoTool.needPhotoOnRefStep, {
             parse_mode: 'HTML',
         });
         return;
     }
 
+    if (toolId === AiToolId.SEEDANCE) {
+        const existingVideos = session.ai.referenceFiles.filter((ref) =>
+            ref.mimeType.startsWith('video/'),
+        ).length;
+        if (existingVideos >= 1) {
+            const withoutVideos = mediaFiles.filter(
+                (file) => !file.mimeType.startsWith('video/'),
+            );
+            if (!withoutVideos.length) {
+                await ctx.reply(
+                    'Seedance принимает одно видео-референс. Можно добавить ещё фото.',
+                    { parse_mode: 'HTML' },
+                );
+                return;
+            }
+            mediaFiles = withoutVideos;
+        } else {
+            const videos = mediaFiles.filter((file) =>
+                file.mimeType.startsWith('video/'),
+            );
+            if (videos.length > 1) {
+                await ctx.reply(
+                    'Seedance принимает одно видео-референс. Отправьте одно видео, затем фото.',
+                    { parse_mode: 'HTML' },
+                );
+                return;
+            }
+        }
+    }
+
     const maxRefs = getVideoMaxReferences(toolId);
     const addedRefs: StoredReference[] = [];
     let limitReached = false;
-    for (const file of imageFiles) {
+    for (const file of mediaFiles) {
         if (session.ai.referenceFiles.length >= maxRefs) {
             limitReached = true;
             break;
@@ -1293,6 +1333,18 @@ async function appendVideoReferences(
     );
 }
 
+function filterVideoReferenceFiles(
+    toolId: AiToolId,
+    files: AiFileInput[],
+): AiFileInput[] {
+    const allowVideo = toolId === AiToolId.SEEDANCE;
+    return files.filter(
+        (file) =>
+            file.mimeType.startsWith('image/') ||
+            (allowVideo && file.mimeType.startsWith('video/')),
+    );
+}
+
 async function handleVideoToolButtonPress(
     ctx: BotContext,
     deps: AiHandlerDeps,
@@ -1316,6 +1368,23 @@ async function handleVideoToolButtonPress(
     const keyboardMode = getVideoKeyboardMode(session);
     const currentSettings = (session.ai.toolSettings ??
         {}) as VideoToolSettings;
+
+    if (
+        toolId === AiToolId.HIGGSFIELD &&
+        !session.ai.accessibleHiggsfieldMotions?.length
+    ) {
+        session.ai.accessibleHiggsfieldMotions =
+            await deps.aiService.listHiggsfieldMotions();
+    }
+
+    const effectPresets =
+        toolId === AiToolId.HIGGSFIELD
+            ? buildHiggsfieldEffectPresets(
+                  i18n,
+                  session.ai.accessibleHiggsfieldMotions ?? [],
+              )
+            : [];
+
     const action = resolveVideoToolButtonAction(text, i18n, {
         toolId,
         step: session.ai.step,
@@ -1325,6 +1394,7 @@ async function handleVideoToolButtonPress(
         qualities: caps.qualities,
         durations: caps.durations,
         stylePresets: caps.stylePresets,
+        effectPresets,
         currentSettings,
         localeTag: i18n.localeTag,
     });
@@ -1345,6 +1415,7 @@ async function handleVideoToolButtonPress(
             qualities: caps.qualities,
             durations: caps.durations,
             stylePresets: caps.stylePresets,
+            effectPresets,
             step: session.ai!.step,
             keyboardMode: mode,
             localeTag: i18n.localeTag,
@@ -1361,6 +1432,7 @@ async function handleVideoToolButtonPress(
             toolId,
             localeTag: i18n.localeTag,
             capabilitiesService: deps.videoCapabilitiesService,
+            effectPresets,
         });
         if (summary) {
             parts.push(summary);
@@ -1422,6 +1494,15 @@ async function handleVideoToolButtonPress(
         return true;
     }
 
+    if (action.type === 'open_effect_picker') {
+        session.ai.videoKeyboardMode = 'effect';
+        await ctx.reply(i18n.videoTool.selectEffectTitle, {
+            ...replyKeyboard('effect'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
     if (action.type === 'back_to_settings') {
         session.ai.videoKeyboardMode = 'settings';
         const settings = (session.ai.toolSettings ?? {}) as VideoToolSettings;
@@ -1433,6 +1514,7 @@ async function handleVideoToolButtonPress(
             toolId,
             localeTag: i18n.localeTag,
             capabilitiesService: deps.videoCapabilitiesService,
+            effectPresets,
         });
         if (summary) {
             parts.push(summary);
@@ -1634,9 +1716,43 @@ async function handleVideoToolButtonPress(
             toolId,
             localeTag: i18n.localeTag,
             capabilitiesService: deps.videoCapabilitiesService,
+            effectPresets,
         });
         await ctx.reply(
             [i18n.videoTool.styleChanged(styleLabel), summary]
+                .filter(Boolean)
+                .join('\n\n'),
+            {
+                ...replyKeyboard('settings', nextSettings),
+                parse_mode: 'HTML',
+            },
+        );
+        return true;
+    }
+
+    if (action.type === 'set_effect') {
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVideoSettings(
+                user.id,
+                toolId,
+                { higgsfieldMotionId: action.value },
+            );
+        session.ai.toolSettings = nextSettings;
+        session.ai.videoKeyboardMode = 'settings';
+        const effectLabel =
+            effectPresets.find((preset) => preset.id === action.value)
+                ?.label ?? action.value;
+        const summary = buildVideoSummaryLine(i18n, {
+            settings: nextSettings,
+            aspectRatios: caps.aspectRatios,
+            resolutions: caps.resolutions,
+            toolId,
+            localeTag: i18n.localeTag,
+            capabilitiesService: deps.videoCapabilitiesService,
+            effectPresets,
+        });
+        await ctx.reply(
+            [i18n.videoTool.effectChanged(effectLabel), summary]
                 .filter(Boolean)
                 .join('\n\n'),
             {
@@ -2427,6 +2543,10 @@ async function buildAiGenerationInput(
         topazScale: imageSettings?.topazScale,
         videoStyleId: videoSettings?.styleId,
         videoStylePassthrough: styleOption?.passthrough,
+        higgsfieldMotionId:
+            toolId === AiToolId.HIGGSFIELD
+                ? videoSettings?.higgsfieldMotionId
+                : undefined,
     };
 }
 

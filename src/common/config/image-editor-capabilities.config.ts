@@ -21,6 +21,9 @@ export const DEFAULT_RESOLUTIONS = ['1K', '2K', '4K'];
 /** OpenRouter Nano Banana 2 (gemini-3.1-flash-image) output tiers. */
 export const NANO_BANANA_RESOLUTIONS = ['1K', '2K', '4K', '512'] as const;
 
+/** Seedream 4.5 rejects 1K (below ~3.7M pixels); keep 2K/4K only. */
+export const SEEDREAM_RESOLUTIONS = ['2K', '4K'] as const;
+
 /** OpenRouter Nano Banana 2 aspect ratios (subset shown in UI picker). */
 export const NANO_BANANA_ASPECT_RATIOS = [...UI_ASPECT_RATIOS] as const;
 

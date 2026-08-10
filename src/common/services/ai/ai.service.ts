@@ -33,6 +33,10 @@ export class AiService {
         return this.elevenLabsProvider.listAccessibleVoices();
     }
 
+    async listHiggsfieldMotions() {
+        return this.higgsfieldProvider.listMotions();
+    }
+
     async generate(
         toolId: AiToolId,
         input: AiGenerationInput,
