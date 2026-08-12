@@ -334,7 +334,9 @@ export class HeyGenProvider {
         }
 
         const items = await this.fetchAllPublicVoices();
-        this.voicesCache = { fetchedAt: Date.now(), items };
+        if (items.length) {
+            this.voicesCache = { fetchedAt: Date.now(), items };
+        }
         return items;
     }
 
@@ -347,63 +349,73 @@ export class HeyGenProvider {
         }
 
         const items = await this.fetchAllPublicLooks();
-        this.looksCache = { fetchedAt: Date.now(), items };
+        if (items.length) {
+            this.looksCache = { fetchedAt: Date.now(), items };
+        }
         return items;
     }
 
     private async fetchAllPublicVoices(): Promise<HeyGenVoiceOption[]> {
-        const items: HeyGenVoiceOption[] = [];
-        let token: string | undefined;
-
-        for (let page = 0; page < 5; page += 1) {
-            const params = new URLSearchParams({
-                type: 'public',
-                limit: '100',
-            });
-            if (token) params.set('token', token);
-
-            const response = await this.get<HeyGenListResponse<HeyGenVoiceRaw>>(
-                `/v3/voices?${params.toString()}`,
-            );
-            const { items: pageItems, nextToken, hasMore } =
-                this.unwrapListPage(response, 'voices');
-
-            for (const raw of pageItems) {
-                const mapped = this.mapVoice(raw);
-                if (mapped) items.push(mapped);
-            }
-
-            if (!nextToken || hasMore === false) break;
-            token = nextToken;
-        }
-
-        return items;
+        return this.fetchPagedList<HeyGenVoiceRaw, HeyGenVoiceOption>({
+            path: '/v3/voices',
+            baseParams: { type: 'public' },
+            nestedKey: 'voices',
+            mapItem: (raw) => this.mapVoice(raw),
+            maxPages: 2,
+        });
     }
 
     private async fetchAllPublicLooks(): Promise<HeyGenAvatarLookOption[]> {
-        const items: HeyGenAvatarLookOption[] = [];
+        return this.fetchPagedList<HeyGenAvatarLookRaw, HeyGenAvatarLookOption>({
+            path: '/v3/avatars/looks',
+            baseParams: { ownership: 'public' },
+            nestedKey: 'looks',
+            mapItem: (raw) => this.mapLook(raw),
+            maxPages: 1,
+        });
+    }
+
+    private async fetchPagedList<TRaw, TMapped>(options: {
+        path: string;
+        baseParams: Record<string, string>;
+        nestedKey: 'voices' | 'looks';
+        mapItem: (raw: TRaw) => TMapped | null;
+        maxPages: number;
+    }): Promise<TMapped[]> {
+        const items: TMapped[] = [];
         let token: string | undefined;
 
-        for (let page = 0; page < 5; page += 1) {
+        for (let page = 0; page < options.maxPages; page += 1) {
             const params = new URLSearchParams({
-                ownership: 'public',
+                ...options.baseParams,
                 limit: '100',
             });
             if (token) params.set('token', token);
 
-            const response = await this.get<
-                HeyGenListResponse<HeyGenAvatarLookRaw>
-            >(`/v3/avatars/looks?${params.toString()}`);
-            const { items: pageItems, nextToken, hasMore } =
-                this.unwrapListPage(response, 'looks');
+            try {
+                const response = await this.get<HeyGenListResponse<TRaw>>(
+                    `${options.path}?${params.toString()}`,
+                    60_000,
+                );
+                const { items: pageItems, nextToken, hasMore } =
+                    this.unwrapListPage(response, options.nestedKey);
 
-            for (const raw of pageItems) {
-                const mapped = this.mapLook(raw);
-                if (mapped) items.push(mapped);
+                for (const raw of pageItems) {
+                    const mapped = options.mapItem(raw);
+                    if (mapped) items.push(mapped);
+                }
+
+                if (!nextToken || hasMore === false) break;
+                token = nextToken;
+            } catch (error) {
+                if (items.length) {
+                    this.logger.warn(
+                        `HeyGen ${options.path} page ${page} failed after partial fetch (${items.length} items): ${this.formatError(error)}`,
+                    );
+                    break;
+                }
+                throw error;
             }
-
-            if (!nextToken || hasMore === false) break;
-            token = nextToken;
         }
 
         return items;
@@ -564,12 +576,12 @@ export class HeyGenProvider {
         }
     }
 
-    private async get<T>(path: string): Promise<T> {
+    private async get<T>(path: string, timeoutMs = 30000): Promise<T> {
         try {
             const response = await firstValueFrom(
                 this.httpService.get<T>(`${this.baseUrl}${path}`, {
                     headers: this.getHeaders(),
-                    timeout: 30000,
+                    timeout: timeoutMs,
                 }),
             );
             return response.data;
