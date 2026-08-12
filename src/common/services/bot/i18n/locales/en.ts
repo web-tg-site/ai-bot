@@ -419,7 +419,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.VIDEO_TO_AUDIO]:
                 'Send a video or audio file. The bot will dub it into Russian (or specify a language in the caption: en, es, de…).',
             [AiToolId.SOUND_GENERATOR]:
-                'Describe the sound itself, not a scene (e.g. «heels on metal floor», not «a girl walks»).',
+                'Describe the sound itself, not a scene (e.g. «heels on metal floor», not «a girl walks»). Duration is under “⚙️ Settings”.',
             [AiToolId.SUNO]:
                 'Send a text description of the song (genre, mood, tempo, vocals) — generation starts right away. Duration and delivery are under “⚙️ Settings”.',
         },

@@ -124,11 +124,13 @@ import {
 import {
     generateAudioToolReplyKeyboard,
     isAudioDeliveryTool,
+    audioToolSupportsDuration,
     AudioToolKeyboardMode,
 } from '../keyboards/audio-tool.keyboard';
 import {
     isAudioToolControlButton,
     resolveAudioToolButtonAction,
+    resolveAudioToolDurationSeconds,
 } from '../utils/audio-tool-buttons';
 import {
     isAudioTool,
@@ -538,8 +540,11 @@ async function selectTool(
         const settings = session.ai.voiceToolSettings ?? {};
         const parts = [i18n.aiResult.toolSelected(label, instruction)];
 
-        if (toolId === AiToolId.SUNO) {
-            const durationSeconds = settings.durationSeconds ?? 30;
+        if (audioToolSupportsDuration(toolId)) {
+            const durationSeconds = resolveAudioToolDurationSeconds(
+                toolId,
+                settings,
+            );
             const tokens = calculateToolTokenCost(tool, { durationSeconds });
             parts.push(i18n.voiceTool.durationLine(durationSeconds, tokens));
         }
@@ -550,7 +555,7 @@ async function selectTool(
             ),
         );
 
-        if (toolId === AiToolId.SUNO) {
+        if (audioToolSupportsDuration(toolId)) {
             parts.push(i18n.voiceTool.promptHint);
         }
 
@@ -2376,7 +2381,10 @@ async function handleAudioToolButtonPress(
 
     if (action.type === 'open_settings') {
         session.ai.voiceKeyboardMode = 'settings';
-        const durationSeconds = settings.durationSeconds ?? 30;
+        const durationSeconds = resolveAudioToolDurationSeconds(
+            toolId,
+            settings,
+        );
         const tool = getToolById(toolId);
         const tokens = tool
             ? calculateToolTokenCost(tool, { durationSeconds })
@@ -2406,7 +2414,10 @@ async function handleAudioToolButtonPress(
 
     if (action.type === 'back_to_settings') {
         session.ai.voiceKeyboardMode = 'settings';
-        const durationSeconds = settings.durationSeconds ?? 30;
+        const durationSeconds = resolveAudioToolDurationSeconds(
+            toolId,
+            settings,
+        );
         const tool = getToolById(toolId);
         const tokens = tool
             ? calculateToolTokenCost(tool, { durationSeconds })
@@ -2430,7 +2441,10 @@ async function handleAudioToolButtonPress(
         session.ai.voiceKeyboardMode = 'main';
         const label = getToolLabel(toolId, user.language);
         const instruction = getToolInstruction(toolId, user.language);
-        const durationSeconds = settings.durationSeconds ?? 30;
+        const durationSeconds = resolveAudioToolDurationSeconds(
+            toolId,
+            settings,
+        );
         const tool = getToolById(toolId);
         const tokens = tool
             ? calculateToolTokenCost(tool, { durationSeconds })
@@ -2461,8 +2475,9 @@ async function handleAudioToolButtonPress(
                 { sendAsFile: nextSendAsFile },
             );
         session.ai.voiceToolSettings = nextSettings;
-        const mode: AudioToolKeyboardMode =
-            toolId === AiToolId.SUNO ? 'settings' : 'main';
+        const mode: AudioToolKeyboardMode = audioToolSupportsDuration(toolId)
+            ? 'settings'
+            : 'main';
         session.ai.voiceKeyboardMode = mode;
 
         await ctx.reply(i18n.voiceTool.sendAsFileChanged(nextSendAsFile), {
@@ -2859,7 +2874,9 @@ async function buildAiGenerationInput(
         ? ((settings ?? {}) as ImageToolSettings)
         : undefined;
     const voiceSettings =
-        toolId === AiToolId.ELEVENLABS_VOICE || toolId === AiToolId.SUNO
+        toolId === AiToolId.ELEVENLABS_VOICE ||
+        toolId === AiToolId.SUNO ||
+        toolId === AiToolId.SOUND_GENERATOR
             ? voiceSettingsFromSession
             : undefined;
     const styleOption =
@@ -2875,9 +2892,8 @@ async function buildAiGenerationInput(
         files: files.length ? files : undefined,
         durationSeconds:
             videoSettings?.durationSeconds ??
-            (toolId === AiToolId.SUNO
-                ? (voiceSettings?.durationSeconds ??
-                  tool.defaultDurationSeconds)
+            (audioToolSupportsDuration(toolId)
+                ? resolveAudioToolDurationSeconds(toolId, voiceSettings)
                 : tool.defaultDurationSeconds),
         chatHistory,
         gptWebSearch: session.ai?.gptWebSearch,

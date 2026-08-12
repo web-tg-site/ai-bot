@@ -7,6 +7,7 @@ import {
     getDefaultElevenLabsVoiceId,
 } from '@/common/config/elevenlabs-voices.config';
 import { normalizeSunoDuration } from '@/common/config/suno-audio.config';
+import { normalizeSoundGeneratorDuration } from '@/common/config/sound-generator.config';
 import { I18nBundle, getToolInstruction, getToolLabel } from '../i18n';
 import { UserLanguage } from '@/generated/prisma/enums';
 import { resolveVoiceSendAsFile } from '@/common/utils/resolve-send-as-file';
@@ -33,6 +34,12 @@ export async function loadVoiceToolSettings(
 
     if (toolId === AiToolId.SUNO) {
         settings.durationSeconds = normalizeSunoDuration(
+            stored.durationSeconds,
+        );
+    }
+
+    if (toolId === AiToolId.SOUND_GENERATOR) {
+        settings.durationSeconds = normalizeSoundGeneratorDuration(
             stored.durationSeconds,
         );
     }

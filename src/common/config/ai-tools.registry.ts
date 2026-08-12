@@ -271,10 +271,11 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         category: 'audio',
         provider: AiProviderId.ELEVENLABS,
         baseTokenCost: 60,
+        defaultDurationSeconds: 5,
         accepts: ['text'],
         isAsync: false,
         instruction:
-            'Опишите именно звук, а не сцену (например: «стук каблуков по металлу», «громкий гром», «шаги по гравию»).',
+            'Опишите именно звук, а не сцену (например: «стук каблуков по металлу», «громкий гром», «шаги по гравию»). Длительность — в «⚙️ Параметры».',
     },
     {
         id: AiToolId.SUNO,

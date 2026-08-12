@@ -5,6 +5,7 @@ import {
     getToolById,
 } from '@/common/config/ai-tools.registry';
 import { SUNO_DURATIONS } from '@/common/config/suno-audio.config';
+import { SOUND_GENERATOR_DURATIONS } from '@/common/config/sound-generator.config';
 import { I18nBundle } from '../i18n';
 import { VoiceToolSettings } from '@/common/types/voice-tool-settings.type';
 import { resolveVoiceSendAsFile } from '@/common/utils/resolve-send-as-file';
@@ -20,14 +21,33 @@ export function isAudioDeliveryTool(toolId: AiToolId): boolean {
     );
 }
 
+export function audioToolSupportsDuration(toolId: AiToolId): boolean {
+    return toolId === AiToolId.SUNO || toolId === AiToolId.SOUND_GENERATOR;
+}
+
+export function getAudioToolDurations(toolId: AiToolId): readonly number[] {
+    if (toolId === AiToolId.SUNO) {
+        return SUNO_DURATIONS;
+    }
+    if (toolId === AiToolId.SOUND_GENERATOR) {
+        return SOUND_GENERATOR_DURATIONS;
+    }
+    return [];
+}
+
 export function generateAudioToolReplyKeyboard(
     i18n: I18nBundle,
     toolId: AiToolId,
     settings: VoiceToolSettings,
     keyboardMode: AudioToolKeyboardMode = 'main',
 ) {
-    if (toolId === AiToolId.SUNO) {
-        return generateSunoReplyKeyboard(i18n, toolId, settings, keyboardMode);
+    if (audioToolSupportsDuration(toolId)) {
+        return generateDurationCapableAudioReplyKeyboard(
+            i18n,
+            toolId,
+            settings,
+            keyboardMode,
+        );
     }
 
     return Markup.keyboard([
@@ -40,7 +60,7 @@ export function generateAudioToolReplyKeyboard(
     ]).resize();
 }
 
-function generateSunoReplyKeyboard(
+function generateDurationCapableAudioReplyKeyboard(
     i18n: I18nBundle,
     toolId: AiToolId,
     settings: VoiceToolSettings,
@@ -59,9 +79,11 @@ function generateSunoReplyKeyboard(
     }
 
     if (keyboardMode === 'duration') {
-        const selected = settings.durationSeconds ?? 30;
         const tool = getToolById(toolId);
-        const durationRow = SUNO_DURATIONS.map((seconds) => {
+        const selected =
+            settings.durationSeconds ?? tool?.defaultDurationSeconds ?? 30;
+        const durations = getAudioToolDurations(toolId);
+        const durationButtons = durations.map((seconds) => {
             const tokens = tool
                 ? calculateToolTokenCost(tool, { durationSeconds: seconds })
                 : 0;
@@ -70,10 +92,16 @@ function generateSunoReplyKeyboard(
                 : i18n.voiceTool.durationPickerOption(seconds, tokens);
         });
 
-        return Markup.keyboard([
-            durationRow,
-            [i18n.voiceTool.backToSettings],
-        ]).resize();
+        const rows =
+            durationButtons.length > 3
+                ? [
+                      durationButtons.slice(0, 2),
+                      durationButtons.slice(2),
+                      [i18n.voiceTool.backToSettings],
+                  ]
+                : [durationButtons, [i18n.voiceTool.backToSettings]];
+
+        return Markup.keyboard(rows).resize();
     }
 
     return Markup.keyboard([

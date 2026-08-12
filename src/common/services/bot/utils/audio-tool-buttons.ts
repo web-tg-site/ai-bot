@@ -6,12 +6,12 @@ import { VoiceToolSettings } from '@/common/types/voice-tool-settings.type';
 import { resolveVoiceSendAsFile } from '@/common/utils/resolve-send-as-file';
 import {
     AudioToolKeyboardMode,
+    audioToolSupportsDuration,
+    getAudioToolDurations,
     isAudioDeliveryTool,
 } from '../keyboards/audio-tool.keyboard';
-import {
-    SUNO_DURATIONS,
-    normalizeSunoDuration,
-} from '@/common/config/suno-audio.config';
+import { normalizeSunoDuration } from '@/common/config/suno-audio.config';
+import { normalizeSoundGeneratorDuration } from '@/common/config/sound-generator.config';
 import {
     calculateToolTokenCost,
     getToolById,
@@ -36,7 +36,7 @@ export function resolveAudioToolButtonAction(
         return null;
     }
 
-    if (toolId === AiToolId.SUNO) {
+    if (audioToolSupportsDuration(toolId)) {
         if (text === i18n.voiceTool.settingsButton) {
             return { type: 'open_settings' };
         }
@@ -52,7 +52,7 @@ export function resolveAudioToolButtonAction(
 
         if (keyboardMode === 'duration') {
             const tool = getToolById(toolId);
-            for (const seconds of SUNO_DURATIONS) {
+            for (const seconds of getAudioToolDurations(toolId)) {
                 const tokens = tool
                     ? calculateToolTokenCost(tool, { durationSeconds: seconds })
                     : 0;
@@ -68,7 +68,7 @@ export function resolveAudioToolButtonAction(
         }
     }
 
-    if (keyboardMode === 'settings' || toolId !== AiToolId.SUNO) {
+    if (keyboardMode === 'settings' || !audioToolSupportsDuration(toolId)) {
         const sendAsFile = resolveVoiceSendAsFile(toolId, settings);
         if (
             text === i18n.voiceTool.sendAsFileButton(sendAsFile) ||
@@ -98,18 +98,22 @@ export function isAudioToolControlButton(text: string | undefined): boolean {
             return true;
         }
 
-        const sunoTool = getToolById(AiToolId.SUNO);
-        for (const seconds of SUNO_DURATIONS) {
-            const tokens = sunoTool
-                ? calculateToolTokenCost(sunoTool, {
-                      durationSeconds: seconds,
-                  })
-                : 0;
-            if (
-                text === i18n.voiceTool.durationPickerOption(seconds, tokens) ||
-                text === i18n.voiceTool.durationPickerSelected(seconds, tokens)
-            ) {
-                return true;
+        for (const toolId of [AiToolId.SUNO, AiToolId.SOUND_GENERATOR]) {
+            const tool = getToolById(toolId);
+            for (const seconds of getAudioToolDurations(toolId)) {
+                const tokens = tool
+                    ? calculateToolTokenCost(tool, {
+                          durationSeconds: seconds,
+                      })
+                    : 0;
+                if (
+                    text ===
+                        i18n.voiceTool.durationPickerOption(seconds, tokens) ||
+                    text ===
+                        i18n.voiceTool.durationPickerSelected(seconds, tokens)
+                ) {
+                    return true;
+                }
             }
         }
     }
@@ -121,4 +125,23 @@ export function resolveSunoDurationSeconds(
     settings?: VoiceToolSettings | null,
 ): number {
     return normalizeSunoDuration(settings?.durationSeconds);
+}
+
+export function resolveSoundGeneratorDurationSeconds(
+    settings?: VoiceToolSettings | null,
+): number {
+    return normalizeSoundGeneratorDuration(settings?.durationSeconds);
+}
+
+export function resolveAudioToolDurationSeconds(
+    toolId: AiToolId,
+    settings?: VoiceToolSettings | null,
+): number {
+    if (toolId === AiToolId.SOUND_GENERATOR) {
+        return resolveSoundGeneratorDurationSeconds(settings);
+    }
+    if (toolId === AiToolId.SUNO) {
+        return resolveSunoDurationSeconds(settings);
+    }
+    return settings?.durationSeconds ?? 30;
 }
