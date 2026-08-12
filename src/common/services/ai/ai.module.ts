@@ -45,6 +45,7 @@ import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/eleve
         ElevenLabsProvider,
         ElevenLabsVoicePreviewService,
         HiggsfieldProvider,
+        HeyGenProvider,
     ],
 })
 export class AiModule {}
