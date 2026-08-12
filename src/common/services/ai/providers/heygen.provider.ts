@@ -361,6 +361,7 @@ export class HeyGenProvider {
             baseParams: { type: 'public' },
             nestedKey: 'voices',
             mapItem: (raw) => this.mapVoice(raw),
+            pageSize: 100,
             maxPages: 2,
         });
     }
@@ -371,7 +372,9 @@ export class HeyGenProvider {
             baseParams: { ownership: 'public' },
             nestedKey: 'looks',
             mapItem: (raw) => this.mapLook(raw),
-            maxPages: 1,
+            // HeyGen looks API rejects limit > 50.
+            pageSize: 50,
+            maxPages: 4,
         });
     }
 
@@ -380,6 +383,7 @@ export class HeyGenProvider {
         baseParams: Record<string, string>;
         nestedKey: 'voices' | 'looks';
         mapItem: (raw: TRaw) => TMapped | null;
+        pageSize: number;
         maxPages: number;
     }): Promise<TMapped[]> {
         const items: TMapped[] = [];
@@ -388,7 +392,7 @@ export class HeyGenProvider {
         for (let page = 0; page < options.maxPages; page += 1) {
             const params = new URLSearchParams({
                 ...options.baseParams,
-                limit: '100',
+                limit: String(options.pageSize),
             });
             if (token) params.set('token', token);
 
