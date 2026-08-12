@@ -37,6 +37,14 @@ export class AiService {
         return this.higgsfieldProvider.listMotions();
     }
 
+    async listHeyGenVoices(options?: { language?: string; gender?: string }) {
+        return this.heyGenProvider.listPublicVoices(options);
+    }
+
+    async listHeyGenAvatars() {
+        return this.heyGenProvider.listPublicLooks();
+    }
+
     async generate(
         toolId: AiToolId,
         input: AiGenerationInput,

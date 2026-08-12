@@ -409,7 +409,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.HIGGSFIELD]:
                 'Upload a reference (optional), adjust settings, then describe the scene.',
             [AiToolId.HEYGEN]:
-                'Adjust settings and send a script for avatar video.',
+                'Pick avatar and voice in settings, then send a script. You can attach a photo for a talking portrait.',
             [AiToolId.TOPAZ]: 'Send a photo or video to upscale.',
             [AiToolId.ELEVENLABS_VOICE]:
                 'Send text — the bot will read it aloud (up to 5000 characters).',
@@ -558,6 +558,40 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         changeDurationButton: '⏱ Change duration',
         changeStyleButton: '🎨 Change style',
         changeEffectButton: '✨ Change effect',
+        changeHeygenVoiceButton: '🎙 Voice',
+        changeHeygenAvatarButton: '🧑 Avatar',
+        changeHeygenEngineButton: '🧠 Engine',
+        changeHeygenBackgroundButton: '🖼 Background',
+        changeHeygenExpressivenessButton: '🎭 Expressiveness',
+        changeHeygenSpeedButton: '⏩ Speech speed',
+        changeHeygenPitchButton: '🎵 Pitch',
+        toggleHeygenCaptionsButton: (enabled) =>
+            enabled ? '✓ Captions' : '💬 Captions',
+        heygenCaptionsChanged: (enabled) =>
+            enabled
+                ? 'Captions: <b>on</b>'
+                : 'Captions: <b>off</b>',
+        selectHeygenVoiceTitle: 'Choose a HeyGen voice:',
+        selectHeygenAvatarTitle: 'Choose a HeyGen avatar:',
+        selectHeygenEngineTitle: 'Choose engine:',
+        selectHeygenBackgroundTitle: 'Choose background:',
+        selectHeygenExpressivenessTitle: 'Choose expressiveness:',
+        selectHeygenSpeedTitle: 'Speech speed:',
+        selectHeygenPitchTitle: 'Pitch:',
+        heygenVoiceChanged: (name) => `Voice: <b>${name}</b>`,
+        heygenAvatarChanged: (name) => `Avatar: <b>${name}</b>`,
+        heygenEngineChanged: (label) => `Engine: <b>${label}</b>`,
+        heygenBackgroundChanged: (label) => `Background: <b>${label}</b>`,
+        heygenExpressivenessChanged: (label) =>
+            `Expressiveness: <b>${label}</b>`,
+        heygenSpeedChanged: (speed) => `Speech speed: <b>${speed}x</b>`,
+        heygenPitchChanged: (pitch) => `Pitch: <b>${pitch}</b>`,
+        heygenPickerOption: (label) => label,
+        heygenPickerSelected: (label) => `✓ ${label}`,
+        heygenNextPage: '▶️ Next',
+        heygenPrevPage: '◀️ Prev',
+        heygenPageLabel: (page, total) => `Page ${page}/${total}`,
+        heygenVoicePreviewFailed: 'Could not load voice preview.',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Choose aspect ratio:',
         selectResolutionTitle: 'Choose resolution:',
@@ -623,6 +657,9 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             durationSeconds,
             styleLabel,
             effectLabel,
+            heygenVoiceLabel,
+            heygenAvatarLabel,
+            heygenEngineLabel,
             credits,
         }) => {
             const parts: string[] = [];
@@ -649,6 +686,15 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             }
             if (effectLabel) {
                 parts.push(`✨ <b>${effectLabel}</b>`);
+            }
+            if (heygenAvatarLabel) {
+                parts.push(`🧑 <b>${heygenAvatarLabel}</b>`);
+            }
+            if (heygenVoiceLabel) {
+                parts.push(`🎙 <b>${heygenVoiceLabel}</b>`);
+            }
+            if (heygenEngineLabel) {
+                parts.push(`🧠 <b>${heygenEngineLabel}</b>`);
             }
             if (credits) {
                 parts.push(`~<b>${credits}</b> tokens`);

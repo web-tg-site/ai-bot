@@ -4,15 +4,46 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import {
+    DEFAULT_HEYGEN_BACKGROUND_COLOR,
+    DEFAULT_HEYGEN_BACKGROUND_MODE,
+    DEFAULT_HEYGEN_ENGINE,
+    DEFAULT_HEYGEN_EXPRESSIVENESS,
+    DEFAULT_HEYGEN_VOICE_PITCH,
+    DEFAULT_HEYGEN_VOICE_SPEED,
+    type HeyGenAvatarLookOption,
+    type HeyGenEngine,
+    type HeyGenVoiceOption,
+} from '@/common/config/heygen.config';
+import {
     AiGenerationInput,
     AiJobCreateResult,
     AiJobStatusResult,
     AiToolId,
 } from '../types';
 
-type HeyGenAvatarLook = {
-    id: string;
+type HeyGenAvatarLookRaw = {
+    id?: string;
+    name?: string | null;
+    preview_image_url?: string | null;
+    preview_video_url?: string | null;
+    gender?: string | null;
     default_voice_id?: string | null;
+    supported_api_engines?: string[] | null;
+};
+
+type HeyGenVoiceRaw = {
+    voice_id?: string;
+    id?: string;
+    name?: string | null;
+    language?: string | null;
+    gender?: string | null;
+    preview_audio?: string | null;
+    preview_url?: string | null;
+};
+
+type ListCache<T> = {
+    fetchedAt: number;
+    items: T[];
 };
 
 @Injectable()
@@ -22,10 +53,10 @@ export class HeyGenProvider {
     private readonly voiceIdOverride?: string;
     private readonly baseUrl = 'https://api.heygen.com';
     private readonly uploadUrl = 'https://upload.heygen.com';
-    private readonly defaultPhotoAvatarVoiceId =
-        '37832e32d4f7475ab7a1cb0db8e5dd66';
+    private readonly cacheTtlMs = 60 * 60 * 1000;
 
-    private cachedAvatarLook?: HeyGenAvatarLook;
+    private voicesCache: ListCache<HeyGenVoiceOption> | null = null;
+    private looksCache: ListCache<HeyGenAvatarLookOption> | null = null;
 
     constructor(
         private readonly httpService: HttpService,
@@ -39,14 +70,43 @@ export class HeyGenProvider {
     }
 
     async createJob(
-        toolId: AiToolId,
+        _toolId: AiToolId,
         input: AiGenerationInput,
     ): Promise<AiJobCreateResult> {
-        if (toolId === AiToolId.VIDEO_TO_AUDIO) {
-            return this.createPhotoAvatarJob(input);
+        const image = input.files?.find((file) =>
+            file.mimeType.startsWith('image/'),
+        );
+        if (image) {
+            return this.createImageJob(input, image);
         }
-
         return this.createAvatarJob(input);
+    }
+
+    async listPublicVoices(options?: {
+        language?: string;
+        gender?: string;
+    }): Promise<HeyGenVoiceOption[]> {
+        this.ensureApiKey();
+
+        let voices = await this.getCachedVoices();
+        if (options?.language) {
+            const lang = options.language.toLowerCase();
+            voices = voices.filter((voice) =>
+                (voice.language ?? '').toLowerCase().includes(lang),
+            );
+        }
+        if (options?.gender) {
+            const gender = options.gender.toLowerCase();
+            voices = voices.filter(
+                (voice) => (voice.gender ?? '').toLowerCase() === gender,
+            );
+        }
+        return voices;
+    }
+
+    async listPublicLooks(): Promise<HeyGenAvatarLookOption[]> {
+        this.ensureApiKey();
+        return this.getCachedLooks();
     }
 
     private async createAvatarJob(
@@ -58,14 +118,18 @@ export class HeyGenProvider {
             throw new Error('Отправьте текст сценария для видео');
         }
 
-        const { avatarId, voiceId } = await this.resolveAvatarLook();
+        const { avatarId, defaultVoiceId } =
+            await this.resolveAvatarLook(input);
+        const voiceId = this.resolveVoiceId(input, defaultVoiceId);
 
         const body: Record<string, unknown> = {
             type: 'avatar',
             avatar_id: avatarId,
             script: input.prompt.trim(),
+            title: this.buildVideoTitle(input.prompt),
             resolution: input.resolution ?? '720p',
             aspect_ratio: input.aspectRatio ?? '16:9',
+            ...this.buildSharedVideoOptions(input),
         };
 
         if (voiceId) {
@@ -83,19 +147,11 @@ export class HeyGenProvider {
         };
     }
 
-    private async createPhotoAvatarJob(
+    private async createImageJob(
         input: AiGenerationInput,
+        image: NonNullable<AiGenerationInput['files']>[number],
     ): Promise<AiJobCreateResult> {
         this.ensureApiKey();
-
-        const image = input.files?.find((file) =>
-            file.mimeType.startsWith('image/'),
-        );
-        if (!image) {
-            throw new Error(
-                'Отправьте фото (портрет) для генерации говорящего видео',
-            );
-        }
 
         if (!input.prompt?.trim()) {
             throw new Error(
@@ -103,22 +159,31 @@ export class HeyGenProvider {
             );
         }
 
-        const imageKey = await this.uploadImageAsset(
+        const assetId = await this.uploadImageAsset(
             image.buffer,
             image.mimeType,
         );
-        const script = input.prompt.trim();
-        const voiceId = this.voiceIdOverride ?? this.defaultPhotoAvatarVoiceId;
+        const voiceId = this.resolveVoiceId(input, undefined);
+        if (!voiceId) {
+            throw new Error(
+                'Выберите голос HeyGen для говорящего фото (Параметры → Голос)',
+            );
+        }
+
+        const body: Record<string, unknown> = {
+            type: 'image',
+            image: { type: 'asset_id', asset_id: assetId },
+            script: input.prompt.trim(),
+            voice_id: voiceId,
+            title: this.buildVideoTitle(input.prompt),
+            resolution: input.resolution ?? '720p',
+            aspect_ratio: input.aspectRatio ?? '16:9',
+            ...this.buildSharedVideoOptions(input),
+        };
 
         const response = await this.post<{ data: { video_id: string } }>(
-            '/v2/video/av4/generate',
-            {
-                image_key: imageKey,
-                video_title: this.buildVideoTitle(script),
-                script,
-                voice_id: voiceId,
-                video_orientation: 'portrait',
-            },
+            '/v3/videos',
+            body,
         );
 
         return {
@@ -157,43 +222,237 @@ export class HeyGenProvider {
         return { status };
     }
 
-    private async resolveAvatarLook(): Promise<{
+    private buildSharedVideoOptions(
+        input: AiGenerationInput,
+    ): Record<string, unknown> {
+        const options: Record<string, unknown> = {};
+
+        const engine = input.heygenEngine ?? DEFAULT_HEYGEN_ENGINE;
+        options.engine = { type: engine };
+
+        if (input.heygenCaptions) {
+            options.caption = { style: 'default' };
+        }
+
+        const backgroundMode =
+            input.heygenBackgroundMode ?? DEFAULT_HEYGEN_BACKGROUND_MODE;
+        if (backgroundMode === 'remove') {
+            options.remove_background = true;
+        } else if (backgroundMode === 'color') {
+            options.background = {
+                type: 'color',
+                value:
+                    input.heygenBackgroundColor ??
+                    DEFAULT_HEYGEN_BACKGROUND_COLOR,
+            };
+        }
+
+        const speed = input.heygenVoiceSpeed ?? DEFAULT_HEYGEN_VOICE_SPEED;
+        const pitch = input.heygenVoicePitch ?? DEFAULT_HEYGEN_VOICE_PITCH;
+        if (speed !== DEFAULT_HEYGEN_VOICE_SPEED || pitch !== 0) {
+            options.voice_settings = {
+                speed: this.clamp(speed, 0.5, 1.5),
+                pitch: this.clamp(pitch, -50, 50),
+            };
+        }
+
+        const motionPrompt = input.heygenMotionPrompt?.trim();
+        if (motionPrompt) {
+            options.motion_prompt = motionPrompt;
+        }
+
+        const expressiveness =
+            input.heygenExpressiveness ?? DEFAULT_HEYGEN_EXPRESSIVENESS;
+        if (expressiveness !== DEFAULT_HEYGEN_EXPRESSIVENESS) {
+            options.expressiveness = expressiveness;
+        }
+
+        return options;
+    }
+
+    private resolveVoiceId(
+        input: AiGenerationInput,
+        defaultVoiceId?: string | null,
+    ): string | undefined {
+        return (
+            input.heygenVoiceId?.trim() ||
+            this.voiceIdOverride ||
+            defaultVoiceId ||
+            undefined
+        );
+    }
+
+    private async resolveAvatarLook(input: AiGenerationInput): Promise<{
         avatarId: string;
-        voiceId?: string;
+        defaultVoiceId?: string | null;
     }> {
+        const selectedId = input.heygenAvatarId?.trim();
+        if (selectedId) {
+            const looks = await this.getCachedLooks();
+            const look = looks.find((item) => item.id === selectedId);
+            return {
+                avatarId: selectedId,
+                defaultVoiceId: look?.defaultVoiceId,
+            };
+        }
+
         if (this.avatarIdOverride) {
             return {
                 avatarId: this.avatarIdOverride,
-                voiceId: this.voiceIdOverride,
+                defaultVoiceId: this.voiceIdOverride,
             };
         }
 
-        if (this.cachedAvatarLook) {
-            return {
-                avatarId: this.cachedAvatarLook.id,
-                voiceId:
-                    this.voiceIdOverride ??
-                    this.cachedAvatarLook.default_voice_id ??
-                    undefined,
-            };
-        }
-
-        const response = await this.get<{
-            data: HeyGenAvatarLook[];
-        }>('/v3/avatars/looks?ownership=public&limit=1');
-
-        const look = response.data[0];
+        const looks = await this.getCachedLooks();
+        const look = looks[0];
         if (!look?.id) {
             throw new Error(
                 'Не найден публичный аватар. Обратитесь в поддержку.',
             );
         }
 
-        this.cachedAvatarLook = look;
-
         return {
             avatarId: look.id,
-            voiceId: this.voiceIdOverride ?? look.default_voice_id ?? undefined,
+            defaultVoiceId: look.defaultVoiceId,
+        };
+    }
+
+    private async getCachedVoices(): Promise<HeyGenVoiceOption[]> {
+        if (
+            this.voicesCache &&
+            Date.now() - this.voicesCache.fetchedAt < this.cacheTtlMs
+        ) {
+            return this.voicesCache.items;
+        }
+
+        const items = await this.fetchAllPublicVoices();
+        this.voicesCache = { fetchedAt: Date.now(), items };
+        return items;
+    }
+
+    private async getCachedLooks(): Promise<HeyGenAvatarLookOption[]> {
+        if (
+            this.looksCache &&
+            Date.now() - this.looksCache.fetchedAt < this.cacheTtlMs
+        ) {
+            return this.looksCache.items;
+        }
+
+        const items = await this.fetchAllPublicLooks();
+        this.looksCache = { fetchedAt: Date.now(), items };
+        return items;
+    }
+
+    private async fetchAllPublicVoices(): Promise<HeyGenVoiceOption[]> {
+        const items: HeyGenVoiceOption[] = [];
+        let token: string | undefined;
+
+        for (let page = 0; page < 50; page += 1) {
+            const params = new URLSearchParams({
+                type: 'public',
+                limit: '100',
+            });
+            if (token) params.set('token', token);
+
+            const response = await this.get<{
+                data?: {
+                    voices?: HeyGenVoiceRaw[];
+                    next_token?: string | null;
+                    has_more?: boolean;
+                };
+                voices?: HeyGenVoiceRaw[];
+            }>(`/v3/voices?${params.toString()}`);
+
+            const pageVoices =
+                response.data?.voices ?? response.voices ?? [];
+            for (const raw of pageVoices) {
+                const mapped = this.mapVoice(raw);
+                if (mapped) items.push(mapped);
+            }
+
+            const next = response.data?.next_token ?? undefined;
+            const hasMore = response.data?.has_more;
+            if (!next || hasMore === false) break;
+            token = next;
+        }
+
+        return items;
+    }
+
+    private async fetchAllPublicLooks(): Promise<HeyGenAvatarLookOption[]> {
+        const items: HeyGenAvatarLookOption[] = [];
+        let token: string | undefined;
+
+        for (let page = 0; page < 50; page += 1) {
+            const params = new URLSearchParams({
+                ownership: 'public',
+                limit: '100',
+            });
+            if (token) params.set('token', token);
+
+            const response = await this.get<{
+                data?:
+                    | HeyGenAvatarLookRaw[]
+                    | {
+                          looks?: HeyGenAvatarLookRaw[];
+                          items?: HeyGenAvatarLookRaw[];
+                          next_token?: string | null;
+                          has_more?: boolean;
+                      };
+            }>(`/v3/avatars/looks?${params.toString()}`);
+
+            const data = response.data;
+            let pageLooks: HeyGenAvatarLookRaw[] = [];
+            let next: string | undefined;
+            let hasMore: boolean | undefined;
+
+            if (Array.isArray(data)) {
+                pageLooks = data;
+            } else if (data && typeof data === 'object') {
+                pageLooks = data.looks ?? data.items ?? [];
+                next = data.next_token ?? undefined;
+                hasMore = data.has_more;
+            }
+
+            for (const raw of pageLooks) {
+                const mapped = this.mapLook(raw);
+                if (mapped) items.push(mapped);
+            }
+
+            if (!next || hasMore === false) break;
+            token = next;
+        }
+
+        return items;
+    }
+
+    private mapVoice(raw: HeyGenVoiceRaw): HeyGenVoiceOption | null {
+        const id = raw.voice_id ?? raw.id;
+        if (!id) return null;
+        return {
+            id,
+            name: raw.name?.trim() || id,
+            language: raw.language ?? null,
+            gender: raw.gender ?? null,
+            previewUrl: raw.preview_audio ?? raw.preview_url ?? null,
+        };
+    }
+
+    private mapLook(raw: HeyGenAvatarLookRaw): HeyGenAvatarLookOption | null {
+        if (!raw.id) return null;
+        const engines = (raw.supported_api_engines ?? [])
+            .map((value) => value as HeyGenEngine)
+            .filter((value): value is HeyGenEngine =>
+                ['avatar_iii', 'avatar_iv', 'avatar_v'].includes(value),
+            );
+        return {
+            id: raw.id,
+            name: raw.name?.trim() || raw.id,
+            previewImageUrl: raw.preview_image_url ?? null,
+            previewVideoUrl: raw.preview_video_url ?? null,
+            gender: raw.gender ?? null,
+            defaultVoiceId: raw.default_voice_id ?? null,
+            supportedEngines: engines,
         };
     }
 
@@ -204,7 +463,11 @@ export class HeyGenProvider {
         try {
             const response = await firstValueFrom(
                 this.httpService.post<{
-                    data?: { image_key?: string };
+                    data?: {
+                        image_key?: string;
+                        id?: string;
+                        asset_id?: string;
+                    };
                 }>(`${this.uploadUrl}/v1/asset`, buffer, {
                     headers: {
                         'X-Api-Key': this.apiKey,
@@ -216,12 +479,15 @@ export class HeyGenProvider {
                 }),
             );
 
-            const imageKey = response.data?.data?.image_key;
-            if (!imageKey) {
-                throw new Error('HeyGen did not return image_key after upload');
+            const assetId =
+                response.data?.data?.asset_id ??
+                response.data?.data?.id ??
+                response.data?.data?.image_key;
+            if (!assetId) {
+                throw new Error('HeyGen did not return asset id after upload');
             }
 
-            return imageKey;
+            return assetId;
         } catch (error) {
             const message = this.formatError(error);
             this.logger.error(`HeyGen asset upload failed: ${message}`);
@@ -234,8 +500,11 @@ export class HeyGenProvider {
         if (normalized.length <= 80) {
             return normalized;
         }
-
         return `${normalized.slice(0, 77)}...`;
+    }
+
+    private clamp(value: number, min: number, max: number): number {
+        return Math.min(max, Math.max(min, value));
     }
 
     private ensureApiKey() {

@@ -213,10 +213,10 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         baseTokenCost: 0,
         perSecondCost: 25,
         defaultDurationSeconds: 5,
-        accepts: ['text'],
+        accepts: ['text', 'photo'],
         isAsync: true,
         instruction:
-            'Настройте параметры и отправьте текст сценария для видео с аватаром.',
+            'Выберите аватар и голос в параметрах, затем отправьте текст сценария. Можно прикрепить фото — будет говорящий портрет.',
     },
     {
         id: AiToolId.TOPAZ,

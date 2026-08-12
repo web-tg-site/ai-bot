@@ -409,7 +409,7 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.HIGGSFIELD]:
                 'Загрузите референс (можно пропустить), настройте параметры и опишите сцену.',
             [AiToolId.HEYGEN]:
-                'Настройте параметры и отправьте текст сценария для видео с аватаром.',
+                'Выберите аватар и голос в параметрах, затем отправьте текст сценария. Можно прикрепить фото — будет говорящий портрет.',
             [AiToolId.TOPAZ]: 'Отправьте фото или видео для апскейла.',
             [AiToolId.ELEVENLABS_VOICE]:
                 'Отправьте текст — бот озвучит его дословно (до 5000 символов).',
@@ -558,6 +558,40 @@ ${getTariffIncludesText(type, plan, ru)}
         changeDurationButton: '⏱ Изменить длительность',
         changeStyleButton: '🎨 Изменить стиль',
         changeEffectButton: '✨ Изменить эффект',
+        changeHeygenVoiceButton: '🎙 Голос',
+        changeHeygenAvatarButton: '🧑 Аватар',
+        changeHeygenEngineButton: '🧠 Движок',
+        changeHeygenBackgroundButton: '🖼 Фон',
+        changeHeygenExpressivenessButton: '🎭 Выразительность',
+        changeHeygenSpeedButton: '⏩ Скорость речи',
+        changeHeygenPitchButton: '🎵 Высота тона',
+        toggleHeygenCaptionsButton: (enabled) =>
+            enabled ? '✓ Субтитры' : '💬 Субтитры',
+        heygenCaptionsChanged: (enabled) =>
+            enabled
+                ? 'Субтитры: <b>включены</b>'
+                : 'Субтитры: <b>выключены</b>',
+        selectHeygenVoiceTitle: 'Выберите голос HeyGen:',
+        selectHeygenAvatarTitle: 'Выберите аватар HeyGen:',
+        selectHeygenEngineTitle: 'Выберите движок:',
+        selectHeygenBackgroundTitle: 'Выберите фон:',
+        selectHeygenExpressivenessTitle: 'Выберите выразительность:',
+        selectHeygenSpeedTitle: 'Скорость речи:',
+        selectHeygenPitchTitle: 'Высота тона:',
+        heygenVoiceChanged: (name) => `Голос: <b>${name}</b>`,
+        heygenAvatarChanged: (name) => `Аватар: <b>${name}</b>`,
+        heygenEngineChanged: (label) => `Движок: <b>${label}</b>`,
+        heygenBackgroundChanged: (label) => `Фон: <b>${label}</b>`,
+        heygenExpressivenessChanged: (label) =>
+            `Выразительность: <b>${label}</b>`,
+        heygenSpeedChanged: (speed) => `Скорость речи: <b>${speed}x</b>`,
+        heygenPitchChanged: (pitch) => `Высота тона: <b>${pitch}</b>`,
+        heygenPickerOption: (label) => label,
+        heygenPickerSelected: (label) => `✓ ${label}`,
+        heygenNextPage: '▶️ Далее',
+        heygenPrevPage: '◀️ Назад',
+        heygenPageLabel: (page, total) => `Стр. ${page}/${total}`,
+        heygenVoicePreviewFailed: 'Не удалось загрузить превью голоса.',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Выберите формат:',
         selectResolutionTitle: 'Выберите разрешение:',
@@ -624,6 +658,9 @@ ${getTariffIncludesText(type, plan, ru)}
             durationSeconds,
             styleLabel,
             effectLabel,
+            heygenVoiceLabel,
+            heygenAvatarLabel,
+            heygenEngineLabel,
             credits,
         }) => {
             const parts: string[] = [];
@@ -650,6 +687,15 @@ ${getTariffIncludesText(type, plan, ru)}
             }
             if (effectLabel) {
                 parts.push(`✨ <b>${effectLabel}</b>`);
+            }
+            if (heygenAvatarLabel) {
+                parts.push(`🧑 <b>${heygenAvatarLabel}</b>`);
+            }
+            if (heygenVoiceLabel) {
+                parts.push(`🎙 <b>${heygenVoiceLabel}</b>`);
+            }
+            if (heygenEngineLabel) {
+                parts.push(`🧠 <b>${heygenEngineLabel}</b>`);
             }
             if (credits) {
                 parts.push(`~<b>${credits}</b> токенов`);

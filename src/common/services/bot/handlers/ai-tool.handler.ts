@@ -63,6 +63,15 @@ import { generateGptControlKeyboard } from '../keyboards/gpt.keyboard';
 import { generateImageEditorReplyKeyboard } from '../keyboards/image.keyboard';
 import { generateVideoEditorReplyKeyboard } from '../keyboards/video.keyboard';
 import {
+    DEFAULT_HEYGEN_BACKGROUND_COLOR,
+    getHeyGenBackgroundLabel,
+    getHeyGenEngineLabel,
+    getHeyGenExpressivenessLabel,
+    type HeyGenBackgroundMode,
+    type HeyGenEngine,
+    type HeyGenExpressiveness,
+} from '@/common/config/heygen.config';
+import {
     getGptSessionDefaults,
     resetAiSessionPreservingGpt,
 } from '../utils/gpt-session';
@@ -349,6 +358,14 @@ async function selectTool(
                 ? await deps.aiService.listHiggsfieldMotions()
                 : undefined;
 
+        const [accessibleHeyGenVoices, accessibleHeyGenAvatars] =
+            toolId === AiToolId.HEYGEN
+                ? await Promise.all([
+                      deps.aiService.listHeyGenVoices(),
+                      deps.aiService.listHeyGenAvatars(),
+                  ])
+                : [undefined, undefined];
+
         session.ai = {
             activeToolId: toolId,
             step: getInitialVideoToolStep(toolId),
@@ -359,6 +376,10 @@ async function selectTool(
             toolSettings,
             videoKeyboardMode: 'main',
             accessibleHiggsfieldMotions,
+            accessibleHeyGenVoices,
+            accessibleHeyGenAvatars,
+            heygenVoicePage: 0,
+            heygenAvatarPage: 0,
             activeCategory: session.ai?.activeCategory,
         };
     } else if (toolId === AiToolId.ELEVENLABS_VOICE) {
@@ -481,6 +502,10 @@ async function selectTool(
                                   session.ai.accessibleHiggsfieldMotions ?? [],
                               )
                             : [],
+                    heygenVoices: session.ai.accessibleHeyGenVoices ?? [],
+                    heygenAvatars: session.ai.accessibleHeyGenAvatars ?? [],
+                    heygenVoicePage: session.ai.heygenVoicePage ?? 0,
+                    heygenAvatarPage: session.ai.heygenAvatarPage ?? 0,
                     step: session.ai.step,
                     keyboardMode: 'main',
                     localeTag: i18n.localeTag,
@@ -1313,6 +1338,10 @@ async function appendVideoReferences(
         qualities: caps.qualities,
         durations: caps.durations,
         stylePresets: caps.stylePresets,
+        heygenVoices: session.ai.accessibleHeyGenVoices ?? [],
+        heygenAvatars: session.ai.accessibleHeyGenAvatars ?? [],
+        heygenVoicePage: session.ai.heygenVoicePage ?? 0,
+        heygenAvatarPage: session.ai.heygenAvatarPage ?? 0,
         step: session.ai.step ?? 'awaiting_video_references',
         keyboardMode: getVideoKeyboardMode(session),
         localeTag: i18n.localeTag,
@@ -1377,6 +1406,17 @@ async function handleVideoToolButtonPress(
             await deps.aiService.listHiggsfieldMotions();
     }
 
+    if (toolId === AiToolId.HEYGEN) {
+        if (!session.ai.accessibleHeyGenVoices?.length) {
+            session.ai.accessibleHeyGenVoices =
+                await deps.aiService.listHeyGenVoices();
+        }
+        if (!session.ai.accessibleHeyGenAvatars?.length) {
+            session.ai.accessibleHeyGenAvatars =
+                await deps.aiService.listHeyGenAvatars();
+        }
+    }
+
     const effectPresets =
         toolId === AiToolId.HIGGSFIELD
             ? buildHiggsfieldEffectPresets(
@@ -1384,6 +1424,8 @@ async function handleVideoToolButtonPress(
                   session.ai.accessibleHiggsfieldMotions ?? [],
               )
             : [];
+    const heygenVoices = session.ai.accessibleHeyGenVoices ?? [];
+    const heygenAvatars = session.ai.accessibleHeyGenAvatars ?? [];
 
     const action = resolveVideoToolButtonAction(text, i18n, {
         toolId,
@@ -1395,6 +1437,10 @@ async function handleVideoToolButtonPress(
         durations: caps.durations,
         stylePresets: caps.stylePresets,
         effectPresets,
+        heygenVoices,
+        heygenAvatars,
+        heygenVoicePage: session.ai.heygenVoicePage ?? 0,
+        heygenAvatarPage: session.ai.heygenAvatarPage ?? 0,
         currentSettings,
         localeTag: i18n.localeTag,
     });
@@ -1416,24 +1462,32 @@ async function handleVideoToolButtonPress(
             durations: caps.durations,
             stylePresets: caps.stylePresets,
             effectPresets,
+            heygenVoices,
+            heygenAvatars,
+            heygenVoicePage: session.ai!.heygenVoicePage ?? 0,
+            heygenAvatarPage: session.ai!.heygenAvatarPage ?? 0,
             step: session.ai!.step,
             keyboardMode: mode,
             localeTag: i18n.localeTag,
         });
 
+    const summaryOptions = (settings: VideoToolSettings) => ({
+        settings,
+        aspectRatios: caps.aspectRatios,
+        resolutions: caps.resolutions,
+        toolId,
+        localeTag: i18n.localeTag,
+        capabilitiesService: deps.videoCapabilitiesService,
+        effectPresets,
+        heygenVoices,
+        heygenAvatars,
+    });
+
     if (action.type === 'open_settings') {
         session.ai.videoKeyboardMode = 'settings';
         const settings = (session.ai.toolSettings ?? {}) as VideoToolSettings;
         const parts = [i18n.videoTool.settingsMenuTitle];
-        const summary = buildVideoSummaryLine(i18n, {
-            settings,
-            aspectRatios: caps.aspectRatios,
-            resolutions: caps.resolutions,
-            toolId,
-            localeTag: i18n.localeTag,
-            capabilitiesService: deps.videoCapabilitiesService,
-            effectPresets,
-        });
+        const summary = buildVideoSummaryLine(i18n, summaryOptions(settings));
         if (summary) {
             parts.push(summary);
         }
@@ -1503,19 +1557,125 @@ async function handleVideoToolButtonPress(
         return true;
     }
 
+    if (action.type === 'open_heygen_voice_picker') {
+        session.ai.videoKeyboardMode = 'heygen_voice';
+        session.ai.heygenVoicePage = 0;
+        await ctx.reply(i18n.videoTool.selectHeygenVoiceTitle, {
+            ...replyKeyboard('heygen_voice'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'open_heygen_avatar_picker') {
+        session.ai.videoKeyboardMode = 'heygen_avatar';
+        session.ai.heygenAvatarPage = 0;
+        await ctx.reply(i18n.videoTool.selectHeygenAvatarTitle, {
+            ...replyKeyboard('heygen_avatar'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'open_heygen_engine_picker') {
+        session.ai.videoKeyboardMode = 'heygen_engine';
+        await ctx.reply(i18n.videoTool.selectHeygenEngineTitle, {
+            ...replyKeyboard('heygen_engine'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'open_heygen_background_picker') {
+        session.ai.videoKeyboardMode = 'heygen_background';
+        await ctx.reply(i18n.videoTool.selectHeygenBackgroundTitle, {
+            ...replyKeyboard('heygen_background'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'open_heygen_expressiveness_picker') {
+        session.ai.videoKeyboardMode = 'heygen_expressiveness';
+        await ctx.reply(i18n.videoTool.selectHeygenExpressivenessTitle, {
+            ...replyKeyboard('heygen_expressiveness'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'open_heygen_speed_picker') {
+        session.ai.videoKeyboardMode = 'heygen_speed';
+        await ctx.reply(i18n.videoTool.selectHeygenSpeedTitle, {
+            ...replyKeyboard('heygen_speed'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'open_heygen_pitch_picker') {
+        session.ai.videoKeyboardMode = 'heygen_pitch';
+        await ctx.reply(i18n.videoTool.selectHeygenPitchTitle, {
+            ...replyKeyboard('heygen_pitch'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'heygen_next_page' || action.type === 'heygen_prev_page') {
+        const delta = action.type === 'heygen_next_page' ? 1 : -1;
+        if (keyboardMode === 'heygen_voice') {
+            session.ai.heygenVoicePage = Math.max(
+                0,
+                (session.ai.heygenVoicePage ?? 0) + delta,
+            );
+            await ctx.reply(i18n.videoTool.selectHeygenVoiceTitle, {
+                ...replyKeyboard('heygen_voice'),
+                parse_mode: 'HTML',
+            });
+            return true;
+        }
+        if (keyboardMode === 'heygen_avatar') {
+            session.ai.heygenAvatarPage = Math.max(
+                0,
+                (session.ai.heygenAvatarPage ?? 0) + delta,
+            );
+            await ctx.reply(i18n.videoTool.selectHeygenAvatarTitle, {
+                ...replyKeyboard('heygen_avatar'),
+                parse_mode: 'HTML',
+            });
+            return true;
+        }
+        return true;
+    }
+
+    if (action.type === 'toggle_heygen_captions') {
+        const current = (session.ai.toolSettings ?? {}) as VideoToolSettings;
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVideoSettings(
+                user.id,
+                toolId,
+                { heygenCaptions: !current.heygenCaptions },
+            );
+        session.ai.toolSettings = nextSettings;
+        session.ai.videoKeyboardMode = 'settings';
+        await ctx.reply(
+            i18n.videoTool.heygenCaptionsChanged(
+                Boolean(nextSettings.heygenCaptions),
+            ),
+            {
+                ...replyKeyboard('settings', nextSettings),
+                parse_mode: 'HTML',
+            },
+        );
+        return true;
+    }
+
     if (action.type === 'back_to_settings') {
         session.ai.videoKeyboardMode = 'settings';
         const settings = (session.ai.toolSettings ?? {}) as VideoToolSettings;
         const parts = [i18n.videoTool.settingsMenuTitle];
-        const summary = buildVideoSummaryLine(i18n, {
-            settings,
-            aspectRatios: caps.aspectRatios,
-            resolutions: caps.resolutions,
-            toolId,
-            localeTag: i18n.localeTag,
-            capabilitiesService: deps.videoCapabilitiesService,
-            effectPresets,
-        });
+        const summary = buildVideoSummaryLine(i18n, summaryOptions(settings));
         if (summary) {
             parts.push(summary);
         }
@@ -1742,15 +1902,10 @@ async function handleVideoToolButtonPress(
         const effectLabel =
             effectPresets.find((preset) => preset.id === action.value)
                 ?.label ?? action.value;
-        const summary = buildVideoSummaryLine(i18n, {
-            settings: nextSettings,
-            aspectRatios: caps.aspectRatios,
-            resolutions: caps.resolutions,
-            toolId,
-            localeTag: i18n.localeTag,
-            capabilitiesService: deps.videoCapabilitiesService,
-            effectPresets,
-        });
+        const summary = buildVideoSummaryLine(
+            i18n,
+            summaryOptions(nextSettings),
+        );
         await ctx.reply(
             [i18n.videoTool.effectChanged(effectLabel), summary]
                 .filter(Boolean)
@@ -1760,6 +1915,198 @@ async function handleVideoToolButtonPress(
                 parse_mode: 'HTML',
             },
         );
+        return true;
+    }
+
+    if (action.type === 'set_heygen_voice') {
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVideoSettings(
+                user.id,
+                toolId,
+                { heygenVoiceId: action.value },
+            );
+        session.ai.toolSettings = nextSettings;
+        session.ai.videoKeyboardMode = 'settings';
+        const voice = heygenVoices.find((item) => item.id === action.value);
+        const name = voice?.name ?? action.value;
+        if (voice?.previewUrl) {
+            try {
+                await ctx.replyWithAudio(
+                    { url: voice.previewUrl },
+                    {
+                        caption: name,
+                        ...replyKeyboard('settings', nextSettings),
+                    },
+                );
+            } catch {
+                await ctx.reply(i18n.videoTool.heygenVoicePreviewFailed, {
+                    ...replyKeyboard('settings', nextSettings),
+                });
+            }
+        }
+        const summary = buildVideoSummaryLine(
+            i18n,
+            summaryOptions(nextSettings),
+        );
+        await ctx.reply(
+            [i18n.videoTool.heygenVoiceChanged(name), summary]
+                .filter(Boolean)
+                .join('\n\n'),
+            {
+                ...replyKeyboard('settings', nextSettings),
+                parse_mode: 'HTML',
+            },
+        );
+        return true;
+    }
+
+    if (action.type === 'set_heygen_avatar') {
+        const avatar = heygenAvatars.find((item) => item.id === action.value);
+        const patch: Partial<VideoToolSettings> = {
+            heygenAvatarId: action.value,
+        };
+        if (avatar?.defaultVoiceId && !currentSettings.heygenVoiceId) {
+            patch.heygenVoiceId = avatar.defaultVoiceId;
+        }
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVideoSettings(
+                user.id,
+                toolId,
+                patch,
+            );
+        session.ai.toolSettings = nextSettings;
+        session.ai.videoKeyboardMode = 'settings';
+        const name = avatar?.name ?? action.value;
+        const summary = buildVideoSummaryLine(
+            i18n,
+            summaryOptions(nextSettings),
+        );
+        await ctx.reply(
+            [i18n.videoTool.heygenAvatarChanged(name), summary]
+                .filter(Boolean)
+                .join('\n\n'),
+            {
+                ...replyKeyboard('settings', nextSettings),
+                parse_mode: 'HTML',
+            },
+        );
+        return true;
+    }
+
+    if (action.type === 'set_heygen_engine') {
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVideoSettings(
+                user.id,
+                toolId,
+                { heygenEngine: action.value as HeyGenEngine },
+            );
+        session.ai.toolSettings = nextSettings;
+        session.ai.videoKeyboardMode = 'settings';
+        const label = getHeyGenEngineLabel(
+            action.value as HeyGenEngine,
+            i18n.localeTag,
+        );
+        const summary = buildVideoSummaryLine(
+            i18n,
+            summaryOptions(nextSettings),
+        );
+        await ctx.reply(
+            [i18n.videoTool.heygenEngineChanged(label), summary]
+                .filter(Boolean)
+                .join('\n\n'),
+            {
+                ...replyKeyboard('settings', nextSettings),
+                parse_mode: 'HTML',
+            },
+        );
+        return true;
+    }
+
+    if (action.type === 'set_heygen_background') {
+        let mode: HeyGenBackgroundMode = 'default';
+        let color: string | undefined;
+        if (action.value === 'remove') {
+            mode = 'remove';
+        } else if (action.value.startsWith('color:')) {
+            mode = 'color';
+            color = action.value.slice('color:'.length);
+        }
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVideoSettings(
+                user.id,
+                toolId,
+                {
+                    heygenBackgroundMode: mode,
+                    heygenBackgroundColor:
+                        color ?? DEFAULT_HEYGEN_BACKGROUND_COLOR,
+                },
+            );
+        session.ai.toolSettings = nextSettings;
+        session.ai.videoKeyboardMode = 'settings';
+        const label = getHeyGenBackgroundLabel(
+            mode,
+            nextSettings.heygenBackgroundColor,
+            i18n.localeTag,
+        );
+        await ctx.reply(i18n.videoTool.heygenBackgroundChanged(label), {
+            ...replyKeyboard('settings', nextSettings),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'set_heygen_expressiveness') {
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVideoSettings(
+                user.id,
+                toolId,
+                {
+                    heygenExpressiveness:
+                        action.value as HeyGenExpressiveness,
+                },
+            );
+        session.ai.toolSettings = nextSettings;
+        session.ai.videoKeyboardMode = 'settings';
+        const label = getHeyGenExpressivenessLabel(
+            action.value as HeyGenExpressiveness,
+            i18n.localeTag,
+        );
+        await ctx.reply(i18n.videoTool.heygenExpressivenessChanged(label), {
+            ...replyKeyboard('settings', nextSettings),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'set_heygen_speed') {
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVideoSettings(
+                user.id,
+                toolId,
+                { heygenVoiceSpeed: action.value },
+            );
+        session.ai.toolSettings = nextSettings;
+        session.ai.videoKeyboardMode = 'settings';
+        await ctx.reply(i18n.videoTool.heygenSpeedChanged(action.value), {
+            ...replyKeyboard('settings', nextSettings),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'set_heygen_pitch') {
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVideoSettings(
+                user.id,
+                toolId,
+                { heygenVoicePitch: action.value },
+            );
+        session.ai.toolSettings = nextSettings;
+        session.ai.videoKeyboardMode = 'settings';
+        await ctx.reply(i18n.videoTool.heygenPitchChanged(action.value), {
+            ...replyKeyboard('settings', nextSettings),
+            parse_mode: 'HTML',
+        });
         return true;
     }
 
@@ -2546,6 +2893,46 @@ async function buildAiGenerationInput(
         higgsfieldMotionId:
             toolId === AiToolId.HIGGSFIELD
                 ? videoSettings?.higgsfieldMotionId
+                : undefined,
+        heygenVoiceId:
+            toolId === AiToolId.HEYGEN
+                ? videoSettings?.heygenVoiceId
+                : undefined,
+        heygenAvatarId:
+            toolId === AiToolId.HEYGEN
+                ? videoSettings?.heygenAvatarId
+                : undefined,
+        heygenEngine:
+            toolId === AiToolId.HEYGEN
+                ? videoSettings?.heygenEngine
+                : undefined,
+        heygenCaptions:
+            toolId === AiToolId.HEYGEN
+                ? videoSettings?.heygenCaptions
+                : undefined,
+        heygenBackgroundMode:
+            toolId === AiToolId.HEYGEN
+                ? videoSettings?.heygenBackgroundMode
+                : undefined,
+        heygenBackgroundColor:
+            toolId === AiToolId.HEYGEN
+                ? videoSettings?.heygenBackgroundColor
+                : undefined,
+        heygenExpressiveness:
+            toolId === AiToolId.HEYGEN
+                ? videoSettings?.heygenExpressiveness
+                : undefined,
+        heygenMotionPrompt:
+            toolId === AiToolId.HEYGEN
+                ? videoSettings?.heygenMotionPrompt
+                : undefined,
+        heygenVoiceSpeed:
+            toolId === AiToolId.HEYGEN
+                ? videoSettings?.heygenVoiceSpeed
+                : undefined,
+        heygenVoicePitch:
+            toolId === AiToolId.HEYGEN
+                ? videoSettings?.heygenVoicePitch
                 : undefined,
     };
 }

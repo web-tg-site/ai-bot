@@ -52,6 +52,7 @@ import {
     isElevenLabsDubbingResultUrl,
 } from '@/common/services/ai/providers/elevenlabs.provider';
 import { HiggsfieldProvider } from '@/common/services/ai/providers/higgsfield.provider';
+import { HeyGenProvider } from '@/common/services/ai/providers/heygen.provider';
 import { ElevenLabsVoicePreviewService } from '@/common/services/elevenlabs-voice-preview';
 import { GenerationFacade } from './generation.facade';
 import { ModuleRef } from '@nestjs/core';
@@ -111,6 +112,46 @@ class GenerateBodyDto {
 
     @IsOptional()
     @IsString()
+    heygenVoiceId?: string;
+
+    @IsOptional()
+    @IsString()
+    heygenAvatarId?: string;
+
+    @IsOptional()
+    @IsIn(['avatar_iii', 'avatar_iv', 'avatar_v'])
+    heygenEngine?: 'avatar_iii' | 'avatar_iv' | 'avatar_v';
+
+    @IsOptional()
+    @IsString()
+    heygenCaptions?: string;
+
+    @IsOptional()
+    @IsIn(['default', 'remove', 'color'])
+    heygenBackgroundMode?: 'default' | 'remove' | 'color';
+
+    @IsOptional()
+    @IsString()
+    heygenBackgroundColor?: string;
+
+    @IsOptional()
+    @IsIn(['low', 'medium', 'high'])
+    heygenExpressiveness?: 'low' | 'medium' | 'high';
+
+    @IsOptional()
+    @IsString()
+    heygenMotionPrompt?: string;
+
+    @IsOptional()
+    @IsNumberString()
+    heygenVoiceSpeed?: string;
+
+    @IsOptional()
+    @IsNumberString()
+    heygenVoicePitch?: string;
+
+    @IsOptional()
+    @IsString()
     gptWebSearch?: string;
 
     @IsOptional()
@@ -145,6 +186,7 @@ export class AiController {
         private readonly userAiToolSettingsModelService: UserAiToolSettingsModelService,
         private readonly elevenLabsProvider: ElevenLabsProvider,
         private readonly higgsfieldProvider: HiggsfieldProvider,
+        private readonly heyGenProvider: HeyGenProvider,
         private readonly elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService,
         private readonly moduleRef: ModuleRef,
     ) {}
@@ -180,6 +222,19 @@ export class AiController {
     @Get('higgsfield/motions')
     async listHiggsfieldMotions() {
         return this.higgsfieldProvider.listMotions();
+    }
+
+    @Get('heygen/voices')
+    async listHeyGenVoices(
+        @Query('language') language?: string,
+        @Query('gender') gender?: string,
+    ) {
+        return this.heyGenProvider.listPublicVoices({ language, gender });
+    }
+
+    @Get('heygen/avatars')
+    async listHeyGenAvatars() {
+        return this.heyGenProvider.listPublicLooks();
     }
 
     @Get('voices/:voiceId/preview')
@@ -313,6 +368,22 @@ export class AiController {
                     videoStyleId: body.videoStyleId,
                     higgsfieldMotionId: body.higgsfieldMotionId,
                     elevenLabsVoiceId: body.elevenLabsVoiceId,
+                    heygenVoiceId: body.heygenVoiceId,
+                    heygenAvatarId: body.heygenAvatarId,
+                    heygenEngine: body.heygenEngine,
+                    heygenCaptions:
+                        body.heygenCaptions === 'true' ||
+                        body.heygenCaptions === '1',
+                    heygenBackgroundMode: body.heygenBackgroundMode,
+                    heygenBackgroundColor: body.heygenBackgroundColor,
+                    heygenExpressiveness: body.heygenExpressiveness,
+                    heygenMotionPrompt: body.heygenMotionPrompt,
+                    heygenVoiceSpeed: body.heygenVoiceSpeed
+                        ? Number(body.heygenVoiceSpeed)
+                        : undefined,
+                    heygenVoicePitch: body.heygenVoicePitch
+                        ? Number(body.heygenVoicePitch)
+                        : undefined,
                     gptWebSearch:
                         body.gptWebSearch === 'true' ||
                         body.gptWebSearch === '1',

@@ -30,6 +30,7 @@ export async function loadVideoToolSettings(
 ): Promise<VideoToolSettings> {
     const stored = await settingsService.getVideoSettings(userId, toolId);
     return {
+        ...stored,
         aspectRatio: capabilitiesService.normalizeAspectRatio(
             toolId,
             stored.aspectRatio,

@@ -59,7 +59,14 @@ export type BotSession = {
             | 'quality'
             | 'duration'
             | 'style'
-            | 'effect';
+            | 'effect'
+            | 'heygen_voice'
+            | 'heygen_avatar'
+            | 'heygen_engine'
+            | 'heygen_background'
+            | 'heygen_expressiveness'
+            | 'heygen_speed'
+            | 'heygen_pitch';
         voiceKeyboardMode?: 'main' | 'settings' | 'preview' | 'duration';
         pendingElevenLabsVoiceId?: string;
         accessibleElevenLabsVoices?: Array<{
@@ -81,5 +88,23 @@ export type BotSession = {
             id: string;
             name: string;
         }>;
+        accessibleHeyGenVoices?: Array<{
+            id: string;
+            name: string;
+            language: string | null;
+            gender: string | null;
+            previewUrl: string | null;
+        }>;
+        accessibleHeyGenAvatars?: Array<{
+            id: string;
+            name: string;
+            previewImageUrl: string | null;
+            previewVideoUrl: string | null;
+            gender: string | null;
+            defaultVoiceId: string | null;
+            supportedEngines: Array<'avatar_iii' | 'avatar_iv' | 'avatar_v'>;
+        }>;
+        heygenVoicePage?: number;
+        heygenAvatarPage?: number;
     };
 };

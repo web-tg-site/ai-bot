@@ -237,6 +237,7 @@ export const VIDEO_TOOLS_WITH_REFERENCES: AiToolId[] = [
     AiToolId.SEEDANCE,
     AiToolId.LUMA_RAY,
     AiToolId.HIGGSFIELD,
+    AiToolId.HEYGEN,
 ];
 
 export const VIDEO_FLOW_TOOLS: AiToolId[] = [
@@ -269,6 +270,7 @@ export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
     [AiToolId.SEEDANCE]: 2,
     [AiToolId.LUMA_RAY]: 2,
     [AiToolId.HIGGSFIELD]: 1,
+    [AiToolId.HEYGEN]: 1,
 };
 
 export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {

@@ -14,6 +14,22 @@ import {
     calculateToolTokenCost,
     getToolById,
 } from '@/common/config/ai-tools.registry';
+import {
+    DEFAULT_HEYGEN_BACKGROUND_COLOR,
+    DEFAULT_HEYGEN_BACKGROUND_MODE,
+    DEFAULT_HEYGEN_ENGINE,
+    DEFAULT_HEYGEN_EXPRESSIVENESS,
+    DEFAULT_HEYGEN_VOICE_PITCH,
+    DEFAULT_HEYGEN_VOICE_SPEED,
+    HEYGEN_BACKGROUND_COLOR_PRESETS,
+    HEYGEN_ENGINE_OPTIONS,
+    HEYGEN_EXPRESSIVENESS_OPTIONS,
+    getHeyGenBackgroundLabel,
+    getHeyGenEngineLabel,
+    getHeyGenExpressivenessLabel,
+    type HeyGenAvatarLookOption,
+    type HeyGenVoiceOption,
+} from '@/common/config/heygen.config';
 import { chunkKeyboardRow } from './keyboard-grid';
 
 export type VideoKeyboardMode =
@@ -24,7 +40,16 @@ export type VideoKeyboardMode =
     | 'quality'
     | 'duration'
     | 'style'
-    | 'effect';
+    | 'effect'
+    | 'heygen_voice'
+    | 'heygen_avatar'
+    | 'heygen_engine'
+    | 'heygen_background'
+    | 'heygen_expressiveness'
+    | 'heygen_speed'
+    | 'heygen_pitch';
+
+export const HEYGEN_PICKER_PAGE_SIZE = 18;
 
 type VideoStyleOption = {
     id: string;
@@ -54,6 +79,7 @@ function hasConfigurableSettings(options: {
                 options.resolutions.length > 0)) ||
         options.qualities.length > 0 ||
         options.durations.length > 0 ||
+        options.toolId === AiToolId.HEYGEN ||
         true
     );
 }
@@ -69,6 +95,10 @@ export function generateVideoEditorReplyKeyboard(
         durations: number[];
         stylePresets: VideoStyleOption[];
         effectPresets?: VideoEffectOption[];
+        heygenVoices?: HeyGenVoiceOption[];
+        heygenAvatars?: HeyGenAvatarLookOption[];
+        heygenVoicePage?: number;
+        heygenAvatarPage?: number;
         step: AiSessionStep;
         keyboardMode: VideoKeyboardMode;
         localeTag: 'ru-RU' | 'en-US';
@@ -127,6 +157,119 @@ export function generateVideoEditorReplyKeyboard(
             i18n,
             options.effectPresets ?? [],
             options.settings.higgsfieldMotionId ?? 'none',
+        );
+    }
+
+    if (options.keyboardMode === 'heygen_voice') {
+        return generateHeygenPagedPickerKeyboard(
+            i18n,
+            (options.heygenVoices ?? []).map((voice) => ({
+                id: voice.id,
+                label: voice.name,
+            })),
+            options.settings.heygenVoiceId,
+            options.heygenVoicePage ?? 0,
+        );
+    }
+
+    if (options.keyboardMode === 'heygen_avatar') {
+        return generateHeygenPagedPickerKeyboard(
+            i18n,
+            (options.heygenAvatars ?? []).map((avatar) => ({
+                id: avatar.id,
+                label: avatar.name,
+            })),
+            options.settings.heygenAvatarId,
+            options.heygenAvatarPage ?? 0,
+        );
+    }
+
+    if (options.keyboardMode === 'heygen_engine') {
+        return generateSimpleHeygenPickerKeyboard(
+            i18n,
+            HEYGEN_ENGINE_OPTIONS.map((option) => ({
+                id: option.id,
+                label:
+                    options.localeTag === 'ru-RU'
+                        ? option.labelRu
+                        : option.labelEn,
+            })),
+            options.settings.heygenEngine ?? DEFAULT_HEYGEN_ENGINE,
+        );
+    }
+
+    if (options.keyboardMode === 'heygen_background') {
+        const items = [
+            {
+                id: 'default',
+                label: getHeyGenBackgroundLabel(
+                    'default',
+                    undefined,
+                    options.localeTag,
+                ),
+            },
+            {
+                id: 'remove',
+                label: getHeyGenBackgroundLabel(
+                    'remove',
+                    undefined,
+                    options.localeTag,
+                ),
+            },
+            ...HEYGEN_BACKGROUND_COLOR_PRESETS.map((preset) => ({
+                id: `color:${preset.id}`,
+                label:
+                    options.localeTag === 'ru-RU'
+                        ? preset.labelRu
+                        : preset.labelEn,
+            })),
+        ];
+        const currentMode =
+            options.settings.heygenBackgroundMode ??
+            DEFAULT_HEYGEN_BACKGROUND_MODE;
+        const currentId =
+            currentMode === 'color'
+                ? `color:${options.settings.heygenBackgroundColor ?? DEFAULT_HEYGEN_BACKGROUND_COLOR}`
+                : currentMode;
+        return generateSimpleHeygenPickerKeyboard(i18n, items, currentId);
+    }
+
+    if (options.keyboardMode === 'heygen_expressiveness') {
+        return generateSimpleHeygenPickerKeyboard(
+            i18n,
+            HEYGEN_EXPRESSIVENESS_OPTIONS.map((option) => ({
+                id: option.id,
+                label:
+                    options.localeTag === 'ru-RU'
+                        ? option.labelRu
+                        : option.labelEn,
+            })),
+            options.settings.heygenExpressiveness ??
+                DEFAULT_HEYGEN_EXPRESSIVENESS,
+        );
+    }
+
+    if (options.keyboardMode === 'heygen_speed') {
+        const speeds = [0.75, 1, 1.25, 1.5];
+        return generateSimpleHeygenPickerKeyboard(
+            i18n,
+            speeds.map((speed) => ({
+                id: String(speed),
+                label: `${speed}x`,
+            })),
+            String(options.settings.heygenVoiceSpeed ?? DEFAULT_HEYGEN_VOICE_SPEED),
+        );
+    }
+
+    if (options.keyboardMode === 'heygen_pitch') {
+        const pitches = [-20, -10, 0, 10, 20];
+        return generateSimpleHeygenPickerKeyboard(
+            i18n,
+            pitches.map((pitch) => ({
+                id: String(pitch),
+                label: String(pitch),
+            })),
+            String(options.settings.heygenVoicePitch ?? DEFAULT_HEYGEN_VOICE_PITCH),
         );
     }
 
@@ -203,6 +346,21 @@ function generateSettingsMenuKeyboard(
         settingButtons.push(i18n.videoTool.changeEffectButton);
     }
 
+    if (options.toolId === AiToolId.HEYGEN) {
+        settingButtons.push(
+            i18n.videoTool.changeHeygenVoiceButton,
+            i18n.videoTool.changeHeygenAvatarButton,
+            i18n.videoTool.changeHeygenEngineButton,
+            i18n.videoTool.toggleHeygenCaptionsButton(
+                Boolean(options.settings.heygenCaptions),
+            ),
+            i18n.videoTool.changeHeygenBackgroundButton,
+            i18n.videoTool.changeHeygenExpressivenessButton,
+            i18n.videoTool.changeHeygenSpeedButton,
+            i18n.videoTool.changeHeygenPitchButton,
+        );
+    }
+
     const rows = chunkKeyboardRow(settingButtons).map((chunk) => [...chunk]);
     rows.push([
         i18n.videoTool.sendAsFileButton(
@@ -210,6 +368,56 @@ function generateSettingsMenuKeyboard(
         ),
     ]);
     rows.push([i18n.videoTool.backToEditor]);
+    return Markup.keyboard(rows).resize();
+}
+
+function generateHeygenPagedPickerKeyboard(
+    i18n: I18nBundle,
+    items: Array<{ id: string; label: string }>,
+    currentId: string | undefined,
+    page: number,
+) {
+    const totalPages = Math.max(
+        1,
+        Math.ceil(items.length / HEYGEN_PICKER_PAGE_SIZE),
+    );
+    const safePage = Math.min(Math.max(0, page), totalPages - 1);
+    const slice = items.slice(
+        safePage * HEYGEN_PICKER_PAGE_SIZE,
+        (safePage + 1) * HEYGEN_PICKER_PAGE_SIZE,
+    );
+
+    const labels = slice.map((item) =>
+        item.id === currentId
+            ? i18n.videoTool.heygenPickerSelected(item.label)
+            : i18n.videoTool.heygenPickerOption(item.label),
+    );
+    const rows = chunkKeyboardRow(labels).map((chunk) => [...chunk]);
+
+    if (totalPages > 1) {
+        const nav: string[] = [];
+        if (safePage > 0) nav.push(i18n.videoTool.heygenPrevPage);
+        nav.push(i18n.videoTool.heygenPageLabel(safePage + 1, totalPages));
+        if (safePage < totalPages - 1) nav.push(i18n.videoTool.heygenNextPage);
+        rows.push(nav);
+    }
+
+    rows.push([i18n.videoTool.backToSettings]);
+    return Markup.keyboard(rows).resize();
+}
+
+function generateSimpleHeygenPickerKeyboard(
+    i18n: I18nBundle,
+    items: Array<{ id: string; label: string }>,
+    currentId: string,
+) {
+    const labels = items.map((item) =>
+        item.id === currentId
+            ? i18n.videoTool.heygenPickerSelected(item.label)
+            : i18n.videoTool.heygenPickerOption(item.label),
+    );
+    const rows = chunkKeyboardRow(labels).map((chunk) => [...chunk]);
+    rows.push([i18n.videoTool.backToSettings]);
     return Markup.keyboard(rows).resize();
 }
 
@@ -348,3 +556,35 @@ function generateEffectPickerKeyboard(
     rows.push([i18n.videoTool.backToSettings]);
     return Markup.keyboard(rows).resize();
 }
+
+export function resolveHeygenPagedSelection(
+    text: string,
+    i18n: I18nBundle,
+    items: Array<{ id: string; label: string }>,
+    page: number,
+): string | null {
+    const totalPages = Math.max(
+        1,
+        Math.ceil(items.length / HEYGEN_PICKER_PAGE_SIZE),
+    );
+    const safePage = Math.min(Math.max(0, page), totalPages - 1);
+    const slice = items.slice(
+        safePage * HEYGEN_PICKER_PAGE_SIZE,
+        (safePage + 1) * HEYGEN_PICKER_PAGE_SIZE,
+    );
+    for (const item of slice) {
+        if (
+            text === i18n.videoTool.heygenPickerOption(item.label) ||
+            text === i18n.videoTool.heygenPickerSelected(item.label)
+        ) {
+            return item.id;
+        }
+    }
+    return null;
+}
+
+export {
+    getHeyGenBackgroundLabel,
+    getHeyGenEngineLabel,
+    getHeyGenExpressivenessLabel,
+};

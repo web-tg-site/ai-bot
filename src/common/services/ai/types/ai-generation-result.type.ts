@@ -36,6 +36,16 @@ export type AiGenerationInput = {
     videoStylePassthrough?: Record<string, string | number | boolean>;
     higgsfieldMotionId?: string;
     higgsfieldMotionStrength?: number;
+    heygenVoiceId?: string;
+    heygenAvatarId?: string;
+    heygenEngine?: 'avatar_iii' | 'avatar_iv' | 'avatar_v';
+    heygenCaptions?: boolean;
+    heygenBackgroundMode?: 'default' | 'remove' | 'color';
+    heygenBackgroundColor?: string;
+    heygenExpressiveness?: 'low' | 'medium' | 'high';
+    heygenMotionPrompt?: string;
+    heygenVoiceSpeed?: number;
+    heygenVoicePitch?: number;
 };
 
 export type AiFileInput = {
