@@ -9,6 +9,7 @@ import {
     Patch,
     Post,
     Query,
+    Req,
     Res,
     StreamableFile,
     UploadedFiles,
@@ -17,7 +18,7 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import {
     IsEnum,
     IsIn,
@@ -41,6 +42,7 @@ import {
 import {
     downloadRemoteFile,
     getAuthHeadersForUrl,
+    streamRemoteFile,
 } from '@/common/utils/download-remote-file';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
 import { ElevenLabsProvider } from '@/common/services/ai/providers/elevenlabs.provider';
@@ -718,7 +720,9 @@ export class AiController {
     async getJobMedia(
         @CurrentUser() current: CurrentUserPayload,
         @Param('jobId') jobId: string,
-        @Res({ passthrough: true }) res: Response,
+        @Query('download') download: string | undefined,
+        @Req() req: Request,
+        @Res() res: Response,
     ) {
         const job = await this.prismaService.aiGenerationJob.findFirst({
             where: { id: jobId, userId: current.id },
@@ -726,7 +730,6 @@ export class AiController {
                 resultUrl: true,
                 status: true,
                 providerJobId: true,
-                toolId: true,
             },
         });
 
@@ -737,27 +740,40 @@ export class AiController {
             );
         }
 
+        const disposition = download === '1' ? 'attachment' : 'inline';
+        const filenameBase = `generation-${jobId.slice(0, 8)}`;
+
         try {
-            const { buffer, mimeType } = await this.resolveJobMedia(
+            const buffered = await this.resolveBufferedJobMedia(
                 job.resultUrl,
                 job.providerJobId,
-                job.toolId as AiToolId,
             );
-            res.setHeader('Content-Type', mimeType);
-            res.setHeader('Cache-Control', 'private, max-age=3600');
-            const ext = mimeType.startsWith('video/')
-                ? 'mp4'
-                : mimeType.startsWith('audio/')
-                  ? 'mp3'
-                  : mimeType.includes('png')
-                    ? 'png'
-                    : 'jpg';
-            res.setHeader(
-                'Content-Disposition',
-                `attachment; filename="generation-${jobId.slice(0, 8)}.${ext}"`,
-            );
-            return new StreamableFile(buffer);
+
+            if (buffered) {
+                const ext = buffered.mimeType.startsWith('video/')
+                    ? 'mp4'
+                    : buffered.mimeType.startsWith('audio/')
+                      ? 'mp3'
+                      : buffered.mimeType.includes('png')
+                        ? 'png'
+                        : 'jpg';
+                const filename = `${filenameBase}.${ext}`;
+                this.sendBufferedMedia(req, res, buffered.buffer, {
+                    mimeType: buffered.mimeType,
+                    disposition,
+                    filename,
+                });
+                return;
+            }
+
+            await streamRemoteFile(job.resultUrl, req, res, {
+                disposition,
+                filename: `${filenameBase}.mp4`,
+            });
         } catch (error) {
+            if (res.headersSent) {
+                return;
+            }
             const message =
                 error instanceof Error
                     ? error.message
@@ -766,11 +782,11 @@ export class AiController {
         }
     }
 
-    private async resolveJobMedia(
+    /** Returns buffer for data URLs and ElevenLabs dubbing; null for streamable remote URLs. */
+    private async resolveBufferedJobMedia(
         resultUrl: string,
         providerJobId: string | null,
-        toolId: AiToolId,
-    ): Promise<{ buffer: Buffer; mimeType: string }> {
+    ): Promise<{ buffer: Buffer; mimeType: string } | null> {
         const dataUrl = parseDataUrl(resultUrl);
         if (dataUrl) {
             return { buffer: dataUrl.buffer, mimeType: dataUrl.mimeType };
@@ -796,6 +812,73 @@ export class AiController {
                 buffer: downloaded.buffer,
                 mimeType: downloaded.mimeType,
             };
+        }
+
+        return null;
+    }
+
+    private sendBufferedMedia(
+        req: Request,
+        res: Response,
+        buffer: Buffer,
+        options: {
+            mimeType: string;
+            disposition: 'inline' | 'attachment';
+            filename: string;
+        },
+    ) {
+        const size = buffer.length;
+        res.setHeader('Content-Type', options.mimeType);
+        res.setHeader('Cache-Control', 'private, max-age=3600');
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.setHeader(
+            'Content-Disposition',
+            `${options.disposition}; filename="${options.filename}"`,
+        );
+
+        const rangeHeader =
+            typeof req.headers.range === 'string' ? req.headers.range : undefined;
+        if (rangeHeader) {
+            const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader);
+            if (match) {
+                const start = match[1] ? Number(match[1]) : 0;
+                const end = match[2] ? Number(match[2]) : size - 1;
+                if (
+                    Number.isFinite(start) &&
+                    Number.isFinite(end) &&
+                    start >= 0 &&
+                    end >= start &&
+                    start < size
+                ) {
+                    const safeEnd = Math.min(end, size - 1);
+                    const chunk = buffer.subarray(start, safeEnd + 1);
+                    res.status(206);
+                    res.setHeader(
+                        'Content-Range',
+                        `bytes ${start}-${safeEnd}/${size}`,
+                    );
+                    res.setHeader('Content-Length', String(chunk.length));
+                    res.end(chunk);
+                    return;
+                }
+            }
+        }
+
+        res.setHeader('Content-Length', String(size));
+        res.end(buffer);
+    }
+
+    private async resolveJobMedia(
+        resultUrl: string,
+        providerJobId: string | null,
+        _toolId: AiToolId,
+    ): Promise<{ buffer: Buffer; mimeType: string }> {
+        const buffered = await this.resolveBufferedJobMedia(
+            resultUrl,
+            providerJobId,
+        );
+        if (buffered) {
+            return buffered;
         }
 
         return downloadRemoteFile(
