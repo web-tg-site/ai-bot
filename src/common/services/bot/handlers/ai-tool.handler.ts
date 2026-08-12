@@ -125,6 +125,8 @@ import {
     generateAudioToolReplyKeyboard,
     isAudioDeliveryTool,
     audioToolSupportsDuration,
+    audioToolSupportsSunoControls,
+    buildSunoSettingsSummary,
     AudioToolKeyboardMode,
 } from '../keyboards/audio-tool.keyboard';
 import {
@@ -132,6 +134,11 @@ import {
     resolveAudioToolButtonAction,
     resolveAudioToolDurationSeconds,
 } from '../utils/audio-tool-buttons';
+import {
+    getSunoGenreById,
+    getSunoMoodById,
+    hasSunoGenerationSeed,
+} from '@/common/config/suno-audio.config';
 import {
     isAudioTool,
     sendGenerationResultWithDelivery,
@@ -422,6 +429,7 @@ async function selectTool(
             gptReplyMode: gptDefaults.gptReplyMode,
             voiceToolSettings: toolSettings,
             voiceKeyboardMode: 'main',
+            awaitingSunoLyrics: false,
             activeCategory: session.ai?.activeCategory,
         };
     } else {
@@ -547,6 +555,10 @@ async function selectTool(
             );
             const tokens = calculateToolTokenCost(tool, { durationSeconds });
             parts.push(i18n.voiceTool.durationLine(durationSeconds, tokens));
+        }
+
+        if (audioToolSupportsSunoControls(toolId)) {
+            parts.push(...buildSunoSettingsSummary(i18n, settings));
         }
 
         parts.push(
@@ -2379,11 +2391,10 @@ async function handleAudioToolButtonPress(
         nextSettings = settings,
     ) => generateAudioToolReplyKeyboard(i18n, toolId, nextSettings, mode);
 
-    if (action.type === 'open_settings') {
-        session.ai.voiceKeyboardMode = 'settings';
+    const buildSettingsParts = (nextSettings = settings) => {
         const durationSeconds = resolveAudioToolDurationSeconds(
             toolId,
-            settings,
+            nextSettings,
         );
         const tool = getToolById(toolId);
         const tokens = tool
@@ -2392,11 +2403,22 @@ async function handleAudioToolButtonPress(
         const parts = [
             i18n.voiceTool.parametersMenuTitle,
             i18n.voiceTool.durationLine(durationSeconds, tokens),
-            i18n.voiceTool.deliveryLine(
-                resolveVoiceSendAsFile(toolId, settings),
-            ),
         ];
-        await ctx.reply(parts.join('\n\n'), {
+        if (audioToolSupportsSunoControls(toolId)) {
+            parts.push(...buildSunoSettingsSummary(i18n, nextSettings));
+        }
+        parts.push(
+            i18n.voiceTool.deliveryLine(
+                resolveVoiceSendAsFile(toolId, nextSettings),
+            ),
+        );
+        return parts;
+    };
+
+    if (action.type === 'open_settings') {
+        session.ai.awaitingSunoLyrics = false;
+        session.ai.voiceKeyboardMode = 'settings';
+        await ctx.reply(buildSettingsParts().join('\n\n'), {
             ...replyKeyboard('settings'),
             parse_mode: 'HTML',
         });
@@ -2404,6 +2426,7 @@ async function handleAudioToolButtonPress(
     }
 
     if (action.type === 'open_duration') {
+        session.ai.awaitingSunoLyrics = false;
         session.ai.voiceKeyboardMode = 'duration';
         await ctx.reply(i18n.voiceTool.selectDurationTitle, {
             ...replyKeyboard('duration'),
@@ -2412,32 +2435,48 @@ async function handleAudioToolButtonPress(
         return true;
     }
 
+    if (action.type === 'open_genre') {
+        session.ai.awaitingSunoLyrics = false;
+        session.ai.voiceKeyboardMode = 'genre';
+        await ctx.reply(i18n.voiceTool.selectGenreTitle, {
+            ...replyKeyboard('genre'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'open_mood') {
+        session.ai.awaitingSunoLyrics = false;
+        session.ai.voiceKeyboardMode = 'mood';
+        await ctx.reply(i18n.voiceTool.selectMoodTitle, {
+            ...replyKeyboard('mood'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'open_lyrics') {
+        session.ai.awaitingSunoLyrics = true;
+        session.ai.voiceKeyboardMode = 'lyrics';
+        await ctx.reply(i18n.voiceTool.enterLyricsTitle, {
+            ...replyKeyboard('lyrics'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
     if (action.type === 'back_to_settings') {
+        session.ai.awaitingSunoLyrics = false;
         session.ai.voiceKeyboardMode = 'settings';
-        const durationSeconds = resolveAudioToolDurationSeconds(
-            toolId,
-            settings,
-        );
-        const tool = getToolById(toolId);
-        const tokens = tool
-            ? calculateToolTokenCost(tool, { durationSeconds })
-            : 0;
-        await ctx.reply(
-            [
-                i18n.voiceTool.durationLine(durationSeconds, tokens),
-                i18n.voiceTool.deliveryLine(
-                    resolveVoiceSendAsFile(toolId, settings),
-                ),
-            ].join('\n\n'),
-            {
-                ...replyKeyboard('settings'),
-                parse_mode: 'HTML',
-            },
-        );
+        await ctx.reply(buildSettingsParts().join('\n\n'), {
+            ...replyKeyboard('settings'),
+            parse_mode: 'HTML',
+        });
         return true;
     }
 
     if (action.type === 'back_to_editor') {
+        session.ai.awaitingSunoLyrics = false;
         session.ai.voiceKeyboardMode = 'main';
         const label = getToolLabel(toolId, user.language);
         const instruction = getToolInstruction(toolId, user.language);
@@ -2449,24 +2488,28 @@ async function handleAudioToolButtonPress(
         const tokens = tool
             ? calculateToolTokenCost(tool, { durationSeconds })
             : 0;
-        await ctx.reply(
-            [
-                i18n.aiResult.toolSelected(label, instruction),
-                i18n.voiceTool.durationLine(durationSeconds, tokens),
-                i18n.voiceTool.deliveryLine(
-                    resolveVoiceSendAsFile(toolId, settings),
-                ),
-                i18n.voiceTool.promptHint,
-            ].join('\n\n'),
-            {
-                ...replyKeyboard('main'),
-                parse_mode: 'HTML',
-            },
+        const parts = [
+            i18n.aiResult.toolSelected(label, instruction),
+            i18n.voiceTool.durationLine(durationSeconds, tokens),
+        ];
+        if (audioToolSupportsSunoControls(toolId)) {
+            parts.push(...buildSunoSettingsSummary(i18n, settings));
+        }
+        parts.push(
+            i18n.voiceTool.deliveryLine(
+                resolveVoiceSendAsFile(toolId, settings),
+            ),
+            i18n.voiceTool.promptHint,
         );
+        await ctx.reply(parts.join('\n\n'), {
+            ...replyKeyboard('main'),
+            parse_mode: 'HTML',
+        });
         return true;
     }
 
     if (action.type === 'toggle_send_as_file') {
+        session.ai.awaitingSunoLyrics = false;
         const nextSendAsFile = !resolveVoiceSendAsFile(toolId, settings);
         const nextSettings =
             await deps.userAiToolSettingsModelService.upsertVoiceSettings(
@@ -2487,7 +2530,59 @@ async function handleAudioToolButtonPress(
         return true;
     }
 
+    if (action.type === 'toggle_instrumental') {
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVoiceSettings(
+                user.id,
+                toolId,
+                { sunoInstrumental: !settings.sunoInstrumental },
+            );
+        session.ai.voiceToolSettings = nextSettings;
+        session.ai.voiceKeyboardMode = 'settings';
+        await ctx.reply(
+            [
+                i18n.voiceTool.instrumentalChanged(
+                    Boolean(nextSettings.sunoInstrumental),
+                ),
+                ...buildSunoSettingsSummary(i18n, nextSettings),
+            ].join('\n\n'),
+            {
+                ...replyKeyboard('settings', nextSettings),
+                parse_mode: 'HTML',
+            },
+        );
+        return true;
+    }
+
+    if (action.type === 'clear_lyrics') {
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVoiceSettings(
+                user.id,
+                toolId,
+                { sunoLyrics: '' },
+            );
+        nextSettings.sunoLyrics = undefined;
+        session.ai.voiceToolSettings = {
+            ...nextSettings,
+            sunoLyrics: undefined,
+        };
+        session.ai.awaitingSunoLyrics = false;
+        session.ai.voiceKeyboardMode = 'settings';
+        await ctx.reply(
+            [
+                i18n.voiceTool.lyricsCleared,
+                ...buildSunoSettingsSummary(i18n, session.ai.voiceToolSettings),
+            ].join('\n\n'),
+            {
+                ...replyKeyboard('settings', session.ai.voiceToolSettings),
+                parse_mode: 'HTML',
+            },
+        );
+        return true;
+    }
+
     if (action.type === 'set_duration') {
+        session.ai.awaitingSunoLyrics = false;
         const nextSettings =
             await deps.userAiToolSettingsModelService.upsertVoiceSettings(
                 user.id,
@@ -2506,6 +2601,55 @@ async function handleAudioToolButtonPress(
                 i18n.voiceTool.deliveryLine(
                     resolveVoiceSendAsFile(toolId, nextSettings),
                 ),
+            ].join('\n\n'),
+            {
+                ...replyKeyboard('settings', nextSettings),
+                parse_mode: 'HTML',
+            },
+        );
+        return true;
+    }
+
+    if (action.type === 'set_genre') {
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVoiceSettings(
+                user.id,
+                toolId,
+                { sunoGenreId: action.value },
+            );
+        session.ai.voiceToolSettings = nextSettings;
+        session.ai.voiceKeyboardMode = 'settings';
+        const genre = getSunoGenreById(action.value);
+        const label =
+            i18n.localeTag === 'en-US' ? genre.labelEn : genre.labelRu;
+        await ctx.reply(
+            [
+                i18n.voiceTool.genreChanged(label),
+                ...buildSunoSettingsSummary(i18n, nextSettings),
+            ].join('\n\n'),
+            {
+                ...replyKeyboard('settings', nextSettings),
+                parse_mode: 'HTML',
+            },
+        );
+        return true;
+    }
+
+    if (action.type === 'set_mood') {
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVoiceSettings(
+                user.id,
+                toolId,
+                { sunoMoodId: action.value },
+            );
+        session.ai.voiceToolSettings = nextSettings;
+        session.ai.voiceKeyboardMode = 'settings';
+        const mood = getSunoMoodById(action.value);
+        const label = i18n.localeTag === 'en-US' ? mood.labelEn : mood.labelRu;
+        await ctx.reply(
+            [
+                i18n.voiceTool.moodChanged(label),
+                ...buildSunoSettingsSummary(i18n, nextSettings),
             ].join('\n\n'),
             {
                 ...replyKeyboard('settings', nextSettings),
@@ -2598,6 +2742,38 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
             user,
         ))
     ) {
+        return;
+    }
+
+    if (
+        toolId === AiToolId.SUNO &&
+        session.ai?.awaitingSunoLyrics &&
+        text?.trim()
+    ) {
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertVoiceSettings(
+                user.id,
+                toolId,
+                { sunoLyrics: text.trim() },
+            );
+        session.ai.voiceToolSettings = nextSettings;
+        session.ai.awaitingSunoLyrics = false;
+        session.ai.voiceKeyboardMode = 'settings';
+        await ctx.reply(
+            [
+                i18n.voiceTool.lyricsSaved,
+                ...buildSunoSettingsSummary(i18n, nextSettings),
+            ].join('\n\n'),
+            {
+                ...generateAudioToolReplyKeyboard(
+                    i18n,
+                    toolId,
+                    nextSettings,
+                    'settings',
+                ),
+                parse_mode: 'HTML',
+            },
+        );
         return;
     }
 
@@ -2715,6 +2891,40 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
     }
 
     if (!text && files.length === 0) {
+        if (toolId === AiToolId.SUNO) {
+            const sunoSettings = session.ai?.voiceToolSettings ?? {};
+            if (
+                hasSunoGenerationSeed({
+                    prompt: text,
+                    lyrics: sunoSettings.sunoLyrics,
+                    instrumental: sunoSettings.sunoInstrumental,
+                    genreId: sunoSettings.sunoGenreId,
+                    moodId: sunoSettings.sunoMoodId,
+                })
+            ) {
+                const input = await buildAiGenerationInput(
+                    deps,
+                    session,
+                    toolId,
+                    text,
+                    files,
+                    tool,
+                    i18n,
+                );
+                await runGeneration(
+                    ctx,
+                    deps,
+                    toolId,
+                    tool,
+                    input,
+                    session,
+                    text,
+                    i18n,
+                    user,
+                );
+                return;
+            }
+        }
         await ctx.reply(i18n.aiResult.sendTextOrFile);
         return;
     }
@@ -2949,6 +3159,18 @@ async function buildAiGenerationInput(
         heygenVoicePitch:
             toolId === AiToolId.HEYGEN
                 ? videoSettings?.heygenVoicePitch
+                : undefined,
+        sunoGenreId:
+            toolId === AiToolId.SUNO ? voiceSettings?.sunoGenreId : undefined,
+        sunoMoodId:
+            toolId === AiToolId.SUNO ? voiceSettings?.sunoMoodId : undefined,
+        sunoInstrumental:
+            toolId === AiToolId.SUNO
+                ? Boolean(voiceSettings?.sunoInstrumental)
+                : undefined,
+        sunoLyrics:
+            toolId === AiToolId.SUNO
+                ? voiceSettings?.sunoLyrics?.trim() || undefined
                 : undefined,
     };
 }

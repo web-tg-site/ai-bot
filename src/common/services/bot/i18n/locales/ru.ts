@@ -421,7 +421,7 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.SOUND_GENERATOR]:
                 'Опишите именно звук, а не сцену (лучше: «стук каблуков по металлу», а не «девушка идёт»). Длительность — в «⚙️ Параметры».',
             [AiToolId.SUNO]:
-                'Отправьте текстом описание песни (жанр, настроение, темп, вокал) — генерация начнётся сразу. Параметры (длительность, формат) — в «⚙️ Параметры».',
+                'Отправьте текстом описание песни — генерация начнётся сразу. Жанр, настроение, инструментал и текст песни — в «⚙️ Параметры».',
         },
     },
     gptChat: {
@@ -749,6 +749,43 @@ ${getTariffIncludesText(type, plan, ru)}
             '✍️ Отправьте промпт сообщением — генерация запустится сразу.',
         settingsButton: '⚙️ Параметры',
         changeDurationButton: '⏱ Изменить длительность',
+        changeGenreButton: (currentLabel) => `🎵 Жанр: ${currentLabel}`,
+        changeMoodButton: (currentLabel) => `🌤 Настроение: ${currentLabel}`,
+        instrumentalButton: (enabled) =>
+            enabled ? '✓ Инструментал' : '🎹 Инструментал',
+        lyricsButton: (hasLyrics) =>
+            hasLyrics ? '✓ Текст песни' : '📝 Текст песни',
+        clearLyricsButton: '🗑 Очистить текст песни',
+        genrePickerOption: (label) => label,
+        genrePickerSelected: (label) => `✓ ${label}`,
+        moodPickerOption: (label) => label,
+        moodPickerSelected: (label) => `✓ ${label}`,
+        selectGenreTitle: 'Выберите жанр:',
+        selectMoodTitle: 'Выберите настроение:',
+        enterLyricsTitle:
+            'Отправьте текст песни следующим сообщением. Можно очистить сохранённый текст кнопкой ниже.',
+        lyricsSaved: 'Текст песни сохранён.',
+        lyricsCleared: 'Текст песни очищен.',
+        genreChanged: (label) => `Жанр: <b>${label}</b>`,
+        moodChanged: (label) => `Настроение: <b>${label}</b>`,
+        instrumentalChanged: (enabled) =>
+            enabled
+                ? 'Режим: <b>инструментал</b> (без вокала)'
+                : 'Режим: <b>с вокалом</b>',
+        genreLine: (label, active) =>
+            active ? `Жанр: <b>${label}</b>` : 'Жанр: <b>не выбран</b>',
+        moodLine: (label, active) =>
+            active
+                ? `Настроение: <b>${label}</b>`
+                : 'Настроение: <b>не выбрано</b>',
+        instrumentalLine: (enabled) =>
+            enabled
+                ? 'Вокал: <b>инструментал</b>'
+                : 'Вокал: <b>с вокалом</b>',
+        lyricsLine: (hasLyrics) =>
+            hasLyrics
+                ? 'Текст песни: <b>задан</b>'
+                : 'Текст песни: <b>не задан</b>',
         backToSettings: '◀️ Назад',
         selectDurationTitle: 'Выберите длительность:',
         parametersMenuTitle: 'Параметры',

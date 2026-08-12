@@ -6,7 +6,11 @@ import {
     ElevenLabsVoiceOption,
     getDefaultElevenLabsVoiceId,
 } from '@/common/config/elevenlabs-voices.config';
-import { normalizeSunoDuration } from '@/common/config/suno-audio.config';
+import {
+    normalizeSunoDuration,
+    normalizeSunoGenreId,
+    normalizeSunoMoodId,
+} from '@/common/config/suno-audio.config';
 import { normalizeSoundGeneratorDuration } from '@/common/config/sound-generator.config';
 import { I18nBundle, getToolInstruction, getToolLabel } from '../i18n';
 import { UserLanguage } from '@/generated/prisma/enums';
@@ -36,6 +40,10 @@ export async function loadVoiceToolSettings(
         settings.durationSeconds = normalizeSunoDuration(
             stored.durationSeconds,
         );
+        settings.sunoGenreId = normalizeSunoGenreId(stored.sunoGenreId);
+        settings.sunoMoodId = normalizeSunoMoodId(stored.sunoMoodId);
+        settings.sunoInstrumental = Boolean(stored.sunoInstrumental);
+        settings.sunoLyrics = stored.sunoLyrics?.trim() || undefined;
     }
 
     if (toolId === AiToolId.SOUND_GENERATOR) {
@@ -48,7 +56,16 @@ export async function loadVoiceToolSettings(
 }
 
 export function getVoiceKeyboardMode(session: BotSession): VoiceKeyboardMode {
-    return session.ai?.voiceKeyboardMode ?? 'main';
+    const mode = session.ai?.voiceKeyboardMode ?? 'main';
+    if (
+        mode === 'main' ||
+        mode === 'settings' ||
+        mode === 'preview' ||
+        mode === 'duration'
+    ) {
+        return mode;
+    }
+    return 'main';
 }
 
 export function buildElevenLabsVoiceMainScreenText(

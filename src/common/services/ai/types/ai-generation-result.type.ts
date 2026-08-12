@@ -46,6 +46,10 @@ export type AiGenerationInput = {
     heygenMotionPrompt?: string;
     heygenVoiceSpeed?: number;
     heygenVoicePitch?: number;
+    sunoGenreId?: string;
+    sunoMoodId?: string;
+    sunoInstrumental?: boolean;
+    sunoLyrics?: string;
 };
 
 export type AiFileInput = {

@@ -6,6 +6,10 @@ import { randomUUID } from 'crypto';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { getToolById } from '@/common/config/ai-tools.registry';
 import {
+    buildSunoStyleTags,
+    hasSunoGenerationSeed,
+} from '@/common/config/suno-audio.config';
+import {
     AiGenerationInput,
     AiGenerationResult,
     AiJobCreateResult,
@@ -315,23 +319,55 @@ export class SharpiiProvider {
         model: string,
         input: AiGenerationInput,
     ): Promise<AiJobCreateResult> {
-        const prompt = input.prompt?.trim();
-        if (!prompt) {
+        const instrumental = Boolean(input.sunoInstrumental);
+        const lyrics = input.sunoLyrics?.trim();
+        const style = buildSunoStyleTags({
+            genreId: input.sunoGenreId,
+            moodId: input.sunoMoodId,
+        });
+
+        if (
+            !hasSunoGenerationSeed({
+                prompt: input.prompt,
+                lyrics,
+                instrumental,
+                genreId: input.sunoGenreId,
+                moodId: input.sunoMoodId,
+            })
+        ) {
             throw new Error('Отправьте описание стиля песни');
         }
+
+        const prompt =
+            input.prompt?.trim() ||
+            style ||
+            (!instrumental && lyrics ? lyrics : undefined) ||
+            'instrumental track';
 
         const duration = Math.min(
             240,
             Math.max(5, input.durationSeconds ?? 30),
         );
 
+        const body: Record<string, string | number | boolean> = {
+            model,
+            prompt: prompt.slice(0, 2000),
+            duration,
+        };
+
+        if (style) {
+            body.style = style;
+        }
+        if (!instrumental && lyrics) {
+            body.lyrics = lyrics.slice(0, 5000);
+        }
+        if (instrumental) {
+            body.instrumental = true;
+        }
+
         const response = await this.post<SharpiiTaskSubmitResponse>(
             '/v1/audio/music',
-            {
-                model,
-                prompt: prompt.slice(0, 2000),
-                duration,
-            },
+            body,
         );
 
         const taskId = response.data?.task?.id;

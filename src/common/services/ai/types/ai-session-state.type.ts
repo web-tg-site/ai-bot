@@ -67,7 +67,15 @@ export type BotSession = {
             | 'heygen_expressiveness'
             | 'heygen_speed'
             | 'heygen_pitch';
-        voiceKeyboardMode?: 'main' | 'settings' | 'preview' | 'duration';
+        voiceKeyboardMode?:
+            | 'main'
+            | 'settings'
+            | 'preview'
+            | 'duration'
+            | 'genre'
+            | 'mood'
+            | 'lyrics';
+        awaitingSunoLyrics?: boolean;
         pendingElevenLabsVoiceId?: string;
         accessibleElevenLabsVoices?: Array<{
             id: string;

@@ -133,6 +133,10 @@ export class UserAiToolSettingsModelService {
                 stored.elevenLabsVoiceId ?? getDefaultElevenLabsVoiceId(),
             sendAsFile: stored.sendAsFile,
             durationSeconds: stored.durationSeconds,
+            sunoGenreId: stored.sunoGenreId,
+            sunoMoodId: stored.sunoMoodId,
+            sunoInstrumental: stored.sunoInstrumental,
+            sunoLyrics: stored.sunoLyrics,
         };
     }
 

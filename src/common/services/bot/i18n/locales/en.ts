@@ -421,7 +421,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.SOUND_GENERATOR]:
                 'Describe the sound itself, not a scene (e.g. «heels on metal floor», not «a girl walks»). Duration is under “⚙️ Settings”.',
             [AiToolId.SUNO]:
-                'Send a text description of the song (genre, mood, tempo, vocals) — generation starts right away. Duration and delivery are under “⚙️ Settings”.',
+                'Send a text description of the song — generation starts right away. Genre, mood, instrumental, and lyrics are under “⚙️ Settings”.',
         },
     },
     gptChat: {
@@ -748,6 +748,39 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             '✍️ Send a prompt as a message — generation will start immediately.',
         settingsButton: '⚙️ Settings',
         changeDurationButton: '⏱ Change duration',
+        changeGenreButton: (currentLabel) => `🎵 Genre: ${currentLabel}`,
+        changeMoodButton: (currentLabel) => `🌤 Mood: ${currentLabel}`,
+        instrumentalButton: (enabled) =>
+            enabled ? '✓ Instrumental' : '🎹 Instrumental',
+        lyricsButton: (hasLyrics) =>
+            hasLyrics ? '✓ Lyrics' : '📝 Lyrics',
+        clearLyricsButton: '🗑 Clear lyrics',
+        genrePickerOption: (label) => label,
+        genrePickerSelected: (label) => `✓ ${label}`,
+        moodPickerOption: (label) => label,
+        moodPickerSelected: (label) => `✓ ${label}`,
+        selectGenreTitle: 'Choose genre:',
+        selectMoodTitle: 'Choose mood:',
+        enterLyricsTitle:
+            'Send the song lyrics as your next message. You can clear saved lyrics with the button below.',
+        lyricsSaved: 'Lyrics saved.',
+        lyricsCleared: 'Lyrics cleared.',
+        genreChanged: (label) => `Genre: <b>${label}</b>`,
+        moodChanged: (label) => `Mood: <b>${label}</b>`,
+        instrumentalChanged: (enabled) =>
+            enabled
+                ? 'Mode: <b>instrumental</b> (no vocals)'
+                : 'Mode: <b>with vocals</b>',
+        genreLine: (label, active) =>
+            active ? `Genre: <b>${label}</b>` : 'Genre: <b>not set</b>',
+        moodLine: (label, active) =>
+            active ? `Mood: <b>${label}</b>` : 'Mood: <b>not set</b>',
+        instrumentalLine: (enabled) =>
+            enabled
+                ? 'Vocals: <b>instrumental</b>'
+                : 'Vocals: <b>with vocals</b>',
+        lyricsLine: (hasLyrics) =>
+            hasLyrics ? 'Lyrics: <b>set</b>' : 'Lyrics: <b>not set</b>',
         backToSettings: '◀️ Back',
         selectDurationTitle: 'Select duration:',
         parametersMenuTitle: 'Settings',

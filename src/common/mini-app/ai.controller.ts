@@ -157,6 +157,22 @@ class GenerateBodyDto {
     @IsOptional()
     @IsIn(['text', 'audio', 'both'])
     gptReplyMode?: 'text' | 'audio' | 'both';
+
+    @IsOptional()
+    @IsString()
+    sunoGenreId?: string;
+
+    @IsOptional()
+    @IsString()
+    sunoMoodId?: string;
+
+    @IsOptional()
+    @IsString()
+    sunoInstrumental?: string;
+
+    @IsOptional()
+    @IsString()
+    sunoLyrics?: string;
 }
 
 class SavedPromptBodyDto {
@@ -388,6 +404,12 @@ export class AiController {
                         body.gptWebSearch === 'true' ||
                         body.gptWebSearch === '1',
                     gptReplyMode: body.gptReplyMode,
+                    sunoGenreId: body.sunoGenreId,
+                    sunoMoodId: body.sunoMoodId,
+                    sunoInstrumental:
+                        body.sunoInstrumental === 'true' ||
+                        body.sunoInstrumental === '1',
+                    sunoLyrics: body.sunoLyrics,
                 },
             });
         } catch (error) {
