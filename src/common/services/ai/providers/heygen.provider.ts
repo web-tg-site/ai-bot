@@ -39,6 +39,14 @@ type HeyGenVoiceRaw = {
     gender?: string | null;
     preview_audio?: string | null;
     preview_url?: string | null;
+    preview_audio_url?: string | null;
+};
+
+type HeyGenListResponse<T> = {
+    data?: T[] | { voices?: T[]; looks?: T[]; items?: T[]; next_token?: string | null; has_more?: boolean };
+    voices?: T[];
+    next_token?: string | null;
+    has_more?: boolean;
 };
 
 type ListCache<T> = {
@@ -347,33 +355,26 @@ export class HeyGenProvider {
         const items: HeyGenVoiceOption[] = [];
         let token: string | undefined;
 
-        for (let page = 0; page < 50; page += 1) {
+        for (let page = 0; page < 5; page += 1) {
             const params = new URLSearchParams({
                 type: 'public',
                 limit: '100',
             });
             if (token) params.set('token', token);
 
-            const response = await this.get<{
-                data?: {
-                    voices?: HeyGenVoiceRaw[];
-                    next_token?: string | null;
-                    has_more?: boolean;
-                };
-                voices?: HeyGenVoiceRaw[];
-            }>(`/v3/voices?${params.toString()}`);
+            const response = await this.get<HeyGenListResponse<HeyGenVoiceRaw>>(
+                `/v3/voices?${params.toString()}`,
+            );
+            const { items: pageItems, nextToken, hasMore } =
+                this.unwrapListPage(response, 'voices');
 
-            const pageVoices =
-                response.data?.voices ?? response.voices ?? [];
-            for (const raw of pageVoices) {
+            for (const raw of pageItems) {
                 const mapped = this.mapVoice(raw);
                 if (mapped) items.push(mapped);
             }
 
-            const next = response.data?.next_token ?? undefined;
-            const hasMore = response.data?.has_more;
-            if (!next || hasMore === false) break;
-            token = next;
+            if (!nextToken || hasMore === false) break;
+            token = nextToken;
         }
 
         return items;
@@ -383,47 +384,67 @@ export class HeyGenProvider {
         const items: HeyGenAvatarLookOption[] = [];
         let token: string | undefined;
 
-        for (let page = 0; page < 50; page += 1) {
+        for (let page = 0; page < 5; page += 1) {
             const params = new URLSearchParams({
                 ownership: 'public',
                 limit: '100',
             });
             if (token) params.set('token', token);
 
-            const response = await this.get<{
-                data?:
-                    | HeyGenAvatarLookRaw[]
-                    | {
-                          looks?: HeyGenAvatarLookRaw[];
-                          items?: HeyGenAvatarLookRaw[];
-                          next_token?: string | null;
-                          has_more?: boolean;
-                      };
-            }>(`/v3/avatars/looks?${params.toString()}`);
+            const response = await this.get<
+                HeyGenListResponse<HeyGenAvatarLookRaw>
+            >(`/v3/avatars/looks?${params.toString()}`);
+            const { items: pageItems, nextToken, hasMore } =
+                this.unwrapListPage(response, 'looks');
 
-            const data = response.data;
-            let pageLooks: HeyGenAvatarLookRaw[] = [];
-            let next: string | undefined;
-            let hasMore: boolean | undefined;
-
-            if (Array.isArray(data)) {
-                pageLooks = data;
-            } else if (data && typeof data === 'object') {
-                pageLooks = data.looks ?? data.items ?? [];
-                next = data.next_token ?? undefined;
-                hasMore = data.has_more;
-            }
-
-            for (const raw of pageLooks) {
+            for (const raw of pageItems) {
                 const mapped = this.mapLook(raw);
                 if (mapped) items.push(mapped);
             }
 
-            if (!next || hasMore === false) break;
-            token = next;
+            if (!nextToken || hasMore === false) break;
+            token = nextToken;
         }
 
         return items;
+    }
+
+    private unwrapListPage<T>(
+        response: HeyGenListResponse<T>,
+        nestedKey: 'voices' | 'looks',
+    ): {
+        items: T[];
+        nextToken?: string;
+        hasMore?: boolean;
+    } {
+        const data = response.data;
+
+        if (Array.isArray(data)) {
+            return {
+                items: data,
+                nextToken: response.next_token ?? undefined,
+                hasMore: response.has_more,
+            };
+        }
+
+        if (data && typeof data === 'object') {
+            const nested =
+                nestedKey === 'voices'
+                    ? (data.voices ?? data.items ?? [])
+                    : (data.looks ?? data.items ?? []);
+            return {
+                items: nested,
+                nextToken:
+                    data.next_token ?? response.next_token ?? undefined,
+                hasMore: data.has_more ?? response.has_more,
+            };
+        }
+
+        return {
+            items: response.voices ?? [],
+            nextToken: response.next_token ?? undefined,
+            hasMore: response.has_more,
+        };
     }
 
     private mapVoice(raw: HeyGenVoiceRaw): HeyGenVoiceOption | null {
@@ -434,7 +455,11 @@ export class HeyGenProvider {
             name: raw.name?.trim() || id,
             language: raw.language ?? null,
             gender: raw.gender ?? null,
-            previewUrl: raw.preview_audio ?? raw.preview_url ?? null,
+            previewUrl:
+                raw.preview_audio_url ??
+                raw.preview_audio ??
+                raw.preview_url ??
+                null,
         };
     }
 
