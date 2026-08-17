@@ -3,7 +3,7 @@ FROM node:22-slim AS deps
 WORKDIR /app
 ENV HUSKY=0
 RUN apt-get update && apt-get install -y openssl
-COPY package.json yarn.lock .yarnrc.yml ./
+COPY package.json yarn.lock ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 RUN yarn install --frozen-lockfile
@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y openssl ffmpeg && rm -rf /var/lib/apt/l
 
 RUN mkdir -p /app/storage/voice-previews && chown -R node:node /app/storage
 
-COPY --chown=node:node package.json .yarnrc.yml ./
+COPY --chown=node:node package.json ./
 COPY --chown=node:node --from=builder /app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /app/dist ./dist
 COPY --chown=node:node --from=builder /app/prisma ./prisma
