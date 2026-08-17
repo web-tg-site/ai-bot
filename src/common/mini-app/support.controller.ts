@@ -2,7 +2,7 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { TelegramJwtGuard } from '@/common/auth';
 import { BotService } from '@/common/services/bot';
-import { SUPPORT_DOCUMENTS } from '@/common/config';
+import { SUPPORT_DOCUMENTS } from '@/common/config/support-docs.config';
 import {
     SUPPORT_EMAIL,
     TECH_SUPPORT_START_PAYLOAD,

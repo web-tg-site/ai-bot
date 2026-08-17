@@ -1,4 +1,5 @@
-import { BOT_NAME, SUPPORT_DOCUMENT_URLS } from '@/common/config';
+import { BOT_NAME } from '@/common/config';
+import { SUPPORT_DOCUMENT_URLS } from '@/common/config/support-docs.config';
 import { SUPPORT_EMAIL } from '../../utils/format-tech-support';
 import { AiToolId } from '@/common/services/ai/types';
 import {
