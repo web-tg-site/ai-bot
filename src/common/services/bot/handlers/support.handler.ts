@@ -4,6 +4,7 @@ import { Context, Telegraf } from 'telegraf';
 import { getSupportInnerKeyboard, getSupportKeyboard } from '../keyboards';
 import { getI18nForUser } from '../i18n';
 import { registerLocalizedHears } from '../i18n/register-localized-hears';
+import { enterTechSupport } from '../utils/enter-tech-support';
 import {
     formatTechSupportMessage,
     MIN_TECH_SUPPORT_TEXT_LENGTH,
@@ -60,21 +61,7 @@ export const registerSupportHandler = (
         async (ctx) => {
             if (!ctx.from) return;
 
-            const session = getSession(ctx);
-            session.pendingTechSupport = true;
-            session.pendingRubPayment = undefined;
-
-            const user = await userModelService.getUserByTelegramId(
-                ctx.from.id.toString(),
-            );
-            const i18n = getI18nForUser(user);
-
-            await userModelService.updateUserLastActivityAt(
-                ctx.from.id.toString(),
-            );
-            await ctx.reply(i18n.support.telegram, {
-                ...getSupportInnerKeyboard(i18n),
-            });
+            await enterTechSupport(ctx, userModelService);
         },
     );
 

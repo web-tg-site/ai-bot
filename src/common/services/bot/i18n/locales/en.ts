@@ -1,4 +1,5 @@
-import { BOT_NAME } from '@/common/config';
+import { BOT_NAME, SUPPORT_DOCUMENT_URLS } from '@/common/config';
+import { SUPPORT_EMAIL } from '../../utils/format-tech-support';
 import { AiToolId } from '@/common/services/ai/types';
 import {
     SubscribePlan,
@@ -321,16 +322,16 @@ We've received your request and will start working on your issue shortly. If we 
         telegramSendFailed: `Failed to send your request. Please try again later.`,
         email: `💬 <b>${BOT_NAME} support</b>
 
-Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
+Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
         privacyPolicy: `📄 <b>Personal Data Processing Policy</b>
 
-<a href="https://docs.google.com/document/d/1sRw7-MkYo_SoqeSJOFOYQzccq8O_no-O/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Open document</a>`,
+<a href="${SUPPORT_DOCUMENT_URLS.privacyPolicy}">Open document</a>`,
         userAgreement: `📄 <b>User Agreement</b>
 
-<a href="https://docs.google.com/document/d/1qOlS8jTUKMBUeDQ7z0AGU7RCV_cAc830/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Open document</a>`,
+<a href="${SUPPORT_DOCUMENT_URLS.userAgreement}">Open document</a>`,
         refundPolicy: `📄 <b>Refund Policy</b>
 
-<a href="https://docs.google.com/document/d/1Vt0GgEPtXIDL54hxcNjT9iGlu_6ERFwT/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Open document</a>`,
+<a href="${SUPPORT_DOCUMENT_URLS.refundPolicy}">Open document</a>`,
     },
     records: {
         subPlanToPeriod: {

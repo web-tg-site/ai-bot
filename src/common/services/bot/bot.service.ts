@@ -39,6 +39,7 @@ import {
 @Injectable()
 export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
     private readonly bot: Telegraf<Context & { session: BotSession }>;
+    private botUsername: string | undefined;
 
     constructor(
         @InjectPinoLogger(BotService.name)
@@ -91,6 +92,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         this.registerHandlers();
 
         const me = await this.bot.telegram.getMe();
+        this.botUsername = me.username;
         this.cryptoPayService.setBotUsername(me.username);
         this.logger.info({ username: me.username }, 'Bot starting');
 
@@ -133,6 +135,10 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
             });
 
         this.logger.info('Bot launch initiated');
+    }
+
+    public getUsername(): string | undefined {
+        return this.botUsername;
     }
 
     public onModuleDestroy() {

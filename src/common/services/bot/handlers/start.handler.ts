@@ -1,10 +1,22 @@
 import { UserModelService } from '@/common/models/user';
 import { UserLanguage } from '@/generated/prisma/enums';
-import { Telegraf } from 'telegraf';
+import { Context, Telegraf } from 'telegraf';
 import { getLanguagePickerKeyboard } from '../keyboards';
 import { ru } from '../i18n/locales/ru';
 import { registerLocalizedHears } from '../i18n/register-localized-hears';
+import { enterTechSupport } from '../utils/enter-tech-support';
+import { TECH_SUPPORT_START_PAYLOAD } from '../utils/format-tech-support';
 import { showHome } from '../utils/show-home';
+
+function getStartPayload(ctx: Context): string | undefined {
+    const message = ctx.message;
+    if (!message || !('text' in message) || typeof message.text !== 'string') {
+        return undefined;
+    }
+
+    const match = message.text.match(/^\/start(?:@\S+)?(?:\s+(.+))?$/i);
+    return match?.[1]?.trim() || undefined;
+}
 
 export const registerStartHandler = (
     bot: Telegraf,
@@ -22,6 +34,11 @@ export const registerStartHandler = (
                 ...getLanguagePickerKeyboard(ru),
                 parse_mode: 'HTML',
             });
+            return;
+        }
+
+        if (getStartPayload(ctx) === TECH_SUPPORT_START_PAYLOAD) {
+            await enterTechSupport(ctx, userModelService);
             return;
         }
 

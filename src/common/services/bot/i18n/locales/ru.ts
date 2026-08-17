@@ -1,4 +1,5 @@
-import { BOT_NAME } from '@/common/config';
+import { BOT_NAME, SUPPORT_DOCUMENT_URLS } from '@/common/config';
+import { SUPPORT_EMAIL } from '../../utils/format-tech-support';
 import { AiToolId } from '@/common/services/ai/types';
 import {
     SubscribePlan,
@@ -321,16 +322,16 @@ ${getTariffIncludesText(type, plan, ru)}
         telegramSendFailed: `Не удалось отправить обращение. Попробуйте позже.`,
         email: `💬 <b>Поддержка ${BOT_NAME}</b>
 
-Напишите нам на email: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
+Напишите нам на email: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
         privacyPolicy: `📄 <b>Политика обработки персональных данных</b>
 
-<a href="https://docs.google.com/document/d/1sRw7-MkYo_SoqeSJOFOYQzccq8O_no-O/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Открыть документ</a>`,
+<a href="${SUPPORT_DOCUMENT_URLS.privacyPolicy}">Открыть документ</a>`,
         userAgreement: `📄 <b>Пользовательское соглашение</b>
 
-<a href="https://docs.google.com/document/d/1qOlS8jTUKMBUeDQ7z0AGU7RCV_cAc830/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Открыть документ</a>`,
+<a href="${SUPPORT_DOCUMENT_URLS.userAgreement}">Открыть документ</a>`,
         refundPolicy: `📄 <b>Политика возврата денежных средств</b>
 
-<a href="https://docs.google.com/document/d/1Vt0GgEPtXIDL54hxcNjT9iGlu_6ERFwT/edit?usp=sharing&ouid=104945563170223870947&rtpof=true&sd=true">Открыть документ</a>`,
+<a href="${SUPPORT_DOCUMENT_URLS.refundPolicy}">Открыть документ</a>`,
     },
     records: {
         subPlanToPeriod: {

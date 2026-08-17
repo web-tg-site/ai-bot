@@ -1,4 +1,6 @@
 export const TECH_SUPPORT_CHAT_ID = -1004482346661;
+export const SUPPORT_EMAIL = 'support@project-ai.com';
+export const TECH_SUPPORT_START_PAYLOAD = 'support';
 
 const MIN_TECH_SUPPORT_TEXT_LENGTH = 5;
 
