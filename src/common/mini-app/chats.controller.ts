@@ -114,7 +114,7 @@ export class ChatsController {
             );
         if (!conversation) {
             throw new HttpException(
-                { error: 'Chat not found' },
+                { error: 'Чат не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }
@@ -133,7 +133,7 @@ export class ChatsController {
             );
         if (!conversation) {
             throw new HttpException(
-                { error: 'Chat not found' },
+                { error: 'Чат не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }
@@ -180,7 +180,7 @@ export class ChatsController {
             );
         if (!conversation) {
             throw new HttpException(
-                { error: 'Chat not found' },
+                { error: 'Чат не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }
@@ -219,7 +219,7 @@ export class ChatsController {
             );
         if (!conversation) {
             throw new HttpException(
-                { error: 'Chat not found' },
+                { error: 'Чат не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }
@@ -240,7 +240,7 @@ export class ChatsController {
             );
         if (!deleted) {
             throw new HttpException(
-                { error: 'Chat not found' },
+                { error: 'Чат не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }
@@ -250,7 +250,7 @@ export class ChatsController {
     private assertChatTool(toolId: string) {
         if (!isChatAssistantTool(toolId as AiToolId)) {
             throw new HttpException(
-                { error: 'Invalid chat tool' },
+                { error: 'Неверный инструмент чата' },
                 HttpStatus.BAD_REQUEST,
             );
         }

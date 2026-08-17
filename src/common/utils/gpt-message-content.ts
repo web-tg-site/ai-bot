@@ -22,16 +22,11 @@ export function serializeGptUserMessage(
     const trimmed = text?.trim();
     const imageFiles =
         files?.filter((file) => file.mimeType.startsWith('image/')) ?? [];
+    const mediaNotes = describeNonImageAttachments(files);
+    const combinedText = [trimmed, mediaNotes].filter(Boolean).join('\n');
 
     if (!imageFiles.length) {
-        if (trimmed) {
-            return trimmed;
-        }
-
-        const hasNonImageMedia = files?.some(
-            (file) => !file.mimeType.startsWith('image/'),
-        );
-        return hasNonImageMedia ? '[media]' : '';
+        return combinedText;
     }
 
     const attachments = imageFiles
@@ -44,11 +39,36 @@ export function serializeGptUserMessage(
 
     const payload: StoredGptUserMessage = {
         _gptMedia: true,
-        text: trimmed,
+        text: combinedText || undefined,
         attachments,
     };
 
     return JSON.stringify(payload);
+}
+
+function describeNonImageAttachments(files?: AiFileInput[]): string {
+    if (!files?.length) {
+        return '';
+    }
+
+    const lines: string[] = [];
+    for (const file of files) {
+        if (file.mimeType.startsWith('image/')) {
+            continue;
+        }
+        const name = file.fileName ?? 'file';
+        if (file.mimeType.startsWith('video/')) {
+            lines.push(`[video: ${name}]`);
+        } else if (
+            file.mimeType.startsWith('audio/') ||
+            file.mimeType.startsWith('voice/')
+        ) {
+            lines.push(`[audio: ${name}]`);
+        } else {
+            lines.push(`[file: ${name}]`);
+        }
+    }
+    return lines.join('\n');
 }
 
 export function parseGptUserMessage(content: string): {

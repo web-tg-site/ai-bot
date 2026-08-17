@@ -50,14 +50,14 @@ export class SubscriptionsController {
 
         if (!user) {
             throw new HttpException(
-                { error: 'User not found' },
+                { error: 'Пользователь не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }
 
         if (user.useFreeSub) {
             throw new HttpException(
-                { error: 'Trial already used' },
+                { error: 'Пробный период уже использован' },
                 HttpStatus.BAD_REQUEST,
             );
         }

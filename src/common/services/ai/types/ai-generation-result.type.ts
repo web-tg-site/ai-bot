@@ -13,6 +13,7 @@ export type AiGenerationResult = {
     mimeType?: string;
     voiceBuffer?: Buffer;
     voiceMimeType?: string;
+    images?: Array<{ buffer: Buffer; mimeType: string }>;
     actualTokenCost?: number;
     additionalUrls?: string[];
 };

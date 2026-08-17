@@ -59,7 +59,11 @@ export class ImageCapabilitiesService implements OnModuleInit {
     }
 
     getResolutions(toolId: AiToolId): string[] {
-        if (toolId === AiToolId.MIDJOURNEY || isTopazTool(toolId)) {
+        if (
+            toolId === AiToolId.MIDJOURNEY ||
+            toolId === AiToolId.GPT_IMAGES ||
+            isTopazTool(toolId)
+        ) {
             return [];
         }
 
@@ -91,6 +95,10 @@ export class ImageCapabilitiesService implements OnModuleInit {
 
         if (toolId === AiToolId.FLUX) {
             return ['low', 'medium', 'high'];
+        }
+
+        if (toolId === AiToolId.GPT_IMAGES) {
+            return [...DEFAULT_IMAGE_QUALITIES];
         }
 
         const model = getOpenRouterModelForTool(toolId);
@@ -171,7 +179,6 @@ export class ImageCapabilitiesService implements OnModuleInit {
         }
 
         const models = [
-            getOpenRouterModelForTool(AiToolId.GPT_IMAGES),
             getOpenRouterModelForTool(AiToolId.SEEDREAM),
             getOpenRouterModelForTool(AiToolId.NANO_BANANA),
         ].filter(Boolean) as string[];

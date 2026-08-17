@@ -23,6 +23,7 @@ export enum AiToolId {
 }
 
 export enum AiProviderId {
+    OPENAI = 'openai',
     OPENROUTER = 'openrouter',
     SHARPII = 'sharpii',
     ELEVENLABS = 'elevenlabs',

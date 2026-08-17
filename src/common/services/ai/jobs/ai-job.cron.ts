@@ -22,7 +22,10 @@ import {
     AI_MIDJOURNEY_FALLBACK_TEXT,
 } from '@/common/services/bot/texts';
 import { getI18n, getToolLabel } from '@/common/services/bot/i18n';
-import { formatUserBotErrorMessage } from '@/common/services/bot/errors/bot-error.mapper';
+import {
+    formatUserBotErrorMessage,
+    toUserFacingError,
+} from '@/common/services/bot/errors/bot-error.mapper';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
 import { isElevenLabsDubbingResultUrl } from '../providers/elevenlabs.provider';
 import { UserAiToolSettingsModelService } from '@/common/models/user-ai-tool-settings';
@@ -255,10 +258,7 @@ export class AiJobCron {
                 await botService.sendMessage(
                     job.user.telegramId,
                     getI18n(job.user.language).aiResult.jobCompleted(
-                        getToolLabel(
-                            job.toolId as AiToolId,
-                            job.user.language,
-                        ),
+                        getToolLabel(job.toolId as AiToolId, job.user.language),
                     ),
                     { parse_mode: 'HTML' },
                 );
@@ -282,13 +282,14 @@ export class AiJobCron {
         errorMessage: string,
     ) {
         const i18n = getI18n(job.user.language);
+        const userMessage = toUserFacingError(errorMessage, i18n);
         const formattedError = formatUserBotErrorMessage(errorMessage, i18n);
 
         await this.aiJobService.failJobWithRefund({
             jobId: job.id,
             telegramId: job.user.telegramId,
             tokenCost: job.tokenCost,
-            errorMessage,
+            errorMessage: userMessage,
         });
 
         if (job.notifyTelegram === false) {
@@ -401,10 +402,7 @@ export class AiJobCron {
                 await botService.sendMessage(
                     job.user.telegramId,
                     getI18n(job.user.language).aiResult.jobCompleted(
-                        getToolLabel(
-                            job.toolId as AiToolId,
-                            job.user.language,
-                        ),
+                        getToolLabel(job.toolId as AiToolId, job.user.language),
                     ),
                     { parse_mode: 'HTML' },
                 );

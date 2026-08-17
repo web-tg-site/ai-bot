@@ -37,7 +37,7 @@ export class MeController {
 
         if (!user) {
             throw new HttpException(
-                { error: 'User not found' },
+                { error: 'Пользователь не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }

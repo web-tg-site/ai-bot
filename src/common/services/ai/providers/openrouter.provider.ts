@@ -18,6 +18,8 @@ import {
     SOUND_EFFECT_TRANSLATION_SYSTEM_PROMPT,
     wrapSoundEffectPrompt,
 } from '@/common/utils/sound-effect-prompt';
+import { getI18n } from '@/common/services/bot/i18n';
+import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
 
 type OpenRouterMessageContent =
     | string
@@ -47,11 +49,8 @@ export class OpenRouterProvider {
         this.ensureApiKey();
 
         switch (toolId) {
-            case AiToolId.GPT:
-                return this.chatGpt(input);
             case AiToolId.CLAUDE_SONNET:
                 return this.chatClaude(input);
-            case AiToolId.GPT_IMAGES:
             case AiToolId.NANO_BANANA:
             case AiToolId.SEEDREAM: {
                 const tool = getToolById(toolId);
@@ -437,12 +436,11 @@ export class OpenRouterProvider {
             : 'Создай изображение по референсу';
     }
 
-    private async chatGpt(
-        input: AiGenerationInput,
-    ): Promise<AiGenerationResult> {
-        return this.chatWithReplyMode(input, AiToolId.GPT, () =>
-            this.resolveGptModel(input),
-        );
+    async synthesizeGptSpeech(
+        text: string,
+    ): Promise<{ buffer: Buffer; mimeType: string; tokenCost: number }> {
+        this.ensureApiKey();
+        return this.synthesizeSpeech(text);
     }
 
     private async chatClaude(
@@ -491,30 +489,6 @@ export class OpenRouterProvider {
         }
 
         return textResult;
-    }
-
-    private resolveGptModel(input: AiGenerationInput): {
-        model: string;
-        tokenCost: number;
-    } {
-        const hasMedia = (input.files?.length ?? 0) > 0;
-        const prompt = input.prompt ?? '';
-        const webSearchEnabled = input.gptWebSearch !== false;
-        const wantsSearch = webSearchEnabled || this.detectSearchIntent(prompt);
-
-        if (wantsSearch) {
-            return {
-                model: 'openai/gpt-5.5',
-                tokenCost: webSearchEnabled ? 8 : 15,
-            };
-        }
-        if (hasMedia) {
-            return { model: 'openai/gpt-5.5', tokenCost: 8 };
-        }
-        if (prompt.length > 200) {
-            return { model: 'openai/gpt-5.5', tokenCost: 5 };
-        }
-        return { model: 'openai/gpt-4o-mini', tokenCost: 1 };
     }
 
     private resolveClaudeModel(input: AiGenerationInput): {
@@ -1024,7 +998,7 @@ export class OpenRouterProvider {
             return response.data;
         } catch (error) {
             this.logger.error(
-                `OpenRouter POST ${path} failed: ${this.formatError(error)}`,
+                `OpenRouter POST ${path} failed: ${this.extractRawError(error)}`,
             );
             throw new Error(this.formatError(error));
         }
@@ -1043,7 +1017,7 @@ export class OpenRouterProvider {
             return response.data;
         } catch (error) {
             this.logger.error(
-                `OpenRouter GET ${path} failed: ${this.formatError(error)}`,
+                `OpenRouter GET ${path} failed: ${this.extractRawError(error)}`,
             );
             throw new Error(this.formatError(error));
         }
@@ -1059,6 +1033,10 @@ export class OpenRouterProvider {
     }
 
     private formatError(error: unknown): string {
+        return this.humanizeValidationMessage(this.extractRawError(error));
+    }
+
+    private extractRawError(error: unknown): string {
         if (error && typeof error === 'object' && 'response' in error) {
             const axiosError = error as {
                 response?: {
@@ -1067,9 +1045,11 @@ export class OpenRouterProvider {
                 };
             };
 
-            const humanized = this.humanizeApiError(axiosError.response?.data);
-            if (humanized) {
-                return humanized;
+            const extracted = this.extractApiErrorData(
+                axiosError.response?.data,
+            );
+            if (extracted) {
+                return extracted;
             }
 
             if (axiosError.response?.status) {
@@ -1082,7 +1062,7 @@ export class OpenRouterProvider {
             : 'Сбой на стороне провайдера';
     }
 
-    private humanizeApiError(data: unknown): string | undefined {
+    private extractApiErrorData(data: unknown): string | undefined {
         if (!data) {
             return undefined;
         }
@@ -1100,24 +1080,24 @@ export class OpenRouterProvider {
         if ('error' in data) {
             const nested = (data as { error?: unknown }).error;
             if (typeof nested === 'string') {
-                return this.humanizeValidationMessage(nested);
+                return this.parseValidationMessage(nested);
             }
             if (nested && typeof nested === 'object' && 'message' in nested) {
                 const message = (nested as { message?: unknown }).message;
                 if (typeof message === 'string') {
-                    return this.humanizeValidationMessage(message);
+                    return this.parseValidationMessage(message);
                 }
             }
         }
 
         if ('message' in data && typeof data.message === 'string') {
-            return this.humanizeValidationMessage(data.message);
+            return this.parseValidationMessage(data.message);
         }
 
         return undefined;
     }
 
-    private humanizeValidationMessage(message: string): string {
+    private parseValidationMessage(message: string): string {
         try {
             const parsed: unknown = JSON.parse(message);
             if (Array.isArray(parsed)) {
@@ -1130,6 +1110,13 @@ export class OpenRouterProvider {
         }
 
         return message;
+    }
+
+    private humanizeValidationMessage(message: string): string {
+        return toUserFacingError(
+            this.parseValidationMessage(message),
+            getI18n(),
+        );
     }
 
     private humanizeValidationErrors(

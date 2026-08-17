@@ -67,6 +67,24 @@ export type I18nBundle = {
         errorWithCode: (code: number, message: string) => string;
         tokensRefunded: (amount: number) => string;
         errorByCode: Record<number, string>;
+        userErrors: {
+            prohibitedContent: string;
+            sexuallyExplicit: string;
+            hateSpeech: string;
+            harassment: string;
+            dangerousContent: string;
+            civicIntegrity: string;
+            imageSafety: string;
+            safetyBlocked: string;
+            contentPolicy: string;
+            rateLimit: string;
+            voicePreviewFailed: string;
+            generationFailed: string;
+            sendFailed: string;
+            mediaDownloadFailed: string;
+            invoiceFailed: string;
+            checkoutFailed: string;
+        };
         sendTextOrFile: string;
         mySubscription: (
             subscribeType: string,

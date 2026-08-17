@@ -31,7 +31,10 @@ import {
 import { CurrentUser, TelegramJwtGuard } from '@/common/auth';
 import type { CurrentUserPayload } from '@/common/auth';
 import { PrismaService } from '@/common/services/prisma';
-import type { AiFileInput, AiGenerationInput } from '@/common/services/ai/types';
+import type {
+    AiFileInput,
+    AiGenerationInput,
+} from '@/common/services/ai/types';
 import { AiToolId } from '@/common/services/ai/types';
 import { JobStatus } from '@/generated/prisma/enums';
 import { UserAiToolSettingsModelService } from '@/common/models/user-ai-tool-settings';
@@ -58,6 +61,8 @@ import { GenerationFacade } from './generation.facade';
 import { ModuleRef } from '@nestjs/core';
 import { BotService } from '@/common/services/bot';
 import { compressReferenceImage } from '@/common/utils/compress-reference-image';
+import { getI18n } from '@/common/services/bot/i18n';
+import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
@@ -311,7 +316,7 @@ export class AiController {
         const trimmed = voiceId?.trim();
         if (!trimmed) {
             throw new HttpException(
-                { error: 'Voice id required' },
+                { error: 'Нужно указать голос' },
                 HttpStatus.BAD_REQUEST,
             );
         }
@@ -331,7 +336,10 @@ export class AiController {
         } catch (error) {
             const message =
                 error instanceof Error ? error.message : 'Voice preview failed';
-            throw new HttpException({ error: message }, HttpStatus.BAD_GATEWAY);
+            throw new HttpException(
+                { error: toUserFacingError(message) },
+                HttpStatus.BAD_GATEWAY,
+            );
         }
     }
 
@@ -488,7 +496,9 @@ export class AiController {
                         } catch {
                             return body.attachmentRoles
                                 .split(',')
-                                .map((role) => role.trim()) as AiGenerationInput['attachmentRoles'];
+                                .map((role) =>
+                                    role.trim(),
+                                ) as AiGenerationInput['attachmentRoles'];
                         }
                     })(),
                 },
@@ -508,7 +518,10 @@ export class AiController {
                 );
             }
 
-            throw new HttpException({ error: message }, HttpStatus.BAD_REQUEST);
+            throw new HttpException(
+                { error: toUserFacingError(message) },
+                HttpStatus.BAD_REQUEST,
+            );
         }
     }
 
@@ -565,7 +578,9 @@ export class AiController {
                     toolId: job.toolId,
                     status: job.status,
                     hasResult: Boolean(job.resultUrl),
-                    errorMessage: job.errorMessage,
+                    errorMessage: job.errorMessage
+                        ? toUserFacingError(job.errorMessage, getI18n())
+                        : job.errorMessage,
                     tokenCost: job.tokenCost,
                     prompt: input?.prompt ?? '',
                     createdAt: job.createdAt,
@@ -622,7 +637,7 @@ export class AiController {
 
         if (!existing) {
             throw new HttpException(
-                { error: 'Job not found' },
+                { error: 'Генерация не найдена' },
                 HttpStatus.NOT_FOUND,
             );
         }
@@ -669,7 +684,7 @@ export class AiController {
         const trimmed = body.prompt.trim();
         if (!trimmed) {
             throw new HttpException(
-                { error: 'Prompt required' },
+                { error: 'Нужно указать промпт' },
                 HttpStatus.BAD_REQUEST,
             );
         }
@@ -703,7 +718,7 @@ export class AiController {
         const trimmed = body.prompt.trim();
         if (!trimmed) {
             throw new HttpException(
-                { error: 'Prompt required' },
+                { error: 'Нужно указать промпт' },
                 HttpStatus.BAD_REQUEST,
             );
         }
@@ -712,10 +727,9 @@ export class AiController {
             const botService = this.moduleRef.get(BotService, {
                 strict: false,
             });
-            const editor =
-                body.editorLabel?.trim()
-                    ? `Редактор: ${body.editorLabel.trim()}\n\n`
-                    : "";
+            const editor = body.editorLabel?.trim()
+                ? `Редактор: ${body.editorLabel.trim()}\n\n`
+                : '';
             await botService.sendMessage(
                 current.telegramId,
                 `📝 Промпт из мини-приложения:\n\n${editor}${trimmed}`,
@@ -724,7 +738,10 @@ export class AiController {
         } catch (error) {
             const message =
                 error instanceof Error ? error.message : 'Send failed';
-            throw new HttpException({ error: message }, HttpStatus.BAD_GATEWAY);
+            throw new HttpException(
+                { error: toUserFacingError(message) },
+                HttpStatus.BAD_GATEWAY,
+            );
         }
     }
 
@@ -740,7 +757,7 @@ export class AiController {
 
         if (!existing) {
             throw new HttpException(
-                { error: 'Prompt not found' },
+                { error: 'Промпт не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }
@@ -771,7 +788,7 @@ export class AiController {
 
         if (!job) {
             throw new HttpException(
-                { error: 'Job not found' },
+                { error: 'Генерация не найдена' },
                 HttpStatus.NOT_FOUND,
             );
         }
@@ -783,7 +800,9 @@ export class AiController {
             toolId: job.toolId,
             status: job.status,
             hasResult: Boolean(job.resultUrl),
-            errorMessage: job.errorMessage,
+            errorMessage: job.errorMessage
+                ? toUserFacingError(job.errorMessage, getI18n())
+                : job.errorMessage,
             tokenCost: job.tokenCost,
             prompt: input?.prompt ?? '',
             createdAt: job.createdAt,
@@ -809,7 +828,7 @@ export class AiController {
 
         if (!job || job.status !== JobStatus.COMPLETED || !job.resultUrl) {
             throw new HttpException(
-                { error: 'Media not found' },
+                { error: 'Файл не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }
@@ -890,7 +909,10 @@ export class AiController {
         } catch (error) {
             const message =
                 error instanceof Error ? error.message : 'Send failed';
-            throw new HttpException({ error: message }, HttpStatus.BAD_GATEWAY);
+            throw new HttpException(
+                { error: toUserFacingError(message) },
+                HttpStatus.BAD_GATEWAY,
+            );
         }
     }
 
@@ -913,7 +935,7 @@ export class AiController {
 
         if (!job?.resultUrl || job.status !== JobStatus.COMPLETED) {
             throw new HttpException(
-                { error: 'Media not found' },
+                { error: 'Файл не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }
@@ -956,7 +978,10 @@ export class AiController {
                 error instanceof Error
                     ? error.message
                     : 'Media download failed';
-            throw new HttpException({ error: message }, HttpStatus.BAD_GATEWAY);
+            throw new HttpException(
+                { error: toUserFacingError(message) },
+                HttpStatus.BAD_GATEWAY,
+            );
         }
     }
 
@@ -1015,7 +1040,9 @@ export class AiController {
         );
 
         const rangeHeader =
-            typeof req.headers.range === 'string' ? req.headers.range : undefined;
+            typeof req.headers.range === 'string'
+                ? req.headers.range
+                : undefined;
         if (rangeHeader) {
             const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader);
             if (match) {
@@ -1059,10 +1086,7 @@ export class AiController {
             return buffered;
         }
 
-        return downloadRemoteFile(
-            resultUrl,
-            getAuthHeadersForUrl(resultUrl),
-        );
+        return downloadRemoteFile(resultUrl, getAuthHeadersForUrl(resultUrl));
     }
 
     private parseElevenLabsDubbingUrl(url: string): { mimeType: string } {
@@ -1090,7 +1114,7 @@ export class AiController {
     private assertToolId(toolId: string): asserts toolId is AiToolId {
         if (!getToolById(toolId as AiToolId)) {
             throw new HttpException(
-                { error: 'Unknown tool' },
+                { error: 'Неизвестный инструмент' },
                 HttpStatus.BAD_REQUEST,
             );
         }

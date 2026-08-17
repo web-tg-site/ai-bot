@@ -155,6 +155,7 @@ import {
 import {
     isAudioTool,
     sendGenerationResultWithDelivery,
+    sendImageBuffer,
 } from '../utils/media-delivery';
 import {
     resolveImageSendAsFile,
@@ -3501,8 +3502,8 @@ async function runGeneration(
 
         if (
             isChatAssistantTool(toolId) &&
-            generationResult.text &&
-            session.ai?.activeConversationId
+            session.ai?.activeConversationId &&
+            (generationResult.text || generationResult.images?.length)
         ) {
             const storedFiles = input.files
                 ? await Promise.all(
@@ -3513,7 +3514,7 @@ async function runGeneration(
             await deps.gptConversationModelService.appendMessages(
                 session.ai.activeConversationId,
                 userContent,
-                generationResult.text,
+                generationResult.text || '[image]',
             );
 
             if (text?.trim()) {
@@ -3581,8 +3582,10 @@ async function sendGenerationResult(
     toolId: AiToolId,
     sendAsFile: boolean,
 ) {
-    if (result.type === 'text' && result.text) {
-        await replyFormattedText(ctx, result.text);
+    if (result.type === 'text' && (result.text || result.images?.length)) {
+        if (result.text) {
+            await replyFormattedText(ctx, result.text);
+        }
         if (result.voiceBuffer) {
             const ext = mimeTypeToExtension(
                 result.voiceMimeType ?? 'audio/wav',
@@ -3598,7 +3601,12 @@ async function sendGenerationResult(
                 await ctx.replyWithVoice(inputFile);
             }
         }
+        await sendChatImages(ctx, result.images, sendAsFile);
         return;
+    }
+
+    if (result.images?.length) {
+        await sendChatImages(ctx, result.images, sendAsFile);
     }
 
     if (
@@ -3607,6 +3615,25 @@ async function sendGenerationResult(
         result.type === 'audio'
     ) {
         await sendGenerationResultWithDelivery(ctx, result, toolId, sendAsFile);
+    }
+}
+
+async function sendChatImages(
+    ctx: BotContext,
+    images: Array<{ buffer: Buffer; mimeType: string }> | undefined,
+    sendAsFile: boolean,
+) {
+    if (!images?.length) {
+        return;
+    }
+
+    for (const image of images) {
+        await sendImageBuffer(
+            ctx,
+            image.buffer,
+            image.mimeType || 'image/png',
+            sendAsFile,
+        );
     }
 }
 

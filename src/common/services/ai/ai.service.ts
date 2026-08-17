@@ -12,6 +12,7 @@ import {
     ElevenLabsProvider,
     HiggsfieldProvider,
     HeyGenProvider,
+    OpenAiProvider,
     OpenRouterProvider,
     SharpiiProvider,
     TopazProvider,
@@ -23,6 +24,7 @@ import {
 @Injectable()
 export class AiService {
     constructor(
+        private readonly openAiProvider: OpenAiProvider,
         private readonly openRouterProvider: OpenRouterProvider,
         private readonly sharpiiProvider: SharpiiProvider,
         private readonly heyGenProvider: HeyGenProvider,
@@ -59,6 +61,8 @@ export class AiService {
         }
 
         switch (tool.provider) {
+            case AiProviderId.OPENAI:
+                return this.openAiProvider.generate(toolId, input);
             case AiProviderId.OPENROUTER:
                 return this.openRouterProvider.generate(toolId, input);
             case AiProviderId.SHARPII:
@@ -188,14 +192,10 @@ export class AiService {
             }
 
             if (status.status === 'failed') {
-                throw new Error(
-                    status.errorMessage ?? 'Генерация не удалась',
-                );
+                throw new Error(status.errorMessage ?? 'Генерация не удалась');
             }
 
-            await new Promise((resolve) =>
-                setTimeout(resolve, pollIntervalMs),
-            );
+            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
         }
 
         throw new Error('Превышено время ожидания генерации');

@@ -176,6 +176,39 @@ Select a tool below.`,
             12: 'Provider failure. Try again later or choose another tool.',
             13: 'Could not deliver the result. Please try again.',
             14: 'Could not check generation status. Try again later.',
+            15: 'The model blocked the request due to safety limits. Edit the prompt and try again.',
+        },
+        userErrors: {
+            prohibitedContent:
+                'The model blocked the request: prohibited content. Edit the prompt and try again.',
+            sexuallyExplicit:
+                'The model blocked the request: explicit content. Edit the prompt and try again.',
+            hateSpeech:
+                'The model blocked the request: hate speech. Edit the prompt and try again.',
+            harassment:
+                'The model blocked the request: harassment. Edit the prompt and try again.',
+            dangerousContent:
+                'The model blocked the request: dangerous content. Edit the prompt and try again.',
+            civicIntegrity:
+                'The model blocked the request due to civic-integrity limits. Edit the prompt and try again.',
+            imageSafety:
+                'The image did not pass the safety check. Edit the prompt or photo and try again.',
+            safetyBlocked:
+                'The model blocked the request due to safety limits. Edit the prompt and try again.',
+            contentPolicy:
+                'The request did not pass the content policy check. Edit the prompt and try again.',
+            rateLimit: 'Too many requests. Wait a moment and try again.',
+            voicePreviewFailed:
+                'Could not load the voice preview. Try again later.',
+            generationFailed:
+                'Generation failed. Try again or choose another tool.',
+            sendFailed: 'Could not send the message. Try again later.',
+            mediaDownloadFailed:
+                'Could not download the file. Please try again.',
+            invoiceFailed:
+                'Could not create a payment invoice. Please try again later.',
+            checkoutFailed:
+                'Could not create the payment. Please try again later.',
         },
         sendTextOrFile: 'Send text or a file for generation.',
         mySubscription: (subscribeType, tokenLeft, subscriptionEndsAt) => {
@@ -577,9 +610,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
         toggleHeygenCaptionsButton: (enabled) =>
             enabled ? '✓ Captions' : '💬 Captions',
         heygenCaptionsChanged: (enabled) =>
-            enabled
-                ? 'Captions: <b>on</b>'
-                : 'Captions: <b>off</b>',
+            enabled ? 'Captions: <b>on</b>' : 'Captions: <b>off</b>',
         selectHeygenVoiceTitle: 'Choose a HeyGen voice:',
         selectHeygenAvatarTitle: 'Choose a HeyGen avatar:',
         selectHeygenEngineTitle: 'Choose engine:',
@@ -765,8 +796,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
         changeMoodButton: (currentLabel) => `🌤 Mood: ${currentLabel}`,
         instrumentalButton: (enabled) =>
             enabled ? '✓ Instrumental' : '🎹 Instrumental',
-        lyricsButton: (hasLyrics) =>
-            hasLyrics ? '✓ Lyrics' : '📝 Lyrics',
+        lyricsButton: (hasLyrics) => (hasLyrics ? '✓ Lyrics' : '📝 Lyrics'),
         clearLyricsButton: '🗑 Clear lyrics',
         genrePickerOption: (label) => label,
         genrePickerSelected: (label) => `✓ ${label}`,

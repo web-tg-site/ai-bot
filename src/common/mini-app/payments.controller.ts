@@ -17,6 +17,7 @@ import { CryptoPayService } from '@/common/services/crypto-pay';
 import { AntilopayService } from '@/common/services/antilopay';
 import { SUB_PLAN_TO_COST } from '@/common/services/bot/records';
 import { getI18nForUser } from '@/common/services/bot/i18n';
+import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
 import { SubscribePlan, SubscribeType } from '@/generated/prisma/enums';
 
 const PAID_TYPES = new Set<SubscribeType>([
@@ -59,14 +60,14 @@ export class PaymentsController {
         );
         if (!user) {
             throw new HttpException(
-                { error: 'User not found' },
+                { error: 'Пользователь не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }
 
         if (!this.cryptoPayService.isConfigured()) {
             throw new HttpException(
-                { error: 'Crypto Pay is not configured' },
+                { error: 'Оплата криптовалютой временно недоступна' },
                 HttpStatus.SERVICE_UNAVAILABLE,
             );
         }
@@ -95,10 +96,11 @@ export class PaymentsController {
         } catch (error) {
             throw new HttpException(
                 {
-                    error:
+                    error: toUserFacingError(
                         error instanceof Error
                             ? error.message
                             : 'Failed to create invoice',
+                    ),
                 },
                 HttpStatus.BAD_REQUEST,
             );
@@ -117,14 +119,14 @@ export class PaymentsController {
         );
         if (!user) {
             throw new HttpException(
-                { error: 'User not found' },
+                { error: 'Пользователь не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }
 
         if (!this.antilopayService.isConfigured()) {
             throw new HttpException(
-                { error: 'Antilopay is not configured' },
+                { error: 'Оплата картой временно недоступна' },
                 HttpStatus.SERVICE_UNAVAILABLE,
             );
         }
@@ -132,7 +134,7 @@ export class PaymentsController {
         const email = body.email?.trim() || user.email;
         if (!email) {
             throw new HttpException(
-                { error: 'Email is required' },
+                { error: 'Укажите email для оплаты' },
                 HttpStatus.BAD_REQUEST,
             );
         }
@@ -164,10 +166,11 @@ export class PaymentsController {
         } catch (error) {
             throw new HttpException(
                 {
-                    error:
+                    error: toUserFacingError(
                         error instanceof Error
                             ? error.message
                             : 'Failed to create checkout',
+                    ),
                 },
                 HttpStatus.BAD_REQUEST,
             );
@@ -199,7 +202,7 @@ export class PaymentsController {
 
         if (!payment) {
             throw new HttpException(
-                { error: 'Payment not found' },
+                { error: 'Платёж не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }
@@ -210,7 +213,7 @@ export class PaymentsController {
     private assertPaidTariff(type: SubscribeType, plan: SubscribePlan) {
         if (!PAID_TYPES.has(type) || !(plan in SUB_PLAN_TO_COST)) {
             throw new HttpException(
-                { error: 'Invalid tariff' },
+                { error: 'Неверный тариф' },
                 HttpStatus.BAD_REQUEST,
             );
         }

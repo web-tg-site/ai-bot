@@ -1,19 +1,21 @@
 import { AiToolId } from '@/common/services/ai/types';
 
 const RU: Partial<Record<AiToolId, string>> = {
-    [AiToolId.GPT]: `GPT — универсальный помощник для текста, идей, файлов и изображений.
+    [AiToolId.GPT]: `GPT — универсальный помощник для текста, идей, файлов, изображений и видео.
 
 Что можно делать
 • писать тексты, посты и сценарии
 • анализировать документы и таблицы
 • править код
 • разбирать изображения
+• разбирать видео: кадры и звуковую дорожку
+• генерировать картинки прямо в чате
 • составлять планы
 
 Как пользоваться
 1. Опишите задачу.
 2. Чем подробнее контекст — тем точнее результат.
-3. При необходимости прикрепите файл, фото или видео.
+3. При необходимости прикрепите файл, фото или видео — разберём кадры и звук.
 4. Если нужно изменить ответ — продолжайте диалог.`,
 
     [AiToolId.CLAUDE_SONNET]: `Claude — помощник для длинных текстов, документов, кода и сложного анализа.
@@ -184,13 +186,13 @@ const RU: Partial<Record<AiToolId, string>> = {
 };
 
 const EN: Partial<Record<AiToolId, string>> = {
-    [AiToolId.GPT]: `GPT — general assistant for text, ideas, files and images.
+    [AiToolId.GPT]: `GPT — general assistant for text, ideas, files, images and video.
 
 How to use
 1. Describe the task.
 2. More context means a more precise result.
-3. Attach a file, photo or video if needed.
-4. Keep chatting to refine the answer.`,
+3. Attach a file, photo or video if needed — we analyze frames and audio.
+4. Keep chatting to refine the answer. You can also ask GPT to draw an image.`,
 
     [AiToolId.CLAUDE_SONNET]: `Claude — long documents, code and complex analysis.
 

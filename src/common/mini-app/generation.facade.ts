@@ -34,6 +34,7 @@ export type GenerationSyncResult = {
         url?: string;
         mimeType?: string;
         dataUrl?: string;
+        images?: string[];
     };
     tokenCost: number;
     tokenLeft: number;
@@ -70,7 +71,7 @@ export class GenerationFacade {
 
         if (!user) {
             throw new HttpException(
-                { error: 'User not found' },
+                { error: 'Пользователь не найден' },
                 HttpStatus.NOT_FOUND,
             );
         }
@@ -91,7 +92,7 @@ export class GenerationFacade {
         const tool = getToolById(params.toolId);
         if (!tool) {
             throw new HttpException(
-                { error: 'Unknown tool' },
+                { error: 'Неизвестный инструмент' },
                 HttpStatus.BAD_REQUEST,
             );
         }
@@ -188,8 +189,8 @@ export class GenerationFacade {
 
         if (
             isChatAssistantTool(effectiveToolId) &&
-            generationResult.text &&
-            conversationId
+            conversationId &&
+            (generationResult.text || generationResult.images?.length)
         ) {
             const storedFiles = input.files
                 ? await Promise.all(
@@ -203,7 +204,7 @@ export class GenerationFacade {
             await this.gptConversationModelService.appendMessages(
                 conversationId,
                 userContent,
-                generationResult.text,
+                generationResult.text || '[image]',
             );
 
             const prompt = params.promptText ?? input.prompt;
@@ -284,12 +285,18 @@ export class GenerationFacade {
             dataUrl = `data:${result.voiceMimeType};base64,${result.voiceBuffer.toString('base64')}`;
         }
 
+        const images = result.images?.map(
+            (image) =>
+                `data:${image.mimeType || 'image/png'};base64,${image.buffer.toString('base64')}`,
+        );
+
         return {
             type: result.type,
             text: result.text,
             url: result.url,
             mimeType: result.mimeType ?? result.voiceMimeType,
             dataUrl,
+            images,
         };
     }
 }
