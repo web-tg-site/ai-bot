@@ -90,7 +90,7 @@ export class ImageCapabilitiesService implements OnModuleInit {
         }
 
         if (toolId === AiToolId.FLUX) {
-            return [...DEFAULT_IMAGE_QUALITIES];
+            return ['low', 'medium', 'high'];
         }
 
         const model = getOpenRouterModelForTool(toolId);
