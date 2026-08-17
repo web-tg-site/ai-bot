@@ -123,6 +123,13 @@ export class BflProvider {
     }
 
     private resolveFluxOperation(input: AiGenerationInput): FluxOperation {
+        const explicit = input.fluxImageMode;
+        if (explicit === 'outpaint') return 'outpaint';
+        if (explicit === 'erase') return 'erase';
+        if (explicit === 'deblur') return 'deblur';
+        if (explicit === 'try_on') return 'vto';
+        if (explicit === 'generate') return 'pro';
+
         const images =
             input.files?.filter((file) => file.mimeType.startsWith('image/')) ??
             [];

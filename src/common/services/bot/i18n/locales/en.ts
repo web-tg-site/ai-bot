@@ -486,10 +486,12 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         changeFormatButton: '📐 Change format',
         changeResolutionButton: '🖼 Change resolution',
         changeQualityButton: '✨ Change quality',
+        changeFluxModeButton: '🎛 Flux mode',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Choose aspect ratio:',
         selectResolutionTitle: 'Choose resolution:',
         selectQualityTitle: 'Choose quality:',
+        selectFluxModeTitle: 'Choose Flux mode:',
         aspectRatioPickerOption: (ratio) => formatAspectRatioLabelEn(ratio),
         aspectRatioPickerSelected: (ratio) =>
             `✓ ${formatAspectRatioLabelEn(ratio)}`,
@@ -505,6 +507,9 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             `Resolution: ${resolution} (${tokens} tokens)`,
         qualityChanged: (label, tokens) =>
             `Quality: ${label} (${tokens} tokens)`,
+        fluxModePickerOption: (label) => label,
+        fluxModePickerSelected: (label) => `✓ ${label}`,
+        fluxModeChanged: (label) => `Flux mode: <b>${label}</b>`,
         topazScaleButton: (scale, tokens, selected) =>
             `${selected ? '✓ ' : ''}×${scale} (${tokens} tok.)`,
         topazScaleChanged: (scale, tokens) =>

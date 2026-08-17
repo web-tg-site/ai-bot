@@ -195,6 +195,10 @@ class GenerateBodyDto {
     fluxVideoMode?: 't2v' | 'i2v' | 'v2v' | 'draft_enhance';
 
     @IsOptional()
+    @IsIn(['generate', 'deblur', 'erase', 'try_on', 'outpaint'])
+    fluxImageMode?: 'generate' | 'deblur' | 'erase' | 'try_on' | 'outpaint';
+
+    @IsOptional()
     @IsIn(['auto', 'manga'])
     lumaStyle?: 'auto' | 'manga';
 
@@ -463,6 +467,7 @@ export class AiController {
                         ? Number(body.outpaintOffsetY)
                         : undefined,
                     fluxVideoMode: body.fluxVideoMode,
+                    fluxImageMode: body.fluxImageMode,
                     lumaStyle: body.lumaStyle,
                     lumaWebSearch:
                         body.lumaWebSearch === 'true' ||

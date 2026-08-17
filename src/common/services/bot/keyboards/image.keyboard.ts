@@ -9,6 +9,11 @@ import {
     isImageToolWithAspectSettings,
     isTopazTool,
 } from '@/common/config/image-editor-capabilities.config';
+import {
+    FLUX_IMAGE_MODE_OPTIONS,
+    FluxImageMode,
+    getFluxImageModeLabel,
+} from '@/common/config/flux-image-modes.config';
 import { orderAspectRatios } from '@/common/config/aspect-ratio.config';
 import { formatImageQualityLabel } from '@/common/config/image-editor-capabilities.config';
 import {
@@ -22,7 +27,8 @@ export type ImageKeyboardMode =
     | 'settings'
     | 'aspect'
     | 'resolution'
-    | 'quality';
+    | 'quality'
+    | 'flux_mode';
 
 function hasConfigurableSettings(
     toolId: AiToolId,
@@ -87,6 +93,14 @@ export function generateImageEditorReplyKeyboard(
         );
     }
 
+    if (options.keyboardMode === 'flux_mode') {
+        return generateFluxModePickerKeyboard(
+            i18n,
+            options.settings.fluxImageMode ?? 'generate',
+            options.localeTag,
+        );
+    }
+
     const rows: string[][] = [];
 
     if (
@@ -139,6 +153,9 @@ function generateSettingsMenuKeyboard(
         );
     } else {
         const settingButtons: string[] = [];
+        if (options.toolId === AiToolId.FLUX) {
+            settingButtons.push(i18n.imageTool.changeFluxModeButton);
+        }
         if (options.aspectRatios.length) {
             settingButtons.push(i18n.imageTool.changeFormatButton);
         }
@@ -228,6 +245,26 @@ function generateQualityPickerKeyboard(
             return quality === current
                 ? i18n.imageTool.qualityPickerSelected(label, tokens)
                 : i18n.imageTool.qualityPickerOption(label, tokens);
+        }),
+    );
+
+    rows.push([i18n.imageTool.backToSettings]);
+    return Markup.keyboard(rows).resize();
+}
+
+function generateFluxModePickerKeyboard(
+    i18n: I18nBundle,
+    current: FluxImageMode,
+    localeTag: 'ru-RU' | 'en-US',
+) {
+    const rows = chunkKeyboardRow(
+        FLUX_IMAGE_MODE_OPTIONS.map((option) => option.id),
+    ).map((chunk) =>
+        chunk.map((mode) => {
+            const label = getFluxImageModeLabel(mode, localeTag);
+            return mode === current
+                ? i18n.imageTool.fluxModePickerSelected(label)
+                : i18n.imageTool.fluxModePickerOption(label);
         }),
     );
 

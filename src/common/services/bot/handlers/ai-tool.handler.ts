@@ -28,6 +28,11 @@ import {
     isVideoFlowTool,
 } from '@/common/config/video-editor-capabilities.config';
 import { ImageToolSettings } from '@/common/types/image-tool-settings.type';
+import {
+    buildFluxImageAttachmentRoles,
+    FLUX_OUTPAINT_CANVAS,
+    getFluxImageModeLabel,
+} from '@/common/config/flux-image-modes.config';
 import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
 import { SubscribeType } from '@/generated/prisma/enums';
 import { Context, Markup, Telegraf } from 'telegraf';
@@ -981,6 +986,15 @@ async function handleImageToolButtonPress(
         return true;
     }
 
+    if (action.type === 'open_flux_mode_picker') {
+        session.ai.imageKeyboardMode = 'flux_mode';
+        await ctx.reply(i18n.imageTool.selectFluxModeTitle, {
+            ...replyKeyboard('flux_mode', session.ai.toolSettings ?? {}),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
     if (action.type === 'back_to_settings') {
         session.ai.imageKeyboardMode = 'settings';
         const settings = session.ai.toolSettings ?? {};
@@ -1081,6 +1095,27 @@ async function handleImageToolButtonPress(
             ),
             {
                 ...replyKeyboard('quality', nextSettings),
+                parse_mode: 'HTML',
+            },
+        );
+        return true;
+    }
+
+    if (action.type === 'set_flux_mode') {
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertSettings(
+                user.id,
+                toolId,
+                { fluxImageMode: action.value },
+            );
+        session.ai.toolSettings = nextSettings;
+        session.ai.imageKeyboardMode = 'flux_mode';
+        await ctx.reply(
+            i18n.imageTool.fluxModeChanged(
+                getFluxImageModeLabel(action.value, i18n.localeTag),
+            ),
+            {
+                ...replyKeyboard('flux_mode', nextSettings),
                 parse_mode: 'HTML',
             },
         );
@@ -3171,6 +3206,24 @@ async function buildAiGenerationInput(
         sunoLyrics:
             toolId === AiToolId.SUNO
                 ? voiceSettings?.sunoLyrics?.trim() || undefined
+                : undefined,
+        fluxImageMode:
+            toolId === AiToolId.FLUX
+                ? (imageSettings?.fluxImageMode ?? 'generate')
+                : undefined,
+        attachmentRoles:
+            toolId === AiToolId.FLUX && imageSettings?.fluxImageMode
+                ? buildFluxImageAttachmentRoles(imageSettings.fluxImageMode)
+                : undefined,
+        outpaintWidth:
+            toolId === AiToolId.FLUX &&
+            imageSettings?.fluxImageMode === 'outpaint'
+                ? FLUX_OUTPAINT_CANVAS.width
+                : undefined,
+        outpaintHeight:
+            toolId === AiToolId.FLUX &&
+            imageSettings?.fluxImageMode === 'outpaint'
+                ? FLUX_OUTPAINT_CANVAS.height
                 : undefined,
     };
 }

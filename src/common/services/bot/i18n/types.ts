@@ -178,10 +178,12 @@ export type I18nBundle = {
         changeFormatButton: string;
         changeResolutionButton: string;
         changeQualityButton: string;
+        changeFluxModeButton: string;
         resolutionToolbarButton: (resolution: string) => string;
         selectAspectRatioTitle: string;
         selectResolutionTitle: string;
         selectQualityTitle: string;
+        selectFluxModeTitle: string;
         aspectRatioPickerOption: (ratio: string) => string;
         aspectRatioPickerSelected: (ratio: string) => string;
         resolutionPickerOption: (resolution: string, tokens: number) => string;
@@ -194,6 +196,9 @@ export type I18nBundle = {
         aspectRatioChanged: (ratio: string) => string;
         resolutionChanged: (resolution: string, tokens: number) => string;
         qualityChanged: (label: string, tokens: number) => string;
+        fluxModePickerOption: (label: string) => string;
+        fluxModePickerSelected: (label: string) => string;
+        fluxModeChanged: (label: string) => string;
         topazScaleButton: (
             scale: number,
             tokens: number,

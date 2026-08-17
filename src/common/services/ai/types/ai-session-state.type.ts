@@ -50,7 +50,8 @@ export type BotSession = {
             | 'settings'
             | 'aspect'
             | 'resolution'
-            | 'quality';
+            | 'quality'
+            | 'flux_mode';
         videoKeyboardMode?:
             | 'main'
             | 'settings'

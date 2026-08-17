@@ -39,6 +39,10 @@ export async function loadImageToolSettings(
         ),
         quality: capabilitiesService.normalizeQuality(toolId, stored.quality),
         topazScale: capabilitiesService.normalizeTopazScale(stored.topazScale),
+        fluxImageMode:
+            toolId === AiToolId.FLUX
+                ? (stored.fluxImageMode ?? 'generate')
+                : undefined,
     };
 }
 

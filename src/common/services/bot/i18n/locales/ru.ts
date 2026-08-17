@@ -486,10 +486,12 @@ ${getTariffIncludesText(type, plan, ru)}
         changeFormatButton: '📐 Изменить формат',
         changeResolutionButton: '🖼 Изменить разрешение',
         changeQualityButton: '✨ Изменить качество',
+        changeFluxModeButton: '🎛 Режим Flux',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Выберите формат:',
         selectResolutionTitle: 'Выберите разрешение:',
         selectQualityTitle: 'Выберите качество:',
+        selectFluxModeTitle: 'Выберите режим Flux:',
         aspectRatioPickerOption: (ratio) => formatAspectRatioLabelRu(ratio),
         aspectRatioPickerSelected: (ratio) =>
             `✓ ${formatAspectRatioLabelRu(ratio)}`,
@@ -505,6 +507,9 @@ ${getTariffIncludesText(type, plan, ru)}
             `Разрешение: ${resolution} (${tokens} токенов)`,
         qualityChanged: (label, tokens) =>
             `Качество: ${label} (${tokens} токенов)`,
+        fluxModePickerOption: (label) => label,
+        fluxModePickerSelected: (label) => `✓ ${label}`,
+        fluxModeChanged: (label) => `Режим Flux: <b>${label}</b>`,
         topazScaleButton: (scale, tokens, selected) =>
             `${selected ? '✓ ' : ''}×${scale} (${tokens} ток.)`,
         topazScaleChanged: (scale, tokens) =>

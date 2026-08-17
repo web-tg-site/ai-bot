@@ -14,15 +14,22 @@ import {
 import { I18nBundle, ru, en } from '../i18n';
 import { ImageKeyboardMode } from '../keyboards/image.keyboard';
 import { resolveImageSendAsFile } from '@/common/utils/resolve-send-as-file';
+import {
+    FLUX_IMAGE_MODE_OPTIONS,
+    FluxImageMode,
+    getFluxImageModeLabel,
+} from '@/common/config/flux-image-modes.config';
 
 export type ImageToolButtonAction =
     | { type: 'open_settings' }
     | { type: 'open_aspect_picker' }
     | { type: 'open_resolution_picker' }
     | { type: 'open_quality_picker' }
+    | { type: 'open_flux_mode_picker' }
     | { type: 'set_aspect'; value: string }
     | { type: 'set_resolution'; value: string }
     | { type: 'set_quality'; value: string }
+    | { type: 'set_flux_mode'; value: FluxImageMode }
     | { type: 'set_topaz_scale'; value: number }
     | { type: 'toggle_send_as_file' }
     | { type: 'continue_prompt' }
@@ -126,6 +133,22 @@ export function resolveImageToolButtonAction(
         return null;
     }
 
+    if (options.keyboardMode === 'flux_mode') {
+        for (const option of FLUX_IMAGE_MODE_OPTIONS) {
+            const label = getFluxImageModeLabel(
+                option.id,
+                options.localeTag,
+            );
+            if (
+                text === i18n.imageTool.fluxModePickerOption(label) ||
+                text === i18n.imageTool.fluxModePickerSelected(label)
+            ) {
+                return { type: 'set_flux_mode', value: option.id };
+            }
+        }
+        return null;
+    }
+
     if (options.keyboardMode === 'settings') {
         if (isTopazTool(options.toolId)) {
             const tool = getToolById(options.toolId);
@@ -157,6 +180,13 @@ export function resolveImageToolButtonAction(
             text === i18n.imageTool.changeFormatButton
         ) {
             return { type: 'open_aspect_picker' };
+        }
+
+        if (
+            options.toolId === AiToolId.FLUX &&
+            text === i18n.imageTool.changeFluxModeButton
+        ) {
+            return { type: 'open_flux_mode_picker' };
         }
 
         if (
