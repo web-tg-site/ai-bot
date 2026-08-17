@@ -14,7 +14,8 @@ export const AI_VIDEO_TO_AUDIO_PREPARING_TEXT =
 export const AI_INSUFFICIENT_TOKENS_TEXT = ru.aiResult.insufficientTokens;
 export const AI_NO_SUBSCRIPTION_TEXT = ru.aiResult.noSubscription;
 export const AI_ERROR_TEXT = ru.aiResult.error;
-export const AI_JOB_COMPLETED_TEXT = '✅ Генерация завершена.';
+export const AI_JOB_COMPLETED_TEXT = (toolName: string) =>
+    ru.aiResult.jobCompleted(toolName);
 export const AI_JOB_STALE_REMINDER_TEXT =
     '⏳ Генерация всё ещё выполняется. Результат придёт в этот чат, когда будет готов.';
 export const AI_JOB_FAILED_TEXT = (message: string) =>

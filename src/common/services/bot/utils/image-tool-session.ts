@@ -14,6 +14,7 @@ import { I18nBundle, getToolLabel, getToolInstruction } from '../i18n';
 import { UserLanguage } from '@/generated/prisma/enums';
 import { resolveImageSendAsFile } from '@/common/utils/resolve-send-as-file';
 import { getImageToolCapabilities } from './image-tool-buttons';
+import { replyHtmlChunks } from './telegram-html-reply';
 import {
     generateImageEditorReplyKeyboard,
     ImageKeyboardMode,
@@ -158,14 +159,12 @@ export async function replyWithImageEditorKeyboard(
     });
 
     if (options?.text) {
-        await ctx.reply(options.text, {
-            ...keyboard,
-            parse_mode: 'HTML',
-        });
+        await replyHtmlChunks(ctx, options.text, keyboard);
         return;
     }
 
-    await ctx.reply(
+    await replyHtmlChunks(
+        ctx,
         buildImageToolMainScreenText(
             i18n,
             toolId,
@@ -173,10 +172,7 @@ export async function replyWithImageEditorKeyboard(
             session.ai?.toolSettings ?? {},
             capabilitiesService,
         ),
-        {
-            ...keyboard,
-            parse_mode: 'HTML',
-        },
+        keyboard,
     );
 }
 

@@ -148,6 +148,8 @@ Select a tool below.`,
             '✅ Voice sample updated. Send text for voiceover.',
         toolSelected: (toolName, instruction) =>
             `🛠 <b>${toolName}</b>\n\n${instruction}\n\n<i>Tap «Back» to exit the tool.</i>`,
+        jobCompleted: (toolName) =>
+            `✅ Generation in <b>${toolName}</b> is ready.`,
         generating: '⏳ Generating… Please wait.',
         asyncStarted:
             '⏳ Generation started. The result will arrive in this chat when ready.',
@@ -395,21 +397,21 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.MIDJOURNEY]:
                 'Describe the task and optionally add references (up to 10 images).',
             [AiToolId.KLING]:
-                'Upload references (optional), adjust settings, then describe the scene.',
+                'Attach photo or video references (optional), adjust settings, then describe the scene.',
             [AiToolId.KLING_MOTION]:
-                'Upload a character photo and a motion reference video, then optionally describe the scene.',
+                'Upload a character photo, a motion video and optional speech audio, then describe the scene.',
             [AiToolId.VEO]:
-                'Upload references (optional), adjust settings, then describe the scene.',
+                'Attach photo or video references (optional), adjust settings, then describe the scene.',
             [AiToolId.SORA]:
-                'Upload up to 2 frames for a transition, adjust settings, then describe the scene.',
+                'Attach photo references (optional), adjust settings, then describe the scene.',
             [AiToolId.SEEDANCE]:
-                'Upload up to 2 references: video and/or photo (one video + photo), adjust settings, then describe the scene.',
+                'Attach photos, one video and optional audio, adjust settings, then describe the scene.',
             [AiToolId.LUMA_RAY]:
-                'Generate video from a prompt (up to 2 frames). Video + prompt — edit. Video without prompt — reframe via aspect ratio in settings.',
+                'Attach a photo or video. Video + prompt — edit. Video without prompt — reframe via aspect ratio in settings.',
             [AiToolId.HIGGSFIELD]:
                 'Upload a reference (optional), adjust settings, then describe the scene.',
             [AiToolId.HEYGEN]:
-                'Pick avatar and voice in settings, then send a script. You can attach a photo for a talking portrait.',
+                'Send a script or a speech audio file. You can attach a photo for a talking portrait.',
             [AiToolId.TOPAZ]: 'Send a photo or video to upscale.',
             [AiToolId.ELEVENLABS_VOICE]:
                 'Send text — the bot will read it aloud (up to 5000 characters).',
@@ -551,7 +553,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
         refLimitReached: (max) =>
             `⚠️ Reference limit (${max}). Tap "Continue to prompt".`,
         needPhotoOnRefStep:
-            'Send photo references (for Seedance — also a short MP4/MOV video) or tap "Skip" / "Continue to prompt".',
+            'Send a photo, video or audio (whatever this editor accepts), or tap Skip / Continue to prompt.',
         needPrompt: 'Send a prompt to generate video.',
         aspectRatioButton: (ratio) => `📐 Aspect: ${ratio}`,
         resolutionButton: (resolution) => `🖼 Resolution: ${resolution}`,
@@ -717,6 +719,10 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
     },
     voiceTool: {
         selectVoiceButton: '🎙 Available voices',
+        genderFemaleButton: '👩 Female',
+        genderMaleButton: '👨 Male',
+        selectGenderTitle: 'Choose voice gender:',
+        backToGenderList: '◀️ Gender',
         confirmVoiceButton: '✓ Confirm',
         rejectVoiceButton: '✗ No',
         backToVoiceList: '◀️ Back to list',

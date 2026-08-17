@@ -4,6 +4,7 @@ import { I18nBundle } from './types';
 import { ru } from './locales/ru';
 import { en } from './locales/en';
 import { AiToolId } from '@/common/services/ai/types';
+import { getEditorGuideText } from '@/common/config/editor-guides';
 
 export * from './types';
 export * from './format';
@@ -32,7 +33,11 @@ export function getToolInstruction(
     toolId: AiToolId,
     language?: UserLanguage | null,
 ): string {
-    return getI18n(language).tools.instructions[toolId];
+    const locale = language === UserLanguage.EN ? 'en-US' : 'ru-RU';
+    return (
+        getEditorGuideText(toolId, locale) ??
+        getI18n(language).tools.instructions[toolId]
+    );
 }
 
 export function getAllToolLabels(toolId: AiToolId): string[] {

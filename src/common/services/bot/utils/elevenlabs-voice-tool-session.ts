@@ -15,6 +15,7 @@ import { normalizeSoundGeneratorDuration } from '@/common/config/sound-generator
 import { I18nBundle, getToolInstruction, getToolLabel } from '../i18n';
 import { UserLanguage } from '@/generated/prisma/enums';
 import { resolveVoiceSendAsFile } from '@/common/utils/resolve-send-as-file';
+import { replyHtmlChunks } from './telegram-html-reply';
 import {
     generateElevenLabsVoiceReplyKeyboard,
     getVoiceLabelById,
@@ -61,7 +62,8 @@ export function getVoiceKeyboardMode(session: BotSession): VoiceKeyboardMode {
         mode === 'main' ||
         mode === 'settings' ||
         mode === 'preview' ||
-        mode === 'duration'
+        mode === 'duration' ||
+        mode === 'gender'
     ) {
         return mode;
     }
@@ -120,6 +122,7 @@ export function buildElevenLabsVoiceReplyKeyboard(
         keyboardMode?: VoiceKeyboardMode;
         localeTag: 'ru-RU' | 'en-US';
         voices: ElevenLabsVoiceOption[];
+        genderFilter?: 'Женский' | 'Мужской';
     },
 ) {
     return generateElevenLabsVoiceReplyKeyboard(i18n, {
@@ -127,6 +130,7 @@ export function buildElevenLabsVoiceReplyKeyboard(
         keyboardMode: options.keyboardMode ?? 'main',
         localeTag: options.localeTag,
         voices: options.voices,
+        genderFilter: options.genderFilter,
     });
 }
 
@@ -149,21 +153,17 @@ export async function replyWithElevenLabsVoiceKeyboard(
         keyboardMode: options?.keyboardMode ?? getVoiceKeyboardMode(session),
         localeTag: i18n.localeTag,
         voices,
+        genderFilter: session.ai?.elevenLabsVoiceGender,
     });
 
     if (options?.text) {
-        await ctx.reply(options.text, {
-            ...keyboard,
-            parse_mode: 'HTML',
-        });
+        await replyHtmlChunks(ctx, options.text, keyboard);
         return;
     }
 
-    await ctx.reply(
+    await replyHtmlChunks(
+        ctx,
         buildElevenLabsVoiceMainScreenText(i18n, i18n.lang, settings, voices),
-        {
-            ...keyboard,
-            parse_mode: 'HTML',
-        },
+        keyboard,
     );
 }

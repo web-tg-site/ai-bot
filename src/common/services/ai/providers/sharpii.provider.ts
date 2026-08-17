@@ -577,7 +577,6 @@ export class SharpiiProvider {
                         .slice(0, 9)
                         .map((file) => this.toDataUrl(file));
                 }
-                body.audio_sync = false;
             } else {
                 if (images[0]) {
                     body.first_frame_url = this.toDataUrl(images[0]);
@@ -590,8 +589,20 @@ export class SharpiiProvider {
                         body.end_frame_url = endFrame;
                     }
                 }
+            }
 
-                if (toolId === AiToolId.SEEDANCE) {
+            if (toolId === AiToolId.SEEDANCE) {
+                const audios = (input.files ?? []).filter(
+                    (file) =>
+                        file.mimeType.startsWith('audio/') ||
+                        file.mimeType === 'application/ogg',
+                );
+                if (audios.length) {
+                    body.reference_audios = audios
+                        .slice(0, 3)
+                        .map((file) => this.toDataUrl(file));
+                    body.audio_sync = true;
+                } else {
                     body.audio_sync = false;
                 }
             }

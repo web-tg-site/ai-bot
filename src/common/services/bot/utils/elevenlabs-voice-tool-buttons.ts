@@ -7,10 +7,12 @@ import { resolveVoiceSendAsFile } from '@/common/utils/resolve-send-as-file';
 
 export type ElevenLabsVoiceButtonAction =
     | { type: 'open_settings' }
+    | { type: 'select_gender'; gender: 'Женский' | 'Мужской' }
     | { type: 'select_voice'; voiceId: string }
     | { type: 'confirm_voice' }
     | { type: 'reject_voice' }
     | { type: 'toggle_send_as_file' }
+    | { type: 'back_to_gender' }
     | { type: 'back_to_settings' }
     | { type: 'back_to_editor' };
 
@@ -28,8 +30,22 @@ export function resolveElevenLabsVoiceButtonAction(
         return { type: 'back_to_editor' };
     }
 
+    if (text === i18n.voiceTool.backToGenderList) {
+        return { type: 'back_to_gender' };
+    }
+
     if (text === i18n.voiceTool.backToVoiceList) {
         return { type: 'back_to_settings' };
+    }
+
+    if (options.keyboardMode === 'gender') {
+        if (text === i18n.voiceTool.genderFemaleButton) {
+            return { type: 'select_gender', gender: 'Женский' };
+        }
+        if (text === i18n.voiceTool.genderMaleButton) {
+            return { type: 'select_gender', gender: 'Мужской' };
+        }
+        return null;
     }
 
     if (options.keyboardMode === 'preview') {
@@ -85,7 +101,10 @@ export function isElevenLabsVoiceControlButton(
             text === i18n.voiceTool.confirmVoiceButton ||
             text === i18n.voiceTool.rejectVoiceButton ||
             text === i18n.voiceTool.backToVoiceList ||
-            text === i18n.voiceTool.backToEditor
+            text === i18n.voiceTool.backToGenderList ||
+            text === i18n.voiceTool.backToEditor ||
+            text === i18n.voiceTool.genderFemaleButton ||
+            text === i18n.voiceTool.genderMaleButton
         ) {
             return true;
         }

@@ -26,6 +26,7 @@ import { RedisService } from '@/common/services/redis';
 import { CryptoPayService } from '@/common/services/crypto-pay';
 import { AntilopayService } from '@/common/services/antilopay';
 import { bufferToInputFile } from './utils/download-telegram-file';
+import { deliverVideoBuffer } from './utils/media-delivery';
 import {
     mimeTypeToExtension,
     parseDataUrl,
@@ -204,13 +205,17 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         mimeType = 'video/mp4',
         sendAsFile = false,
     ) {
-        const ext = mimeTypeToExtension(mimeType, 'mp4');
-        const inputFile = bufferToInputFile(buffer, `video.${ext}`);
-        if (sendAsFile) {
-            await this.bot.telegram.sendDocument(chatId, inputFile);
-            return;
-        }
-        await this.bot.telegram.sendVideo(chatId, inputFile);
+        await deliverVideoBuffer(
+            {
+                sendVideo: (file, extra) =>
+                    this.bot.telegram.sendVideo(chatId, file, extra),
+                sendDocument: (file) =>
+                    this.bot.telegram.sendDocument(chatId, file),
+            },
+            buffer,
+            mimeType,
+            sendAsFile,
+        );
     }
 
     public async sendAudio(chatId: string, url: string) {

@@ -142,6 +142,7 @@ export class ElevenLabsProvider {
                     labels?: {
                         gender?: string | null;
                         use_case?: string | null;
+                        age?: string | null;
                     } | null;
                 }>;
             }>('/voices');
@@ -166,6 +167,7 @@ export class ElevenLabsProvider {
                         useCase:
                             mapElevenLabsUseCase(voice.labels?.use_case) ??
                             catalogVoice?.useCase,
+                        age: voice.labels?.age ?? null,
                         previewUrl: voice.preview_url ?? null,
                     };
                 })

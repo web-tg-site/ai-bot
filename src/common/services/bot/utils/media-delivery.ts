@@ -11,6 +11,7 @@ import {
 } from '@/common/utils/parse-data-url';
 import { resolveSendAsFile } from '@/common/utils/resolve-send-as-file';
 import { bufferToInputFile } from './download-telegram-file';
+import { remuxVideoForTelegram } from './remux-telegram-video';
 
 type BotContext = Context;
 
@@ -128,13 +129,50 @@ export async function sendVideoBuffer(
     mimeType: string,
     sendAsFile: boolean,
 ) {
+    await deliverVideoBuffer(
+        {
+            sendVideo: (file, extra) => ctx.replyWithVideo(file, extra),
+            sendDocument: (file) => ctx.replyWithDocument(file),
+        },
+        buffer,
+        mimeType,
+        sendAsFile,
+    );
+}
+
+export async function deliverVideoBuffer(
+    api: {
+        sendVideo: (
+            file: ReturnType<typeof bufferToInputFile>,
+            extra?: { supports_streaming?: boolean },
+        ) => Promise<unknown>;
+        sendDocument: (
+            file: ReturnType<typeof bufferToInputFile>,
+        ) => Promise<unknown>;
+    },
+    buffer: Buffer,
+    mimeType: string,
+    sendAsFile: boolean,
+) {
+    let payload = buffer;
+    try {
+        payload = await remuxVideoForTelegram(buffer);
+    } catch {
+        payload = buffer;
+    }
+
     const ext = mimeTypeToExtension(mimeType, 'mp4');
-    const inputFile = bufferToInputFile(buffer, `video.${ext}`);
+    const inputFile = bufferToInputFile(payload, `video.${ext}`);
     if (sendAsFile) {
-        await ctx.replyWithDocument(inputFile);
+        await api.sendDocument(inputFile);
         return;
     }
-    await ctx.replyWithVideo(inputFile);
+
+    try {
+        await api.sendVideo(inputFile, { supports_streaming: true });
+    } catch {
+        await api.sendDocument(inputFile);
+    }
 }
 
 export async function sendAudioBuffer(

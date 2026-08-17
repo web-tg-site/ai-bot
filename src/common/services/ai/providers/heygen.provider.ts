@@ -84,10 +84,15 @@ export class HeyGenProvider {
         const image = input.files?.find((file) =>
             file.mimeType.startsWith('image/'),
         );
+        const audio = input.files?.find(
+            (file) =>
+                file.mimeType.startsWith('audio/') ||
+                file.mimeType === 'application/ogg',
+        );
         if (image) {
-            return this.createImageJob(input, image);
+            return this.createImageJob(input, image, audio);
         }
-        return this.createAvatarJob(input);
+        return this.createAvatarJob(input, audio);
     }
 
     async listPublicVoices(options?: {
@@ -119,11 +124,14 @@ export class HeyGenProvider {
 
     private async createAvatarJob(
         input: AiGenerationInput,
+        audio?: NonNullable<AiGenerationInput['files']>[number],
     ): Promise<AiJobCreateResult> {
         this.ensureApiKey();
 
-        if (!input.prompt?.trim()) {
-            throw new Error('Отправьте текст сценария для видео');
+        if (!input.prompt?.trim() && !audio) {
+            throw new Error(
+                'Отправьте текст сценария или прикрепите голосовой файл озвучки',
+            );
         }
 
         const { avatarId, defaultVoiceId } =
@@ -133,16 +141,13 @@ export class HeyGenProvider {
         const body: Record<string, unknown> = {
             type: 'avatar',
             avatar_id: avatarId,
-            script: input.prompt.trim(),
-            title: this.buildVideoTitle(input.prompt),
+            title: this.buildVideoTitle(input.prompt ?? 'HeyGen'),
             resolution: input.resolution ?? '720p',
             aspect_ratio: input.aspectRatio ?? '16:9',
             ...this.buildSharedVideoOptions(input),
         };
 
-        if (voiceId) {
-            body.voice_id = voiceId;
-        }
+        await this.applySpeech(body, input, audio, voiceId, false);
 
         const response = await this.post<{ data: { video_id: string } }>(
             '/v3/videos',
@@ -158,12 +163,13 @@ export class HeyGenProvider {
     private async createImageJob(
         input: AiGenerationInput,
         image: NonNullable<AiGenerationInput['files']>[number],
+        audio?: NonNullable<AiGenerationInput['files']>[number],
     ): Promise<AiJobCreateResult> {
         this.ensureApiKey();
 
-        if (!input.prompt?.trim()) {
+        if (!input.prompt?.trim() && !audio) {
             throw new Error(
-                'Отправьте текст сценария в подписи к фото или отдельным сообщением',
+                'Отправьте текст сценария или прикрепите голосовой файл озвучки',
             );
         }
 
@@ -172,22 +178,17 @@ export class HeyGenProvider {
             image.mimeType,
         );
         const voiceId = this.resolveVoiceId(input, undefined);
-        if (!voiceId) {
-            throw new Error(
-                'Выберите голос HeyGen для говорящего фото (Параметры → Голос)',
-            );
-        }
 
         const body: Record<string, unknown> = {
             type: 'image',
             image: { type: 'asset_id', asset_id: assetId },
-            script: input.prompt.trim(),
-            voice_id: voiceId,
-            title: this.buildVideoTitle(input.prompt),
+            title: this.buildVideoTitle(input.prompt ?? 'HeyGen'),
             resolution: input.resolution ?? '720p',
             aspect_ratio: input.aspectRatio ?? '16:9',
             ...this.buildSharedVideoOptions(input),
         };
+
+        await this.applySpeech(body, input, audio, voiceId, true);
 
         const response = await this.post<{ data: { video_id: string } }>(
             '/v3/videos',
@@ -198,6 +199,42 @@ export class HeyGenProvider {
             providerJobId: response.data.video_id,
             estimatedTokenCost: 0,
         };
+    }
+
+    private async applySpeech(
+        body: Record<string, unknown>,
+        input: AiGenerationInput,
+        audio: NonNullable<AiGenerationInput['files']>[number] | undefined,
+        voiceId: string | undefined,
+        requireVoiceIfNoAudio: boolean,
+    ) {
+        if (audio) {
+            const audioAssetId = await this.uploadImageAsset(
+                audio.buffer,
+                audio.mimeType || 'audio/mpeg',
+            );
+            body.voice = {
+                type: 'audio',
+                audio_asset_id: audioAssetId,
+            };
+            if (input.prompt?.trim()) {
+                body.script = input.prompt.trim();
+            }
+            return;
+        }
+
+        if (requireVoiceIfNoAudio && !voiceId) {
+            throw new Error(
+                'Выберите голос HeyGen для говорящего фото (Параметры → Голос) или прикрепите аудио',
+            );
+        }
+
+        if (input.prompt?.trim()) {
+            body.script = input.prompt.trim();
+        }
+        if (voiceId) {
+            body.voice_id = voiceId;
+        }
     }
 
     async getJobStatus(providerJobId: string): Promise<AiJobStatusResult> {

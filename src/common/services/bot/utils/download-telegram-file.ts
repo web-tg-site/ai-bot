@@ -72,6 +72,17 @@ export async function extractFilesFromMessage(
         );
     }
 
+    if ('video_note' in message && message.video_note) {
+        files.push(
+            await downloadTelegramFile(
+                ctx,
+                message.video_note.file_id,
+                'video_note.mp4',
+                'video/mp4',
+            ),
+        );
+    }
+
     if ('voice' in message && message.voice) {
         files.push(
             await downloadTelegramFile(

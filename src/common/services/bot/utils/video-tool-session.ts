@@ -11,6 +11,7 @@ import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
 import { I18nBundle, getToolLabel, getToolInstruction } from '../i18n';
 import { UserLanguage } from '@/generated/prisma/enums';
 import { resolveVideoSendAsFile } from '@/common/utils/resolve-send-as-file';
+import { replyHtmlChunks } from './telegram-html-reply';
 import {
     generateVideoEditorReplyKeyboard,
     VideoKeyboardMode,
@@ -156,14 +157,12 @@ export async function replyWithVideoEditorKeyboard(
     });
 
     if (options?.text) {
-        await ctx.reply(options.text, {
-            ...keyboard,
-            parse_mode: 'HTML',
-        });
+        await replyHtmlChunks(ctx, options.text, keyboard);
         return;
     }
 
-    await ctx.reply(
+    await replyHtmlChunks(
+        ctx,
         buildVideoToolMainScreenText(
             i18n,
             toolId,
@@ -171,10 +170,7 @@ export async function replyWithVideoEditorKeyboard(
             session.ai?.toolSettings ?? {},
             capabilitiesService,
         ),
-        {
-            ...keyboard,
-            parse_mode: 'HTML',
-        },
+        keyboard,
     );
 }
 

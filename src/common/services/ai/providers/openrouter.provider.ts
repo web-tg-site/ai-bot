@@ -199,6 +199,12 @@ export class OpenRouterProvider {
         const videos =
             input.files?.filter((file) => file.mimeType.startsWith('video/')) ??
             [];
+        const audios =
+            input.files?.filter(
+                (file) =>
+                    file.mimeType.startsWith('audio/') ||
+                    file.mimeType === 'application/ogg',
+            ) ?? [];
 
         if (!images.length || !videos.length) {
             throw new Error(
@@ -235,6 +241,12 @@ export class OpenRouterProvider {
                         url: `data:${videos[0].mimeType};base64,${videos[0].buffer.toString('base64')}`,
                     },
                 },
+                ...audios.map((file) => ({
+                    type: 'audio_url' as const,
+                    audio_url: {
+                        url: `data:${file.mimeType};base64,${file.buffer.toString('base64')}`,
+                    },
+                })),
             ],
             character_orientation: 'video',
         };
@@ -323,54 +335,86 @@ export class OpenRouterProvider {
             image_url: { url: string };
             frame_type: 'first_frame' | 'last_frame';
         }>;
-        input_references: Array<{
-            type: 'image_url';
-            image_url: { url: string };
-        }>;
+        input_references: Array<
+            | {
+                  type: 'image_url';
+                  image_url: { url: string };
+              }
+            | {
+                  type: 'video_url';
+                  video_url: { url: string };
+              }
+            | {
+                  type: 'audio_url';
+                  audio_url: { url: string };
+              }
+        >;
     } {
         const images =
             input.files?.filter((file) => file.mimeType.startsWith('image/')) ??
             [];
+        const videos =
+            input.files?.filter((file) => file.mimeType.startsWith('video/')) ??
+            [];
+        const audios =
+            input.files?.filter(
+                (file) =>
+                    file.mimeType.startsWith('audio/') ||
+                    file.mimeType === 'application/ogg',
+            ) ?? [];
 
-        if (!images.length) {
-            return { frame_images: [], input_references: [] };
-        }
+        const toData = (
+            file: NonNullable<AiGenerationInput['files']>[number],
+        ) => `data:${file.mimeType};base64,${file.buffer.toString('base64')}`;
 
         const toFrame = (
             file: NonNullable<AiGenerationInput['files']>[number],
             frame_type: 'first_frame' | 'last_frame',
         ) => ({
             type: 'image_url' as const,
-            image_url: {
-                url: `data:${file.mimeType};base64,${file.buffer.toString('base64')}`,
-            },
+            image_url: { url: toData(file) },
             frame_type,
         });
 
-        const toReference = (
-            file: NonNullable<AiGenerationInput['files']>[number],
-        ) => ({
-            type: 'image_url' as const,
-            image_url: {
-                url: `data:${file.mimeType};base64,${file.buffer.toString('base64')}`,
-            },
-        });
+        const input_references: Array<
+            | { type: 'image_url'; image_url: { url: string } }
+            | { type: 'video_url'; video_url: { url: string } }
+            | { type: 'audio_url'; audio_url: { url: string } }
+        > = [
+            ...videos.map((file) => ({
+                type: 'video_url' as const,
+                video_url: { url: toData(file) },
+            })),
+            ...audios.map((file) => ({
+                type: 'audio_url' as const,
+                audio_url: { url: toData(file) },
+            })),
+        ];
+
+        if (!images.length) {
+            return { frame_images: [], input_references };
+        }
 
         if (images.length === 1) {
             return {
                 frame_images: [toFrame(images[0], 'first_frame')],
-                input_references: [],
+                input_references,
             };
         }
 
         const middle = images.slice(1, -1);
-
         return {
             frame_images: [
                 toFrame(images[0], 'first_frame'),
                 toFrame(images[images.length - 1], 'last_frame'),
             ],
-            input_references: middle.map(toReference),
+            input_references: [
+                ...middle.map((file) => ({
+                    type: 'image_url' as const,
+                    image_url: { url: toData(file) },
+                })),
+                ...input_references,
+            ],
         };
     }
 

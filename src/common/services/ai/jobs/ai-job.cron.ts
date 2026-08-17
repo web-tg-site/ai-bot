@@ -18,11 +18,10 @@ import {
     isSharpiiMidjourneyGenericFailure,
 } from '../providers/sharpii.provider';
 import {
-    AI_JOB_COMPLETED_TEXT,
     AI_JOB_STALE_REMINDER_TEXT,
     AI_MIDJOURNEY_FALLBACK_TEXT,
 } from '@/common/services/bot/texts';
-import { getI18n } from '@/common/services/bot/i18n';
+import { getI18n, getToolLabel } from '@/common/services/bot/i18n';
 import { formatUserBotErrorMessage } from '@/common/services/bot/errors/bot-error.mapper';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
 import { isElevenLabsDubbingResultUrl } from '../providers/elevenlabs.provider';
@@ -255,7 +254,12 @@ export class AiJobCron {
 
                 await botService.sendMessage(
                     job.user.telegramId,
-                    AI_JOB_COMPLETED_TEXT,
+                    getI18n(job.user.language).aiResult.jobCompleted(
+                        getToolLabel(
+                            job.toolId as AiToolId,
+                            job.user.language,
+                        ),
+                    ),
                     { parse_mode: 'HTML' },
                 );
             } catch (error) {
@@ -396,7 +400,12 @@ export class AiJobCron {
                 );
                 await botService.sendMessage(
                     job.user.telegramId,
-                    AI_JOB_COMPLETED_TEXT,
+                    getI18n(job.user.language).aiResult.jobCompleted(
+                        getToolLabel(
+                            job.toolId as AiToolId,
+                            job.user.language,
+                        ),
+                    ),
                     { parse_mode: 'HTML' },
                 );
             }

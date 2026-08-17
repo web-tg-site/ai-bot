@@ -18,6 +18,7 @@ export type ElevenLabsVoiceOption = {
     gender?: ElevenLabsVoiceGender;
     /** Рекомендуемый сценарий использования (как use_case в ElevenLabs). */
     useCase?: ElevenLabsUseCaseId;
+    age?: string | null;
     previewUrl?: string | null;
 };
 

@@ -24,6 +24,7 @@ import {
     getImageMaxReferences,
 } from '@/common/config/image-editor-capabilities.config';
 import {
+    getVideoMaxAudioReferences,
     getVideoMaxReferences,
     isVideoFlowTool,
 } from '@/common/config/video-editor-capabilities.config';
@@ -48,6 +49,13 @@ import { mimeTypeToExtension } from '@/common/utils/parse-data-url';
 import { serializeGptUserMessage } from '@/common/utils/gpt-message-content';
 import { compressGptHistoryImage } from '@/common/utils/compress-reference-image';
 import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
+import {
+    fileMatchesToolAccepts,
+    isAudioMedia,
+    isVideoMedia,
+    isVisualMedia,
+} from '@/common/utils/media-kind';
+import { replyHtmlChunks } from '../utils/telegram-html-reply';
 import { markdownToTelegramHtml } from '@/common/utils/markdown-to-telegram-html';
 import { getToolsByCategory } from '@/common/config/ai-tools.registry';
 import { BotHandlerDeps } from './global.handler';
@@ -462,7 +470,8 @@ async function selectTool(
             deps.imageCapabilitiesService,
         );
 
-        await ctx.reply(
+        await replyHtmlChunks(
+            ctx,
             buildImageToolMainScreenText(
                 i18n,
                 toolId,
@@ -470,20 +479,17 @@ async function selectTool(
                 settings,
                 deps.imageCapabilitiesService,
             ),
-            {
-                ...generateImageEditorReplyKeyboard(i18n, {
-                    toolId,
-                    settings,
-                    aspectRatios: caps.aspectRatios,
-                    resolutions: caps.resolutions,
-                    qualities: caps.qualities,
-                    topazScales: caps.topazScales,
-                    step: session.ai.step,
-                    keyboardMode: 'main',
-                    localeTag: i18n.localeTag,
-                }),
-                parse_mode: 'HTML',
-            },
+            generateImageEditorReplyKeyboard(i18n, {
+                toolId,
+                settings,
+                aspectRatios: caps.aspectRatios,
+                resolutions: caps.resolutions,
+                qualities: caps.qualities,
+                topazScales: caps.topazScales,
+                step: session.ai.step,
+                keyboardMode: 'main',
+                localeTag: i18n.localeTag,
+            }),
         );
     } else if (isVideoFlowTool(toolId)) {
         const settings = (session.ai.toolSettings ?? {}) as VideoToolSettings;
@@ -493,7 +499,8 @@ async function selectTool(
             i18n.localeTag,
         );
 
-        await ctx.reply(
+        await replyHtmlChunks(
+            ctx,
             buildVideoToolMainScreenText(
                 i18n,
                 toolId,
@@ -501,53 +508,48 @@ async function selectTool(
                 settings,
                 deps.videoCapabilitiesService,
             ),
-            {
-                ...generateVideoEditorReplyKeyboard(i18n, {
-                    toolId,
-                    settings,
-                    aspectRatios: caps.aspectRatios,
-                    resolutions: caps.resolutions,
-                    qualities: caps.qualities,
-                    durations: caps.durations,
-                    stylePresets: caps.stylePresets,
-                    effectPresets:
-                        toolId === AiToolId.HIGGSFIELD
-                            ? buildHiggsfieldEffectPresets(
-                                  i18n,
-                                  session.ai.accessibleHiggsfieldMotions ?? [],
-                              )
-                            : [],
-                    heygenVoices: session.ai.accessibleHeyGenVoices ?? [],
-                    heygenAvatars: session.ai.accessibleHeyGenAvatars ?? [],
-                    heygenVoicePage: session.ai.heygenVoicePage ?? 0,
-                    heygenAvatarPage: session.ai.heygenAvatarPage ?? 0,
-                    step: session.ai.step,
-                    keyboardMode: 'main',
-                    localeTag: i18n.localeTag,
-                }),
-                parse_mode: 'HTML',
-            },
+            generateVideoEditorReplyKeyboard(i18n, {
+                toolId,
+                settings,
+                aspectRatios: caps.aspectRatios,
+                resolutions: caps.resolutions,
+                qualities: caps.qualities,
+                durations: caps.durations,
+                stylePresets: caps.stylePresets,
+                effectPresets:
+                    toolId === AiToolId.HIGGSFIELD
+                        ? buildHiggsfieldEffectPresets(
+                              i18n,
+                              session.ai.accessibleHiggsfieldMotions ?? [],
+                          )
+                        : [],
+                heygenVoices: session.ai.accessibleHeyGenVoices ?? [],
+                heygenAvatars: session.ai.accessibleHeyGenAvatars ?? [],
+                heygenVoicePage: session.ai.heygenVoicePage ?? 0,
+                heygenAvatarPage: session.ai.heygenAvatarPage ?? 0,
+                step: session.ai.step,
+                keyboardMode: 'main',
+                localeTag: i18n.localeTag,
+            }),
         );
     } else if (toolId === AiToolId.ELEVENLABS_VOICE) {
         const settings = session.ai.voiceToolSettings ?? {};
         const voices = getSessionAccessibleVoices(session);
 
-        await ctx.reply(
+        await replyHtmlChunks(
+            ctx,
             buildElevenLabsVoiceMainScreenText(
                 i18n,
                 user.language,
                 settings,
                 voices,
             ),
-            {
-                ...generateElevenLabsVoiceReplyKeyboard(i18n, {
-                    settings,
-                    keyboardMode: 'main',
-                    localeTag: i18n.localeTag,
-                    voices,
-                }),
-                parse_mode: 'HTML',
-            },
+            generateElevenLabsVoiceReplyKeyboard(i18n, {
+                settings,
+                keyboardMode: 'main',
+                localeTag: i18n.localeTag,
+                voices,
+            }),
         );
     } else if (isAudioDeliveryTool(toolId)) {
         const settings = session.ai.voiceToolSettings ?? {};
@@ -576,19 +578,21 @@ async function selectTool(
             parts.push(i18n.voiceTool.promptHint);
         }
 
-        await ctx.reply(parts.join('\n\n'), {
-            ...generateAudioToolReplyKeyboard(i18n, toolId, settings, 'main'),
-            parse_mode: 'HTML',
-        });
+        await replyHtmlChunks(
+            ctx,
+            parts.join('\n\n'),
+            generateAudioToolReplyKeyboard(i18n, toolId, settings, 'main'),
+        );
     } else {
         const tools = getToolsByCategory(keyboardCategory).map((t) =>
             getToolLabel(t.id, user.language),
         );
 
-        await ctx.reply(i18n.aiResult.toolSelected(label, instruction), {
-            ...generateAiKeyboard(i18n, tools),
-            parse_mode: 'HTML',
-        });
+        await replyHtmlChunks(
+            ctx,
+            i18n.aiResult.toolSelected(label, instruction),
+            generateAiKeyboard(i18n, tools),
+        );
     }
 
     if (isChatAssistantTool(toolId)) {
@@ -1335,15 +1339,15 @@ async function appendVideoReferences(
 
     if (toolId === AiToolId.SEEDANCE) {
         const existingVideos = session.ai.referenceFiles.filter((ref) =>
-            ref.mimeType.startsWith('video/'),
+            isVideoMedia(ref.mimeType, ref.fileName),
         ).length;
         if (existingVideos >= 1) {
             const withoutVideos = mediaFiles.filter(
-                (file) => !file.mimeType.startsWith('video/'),
+                (file) => !isVideoMedia(file.mimeType, file.fileName),
             );
             if (!withoutVideos.length) {
                 await ctx.reply(
-                    'Seedance принимает одно видео-референс. Можно добавить ещё фото.',
+                    'Seedance принимает одно видео-референс. Можно добавить ещё фото и аудио.',
                     { parse_mode: 'HTML' },
                 );
                 return;
@@ -1351,11 +1355,11 @@ async function appendVideoReferences(
             mediaFiles = withoutVideos;
         } else {
             const videos = mediaFiles.filter((file) =>
-                file.mimeType.startsWith('video/'),
+                isVideoMedia(file.mimeType, file.fileName),
             );
             if (videos.length > 1) {
                 await ctx.reply(
-                    'Seedance принимает одно видео-референс. Отправьте одно видео, затем фото.',
+                    'Seedance принимает одно видео-референс. Отправьте одно видео, затем фото или аудио.',
                     { parse_mode: 'HTML' },
                 );
                 return;
@@ -1363,13 +1367,26 @@ async function appendVideoReferences(
         }
     }
 
-    const maxRefs = getVideoMaxReferences(toolId);
+    const maxVisual = getVideoMaxReferences(toolId);
+    const maxAudio = getVideoMaxAudioReferences(toolId);
     const addedRefs: StoredReference[] = [];
     let limitReached = false;
     for (const file of mediaFiles) {
-        if (session.ai.referenceFiles.length >= maxRefs) {
+        const existingVisual = session.ai.referenceFiles.filter((ref) =>
+            isVisualMedia(ref.mimeType, ref.fileName),
+        ).length;
+        const existingAudio = session.ai.referenceFiles.filter((ref) =>
+            isAudioMedia(ref.mimeType, ref.fileName),
+        ).length;
+        const isAudio = isAudioMedia(file.mimeType, file.fileName);
+        if (isAudio) {
+            if (existingAudio >= maxAudio) {
+                limitReached = true;
+                continue;
+            }
+        } else if (existingVisual >= maxVisual) {
             limitReached = true;
-            break;
+            continue;
         }
         const ref = await serializeReference(file);
         session.ai.referenceFiles.push(ref);
@@ -1403,7 +1420,7 @@ async function appendVideoReferences(
         ctx,
         addedRefs,
         session.ai.referenceFiles.length,
-        maxRefs,
+        maxVisual + maxAudio,
         {
             refAdded: i18n.videoTool.refAdded,
             refDeleteButton: i18n.videoTool.refDeleteButton,
@@ -1418,11 +1435,12 @@ function filterVideoReferenceFiles(
     toolId: AiToolId,
     files: AiFileInput[],
 ): AiFileInput[] {
-    const allowVideo = toolId === AiToolId.SEEDANCE;
-    return files.filter(
-        (file) =>
-            file.mimeType.startsWith('image/') ||
-            (allowVideo && file.mimeType.startsWith('video/')),
+    const accepts = getToolById(toolId)?.accepts ?? [];
+    const mediaAccepts = accepts.filter(
+        (item) => item === 'photo' || item === 'video' || item === 'audio' || item === 'voice',
+    );
+    return files.filter((file) =>
+        fileMatchesToolAccepts(file, mediaAccepts),
     );
 }
 
@@ -2251,9 +2269,20 @@ async function handleElevenLabsVoiceButtonPress(
             keyboardMode: mode,
             localeTag: i18n.localeTag,
             voices,
+            genderFilter: session.ai?.elevenLabsVoiceGender,
         });
 
     if (action.type === 'open_settings') {
+        session.ai.voiceKeyboardMode = 'gender';
+        await ctx.reply(i18n.voiceTool.selectGenderTitle, {
+            ...replyKeyboard('gender'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'select_gender') {
+        session.ai.elevenLabsVoiceGender = action.gender;
         session.ai.voiceKeyboardMode = 'settings';
         const parts = [
             i18n.voiceTool.settingsMenuTitle,
@@ -2263,6 +2292,16 @@ async function handleElevenLabsVoiceButtonPress(
         ];
         await ctx.reply(parts.join('\n\n'), {
             ...replyKeyboard('settings'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'back_to_gender') {
+        session.ai.voiceKeyboardMode = 'gender';
+        session.ai.pendingElevenLabsVoiceId = undefined;
+        await ctx.reply(i18n.voiceTool.selectGenderTitle, {
+            ...replyKeyboard('gender'),
             parse_mode: 'HTML',
         });
         return true;
@@ -2896,7 +2935,8 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
     }
 
     if (isTopazTool(toolId)) {
-        if (!files.length) {
+        const mediaFiles = filterVideoReferenceFiles(toolId, files);
+        if (!mediaFiles.length) {
             await ctx.reply(i18n.aiResult.sendTextOrFile);
             return;
         }
@@ -2906,7 +2946,7 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
             session,
             toolId,
             undefined,
-            files,
+            mediaFiles,
             tool,
             i18n,
         );
@@ -3299,9 +3339,8 @@ async function resolveVoiceCloneInput(
 function findVoiceSample(files: AiFileInput[]): AiFileInput | undefined {
     return files.find(
         (file) =>
-            file.mimeType.startsWith('audio/') ||
-            file.mimeType === 'audio/ogg' ||
-            file.mimeType.startsWith('video/'),
+            isAudioMedia(file.mimeType, file.fileName) ||
+            isVideoMedia(file.mimeType, file.fileName),
     );
 }
 

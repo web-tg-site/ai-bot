@@ -55,6 +55,7 @@ export type I18nBundle = {
         voiceCloneNeedText: string;
         voiceCloneSampleUpdated: string;
         toolSelected: (toolName: string, instruction: string) => string;
+        jobCompleted: (toolName: string) => string;
         generating: string;
         asyncStarted: string;
         midjourneyFallback: string;
@@ -330,6 +331,10 @@ export type I18nBundle = {
     };
     voiceTool: {
         selectVoiceButton: string;
+        genderFemaleButton: string;
+        genderMaleButton: string;
+        selectGenderTitle: string;
+        backToGenderList: string;
         confirmVoiceButton: string;
         rejectVoiceButton: string;
         backToVoiceList: string;

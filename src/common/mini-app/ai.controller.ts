@@ -235,6 +235,10 @@ class SendPromptBodyDto {
     @MinLength(1)
     @MaxLength(8000)
     prompt!: string;
+
+    @IsOptional()
+    @IsString()
+    editorLabel?: string;
 }
 
 @Controller('api/ai')
@@ -275,6 +279,7 @@ export class AiController {
             useCase: voice.useCase ?? null,
             useCaseRu:
                 getElevenLabsUseCaseLabel(voice.useCase, 'ru-RU') ?? null,
+            age: voice.age ?? null,
             previewUrl: voice.previewUrl ?? null,
         }));
     }
@@ -707,9 +712,13 @@ export class AiController {
             const botService = this.moduleRef.get(BotService, {
                 strict: false,
             });
+            const editor =
+                body.editorLabel?.trim()
+                    ? `Редактор: ${body.editorLabel.trim()}\n\n`
+                    : "";
             await botService.sendMessage(
                 current.telegramId,
-                `📝 Промпт из мини-приложения:\n\n${trimmed}`,
+                `📝 Промпт из мини-приложения:\n\n${editor}${trimmed}`,
             );
             return { ok: true };
         } catch (error) {

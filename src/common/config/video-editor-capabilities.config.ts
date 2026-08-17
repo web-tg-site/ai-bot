@@ -273,6 +273,14 @@ export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
     [AiToolId.HEYGEN]: 1,
 };
 
+/** Audio slots are counted separately from visual maxReferences. */
+export const VIDEO_TOOL_MAX_AUDIO_REFERENCES: Partial<Record<AiToolId, number>> =
+    {
+        [AiToolId.SEEDANCE]: 3,
+        [AiToolId.HEYGEN]: 1,
+        [AiToolId.KLING_MOTION]: 1,
+    };
+
 export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
     [AiToolId.KLING]: [5, 10, 15],
     [AiToolId.KLING_MOTION]: [5, 10, 15, 30],
@@ -319,6 +327,10 @@ export function isVideoToolWithAspectSettings(toolId: AiToolId): boolean {
 
 export function getVideoMaxReferences(toolId: AiToolId): number {
     return VIDEO_TOOL_MAX_REFERENCES[toolId] ?? 0;
+}
+
+export function getVideoMaxAudioReferences(toolId: AiToolId): number {
+    return VIDEO_TOOL_MAX_AUDIO_REFERENCES[toolId] ?? 0;
 }
 
 export function getOpenRouterVideoModelForTool(

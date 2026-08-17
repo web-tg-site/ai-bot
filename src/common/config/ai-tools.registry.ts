@@ -119,10 +119,10 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         baseTokenCost: 0,
         perSecondCost: 63,
         defaultDurationSeconds: 5,
-        accepts: ['text', 'photo'],
+        accepts: ['text', 'photo', 'video'],
         isAsync: true,
         instruction:
-            'Загрузите референсы (можно пропустить), настройте параметры и опишите сцену.',
+            'Прикрепите фото или видео-референсы (можно пропустить), настройте параметры и опишите сцену.',
     },
     {
         id: AiToolId.KLING_MOTION,
@@ -133,10 +133,10 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         baseTokenCost: 0,
         perSecondCost: 63,
         defaultDurationSeconds: 5,
-        accepts: ['text', 'photo', 'video'],
+        accepts: ['text', 'photo', 'video', 'audio'],
         isAsync: true,
         instruction:
-            'Загрузите фото персонажа и видео с движением, затем опишите сцену (опционально).',
+            'Загрузите фото персонажа, видео с движением и при желании голос озвучки, затем опишите сцену.',
     },
     {
         id: AiToolId.VEO,
@@ -147,10 +147,10 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         baseTokenCost: 0,
         perSecondCost: 25,
         defaultDurationSeconds: 4,
-        accepts: ['text', 'photo'],
+        accepts: ['text', 'photo', 'video'],
         isAsync: true,
         instruction:
-            'Загрузите референсы (можно пропустить), настройте параметры и опишите сцену.',
+            'Прикрепите фото или видео-референсы (можно пропустить), настройте параметры и опишите сцену.',
     },
     {
         id: AiToolId.SORA,
@@ -164,7 +164,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         accepts: ['text', 'photo'],
         isAsync: true,
         instruction:
-            'Загрузите до 2 кадров для перехода, настройте параметры и опишите сцену.',
+            'Прикрепите фото-референсы (можно пропустить), настройте параметры и опишите сцену.',
     },
     {
         id: AiToolId.SEEDANCE,
@@ -175,10 +175,10 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         baseTokenCost: 0,
         perSecondCost: 34,
         defaultDurationSeconds: 5,
-        accepts: ['text', 'photo', 'video'],
+        accepts: ['text', 'photo', 'video', 'audio'],
         isAsync: true,
         instruction:
-            'Загрузите до 2 референсов: видео и/или фото (одно видео + фото), настройте параметры и опишите сцену.',
+            'Прикрепите фото, одно видео и при желании аудио, настройте параметры и опишите сцену.',
     },
     {
         id: AiToolId.LUMA_RAY,
@@ -192,7 +192,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         accepts: ['text', 'photo', 'video'],
         isAsync: true,
         instruction:
-            'Генерация видео по промпту (до 2 кадров). Видео + промпт — редактирование. ' +
+            'Прикрепите фото или видео. Видео + промпт — редактирование. ' +
             'Видео без промпта — смена формата кадра в параметрах.',
     },
     {
@@ -216,10 +216,10 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         baseTokenCost: 0,
         perSecondCost: 25,
         defaultDurationSeconds: 5,
-        accepts: ['text', 'photo'],
+        accepts: ['text', 'photo', 'audio'],
         isAsync: true,
         instruction:
-            'Выберите аватар и голос в параметрах, затем отправьте текст сценария. Можно прикрепить фото — будет говорящий портрет.',
+            'Текст сценария или голосовой файл озвучки. Можно прикрепить фото — будет говорящий портрет.',
     },
     {
         id: AiToolId.TOPAZ,

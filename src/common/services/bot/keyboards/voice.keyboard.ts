@@ -11,7 +11,12 @@ import {
 } from '@/common/config/elevenlabs-voices.config';
 import { chunkKeyboardRow } from './keyboard-grid';
 
-export type VoiceKeyboardMode = 'main' | 'settings' | 'preview' | 'duration';
+export type VoiceKeyboardMode =
+    | 'main'
+    | 'settings'
+    | 'preview'
+    | 'duration'
+    | 'gender';
 
 export function generateElevenLabsVoiceReplyKeyboard(
     i18n: I18nBundle,
@@ -20,10 +25,18 @@ export function generateElevenLabsVoiceReplyKeyboard(
         keyboardMode: VoiceKeyboardMode;
         localeTag: 'ru-RU' | 'en-US';
         voices: ElevenLabsVoiceOption[];
+        genderFilter?: 'Женский' | 'Мужской';
     },
 ) {
     if (options.keyboardMode === 'settings') {
         return generateVoicePickerKeyboard(i18n, options);
+    }
+
+    if (options.keyboardMode === 'gender') {
+        return Markup.keyboard([
+            [i18n.voiceTool.genderFemaleButton, i18n.voiceTool.genderMaleButton],
+            [i18n.voiceTool.backToEditor],
+        ]).resize();
     }
 
     if (options.keyboardMode === 'preview') {
@@ -46,10 +59,17 @@ function generateVoicePickerKeyboard(
         settings: VoiceToolSettings;
         localeTag: 'ru-RU' | 'en-US';
         voices: ElevenLabsVoiceOption[];
+        genderFilter?: 'Женский' | 'Мужской';
     },
 ) {
     const currentVoiceId = options.settings.elevenLabsVoiceId;
-    const labels = options.voices.map((voice) => {
+    const filtered = options.genderFilter
+        ? options.voices.filter(
+              (voice) =>
+                  voice.gender === options.genderFilter || !voice.gender,
+          )
+        : options.voices;
+    const labels = filtered.map((voice) => {
         const label = getVoiceLabel(voice, options.localeTag);
         return voice.id === currentVoiceId
             ? i18n.voiceTool.voicePickerSelected(label)
@@ -62,7 +82,7 @@ function generateVoicePickerKeyboard(
             resolveVoiceSendAsFile(AiToolId.ELEVENLABS_VOICE, options.settings),
         ),
     ]);
-    rows.push([i18n.voiceTool.backToEditor]);
+    rows.push([i18n.voiceTool.backToGenderList, i18n.voiceTool.backToEditor]);
     return Markup.keyboard(rows).resize();
 }
 

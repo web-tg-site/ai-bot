@@ -75,7 +75,9 @@ export type BotSession = {
             | 'duration'
             | 'genre'
             | 'mood'
-            | 'lyrics';
+            | 'lyrics'
+            | 'gender';
+        elevenLabsVoiceGender?: 'Женский' | 'Мужской';
         awaitingSunoLyrics?: boolean;
         pendingElevenLabsVoiceId?: string;
         accessibleElevenLabsVoices?: Array<{
@@ -91,6 +93,7 @@ export type BotSession = {
                 | 'characters_animation'
                 | 'informative_educational'
                 | 'advertisement';
+            age?: string | null;
             previewUrl?: string | null;
         }>;
         accessibleHiggsfieldMotions?: Array<{
