@@ -14,6 +14,7 @@ export type AiGenerationResult = {
     voiceBuffer?: Buffer;
     voiceMimeType?: string;
     actualTokenCost?: number;
+    additionalUrls?: string[];
 };
 
 export type GptReplyMode = 'text' | 'audio' | 'both';
@@ -50,6 +51,23 @@ export type AiGenerationInput = {
     sunoMoodId?: string;
     sunoInstrumental?: boolean;
     sunoLyrics?: string;
+    outpaintWidth?: number;
+    outpaintHeight?: number;
+    outpaintOffsetX?: number;
+    outpaintOffsetY?: number;
+    fluxVideoMode?: 't2v' | 'i2v' | 'v2v' | 'draft_enhance';
+    attachmentRoles?: (
+        | 'source'
+        | 'mask'
+        | 'person'
+        | 'garment'
+        | 'start_frame'
+        | 'end_frame'
+    )[];
+    lumaStyle?: 'auto' | 'manga';
+    lumaWebSearch?: boolean;
+    lumaOutputFormat?: 'png' | 'jpeg';
+    sourceGenerationId?: string;
 };
 
 export type AiFileInput = {

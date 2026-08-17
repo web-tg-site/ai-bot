@@ -236,6 +236,7 @@ export const VIDEO_TOOLS_WITH_REFERENCES: AiToolId[] = [
     AiToolId.SORA,
     AiToolId.SEEDANCE,
     AiToolId.LUMA_RAY,
+    AiToolId.FLUX_VIDEO,
     AiToolId.HIGGSFIELD,
     AiToolId.HEYGEN,
 ];
@@ -247,6 +248,9 @@ export const VIDEO_FLOW_TOOLS: AiToolId[] = [
     AiToolId.SORA,
     AiToolId.SEEDANCE,
     AiToolId.LUMA_RAY,
+    AiToolId.FLUX_VIDEO,
+    AiToolId.LUMA_VIDEO_EDIT,
+    AiToolId.LUMA_VIDEO_REFRAME,
     AiToolId.HIGGSFIELD,
     AiToolId.HEYGEN,
 ];
@@ -258,6 +262,8 @@ export const VIDEO_TOOLS_WITH_ASPECT_SETTINGS: AiToolId[] = [
     AiToolId.SORA,
     AiToolId.SEEDANCE,
     AiToolId.LUMA_RAY,
+    AiToolId.FLUX_VIDEO,
+    AiToolId.LUMA_VIDEO_REFRAME,
     AiToolId.HIGGSFIELD,
     AiToolId.HEYGEN,
 ];
@@ -269,6 +275,9 @@ export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
     [AiToolId.SORA]: 2,
     [AiToolId.SEEDANCE]: 2,
     [AiToolId.LUMA_RAY]: 2,
+    [AiToolId.FLUX_VIDEO]: 1,
+    [AiToolId.LUMA_VIDEO_EDIT]: 1,
+    [AiToolId.LUMA_VIDEO_REFRAME]: 1,
     [AiToolId.HIGGSFIELD]: 1,
     [AiToolId.HEYGEN]: 1,
 };
@@ -280,6 +289,9 @@ export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
     [AiToolId.SORA]: [10, 15],
     [AiToolId.SEEDANCE]: [5, 10, 15],
     [AiToolId.LUMA_RAY]: [5, 10],
+    [AiToolId.FLUX_VIDEO]: [5, 10, 15, 20],
+    [AiToolId.LUMA_VIDEO_EDIT]: [5, 10],
+    [AiToolId.LUMA_VIDEO_REFRAME]: [5, 10],
     [AiToolId.HIGGSFIELD]: [5, 10, 15],
     [AiToolId.HEYGEN]: [5, 15],
 };
@@ -291,6 +303,8 @@ export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.SORA]: [...UI_ASPECT_RATIOS],
     [AiToolId.SEEDANCE]: [...UI_ASPECT_RATIOS],
     [AiToolId.LUMA_RAY]: [...UI_ASPECT_RATIOS],
+    [AiToolId.FLUX_VIDEO]: [...UI_ASPECT_RATIOS],
+    [AiToolId.LUMA_VIDEO_REFRAME]: [...UI_ASPECT_RATIOS],
     [AiToolId.HIGGSFIELD]: [...UI_ASPECT_RATIOS],
     [AiToolId.HEYGEN]: [...UI_ASPECT_RATIOS],
 };
@@ -301,6 +315,7 @@ export const STATIC_VIDEO_RESOLUTIONS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.SORA]: ['720p', '1080p'],
     [AiToolId.SEEDANCE]: ['720p', '1080p'],
     [AiToolId.LUMA_RAY]: ['1080p', '720p'],
+    [AiToolId.FLUX_VIDEO]: ['720p', '1080p'],
     [AiToolId.HIGGSFIELD]: ['720p'],
     [AiToolId.HEYGEN]: ['720p', '1080p'],
 };

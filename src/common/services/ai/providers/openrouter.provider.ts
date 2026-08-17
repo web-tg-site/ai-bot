@@ -52,7 +52,6 @@ export class OpenRouterProvider {
             case AiToolId.CLAUDE_SONNET:
                 return this.chatClaude(input);
             case AiToolId.GPT_IMAGES:
-            case AiToolId.FLUX:
             case AiToolId.NANO_BANANA:
             case AiToolId.SEEDREAM: {
                 const tool = getToolById(toolId);

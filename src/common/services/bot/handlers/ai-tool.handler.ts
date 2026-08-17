@@ -3337,10 +3337,11 @@ async function runGeneration(
                     await ctx.reply(i18n.aiResult.midjourneyFallback);
                     await ctx.reply(i18n.aiResult.generating);
 
-                    const generationResult = await deps.aiService.generate(
-                        AiToolId.FLUX,
-                        input,
-                    );
+                    const generationResult =
+                        await deps.aiService.generateViaAsyncJob(
+                            AiToolId.FLUX,
+                            input,
+                        );
                     const deduct = await deps.tokenBillingService.commit(
                         ctx.from.id.toString(),
                         tokenCost,

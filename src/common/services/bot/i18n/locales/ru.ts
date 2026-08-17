@@ -363,6 +363,15 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.CLAUDE_SONNET]: 'Claude Sonnet',
             [AiToolId.GPT_IMAGES]: 'Sora',
             [AiToolId.FLUX]: 'Flux',
+            [AiToolId.FLUX_MAX]: 'Flux Max',
+            [AiToolId.FLUX_FLEX]: 'Flux Flex',
+            [AiToolId.FLUX_KLEIN_9B]: 'Flux Klein 9B',
+            [AiToolId.FLUX_KLEIN_4B]: 'Flux Klein 4B',
+            [AiToolId.FLUX_OUTPAINT]: 'Flux Outpaint',
+            [AiToolId.FLUX_ERASE]: 'Flux Erase',
+            [AiToolId.FLUX_DEBLUR]: 'Flux Deblur',
+            [AiToolId.FLUX_VTO]: 'Flux Try-On',
+            [AiToolId.FLUX_VIDEO]: 'Flux Video',
             [AiToolId.NANO_BANANA]: 'Nano Banana',
             [AiToolId.SEEDREAM]: 'Seedream',
             [AiToolId.MIDJOURNEY]: 'Midjourney',
@@ -372,6 +381,12 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.SORA]: 'Sora',
             [AiToolId.SEEDANCE]: 'Seedance',
             [AiToolId.LUMA_RAY]: 'Luma Ray',
+            [AiToolId.LUMA_IMAGE]: 'Luma Image',
+            [AiToolId.LUMA_IMAGE_MAX]: 'Luma Image Max',
+            [AiToolId.LUMA_IMAGE_EDIT]: 'Luma Edit',
+            [AiToolId.LUMA_LAYERING]: 'Luma Layers',
+            [AiToolId.LUMA_VIDEO_EDIT]: 'Luma Video Edit',
+            [AiToolId.LUMA_VIDEO_REFRAME]: 'Luma Reframe',
             [AiToolId.HIGGSFIELD]: 'Higgsfield',
             [AiToolId.HEYGEN]: 'HeyGen',
             [AiToolId.TOPAZ]: 'Topaz AI',
@@ -387,7 +402,37 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.GPT_IMAGES]:
                 'Опишите задачу и при желании добавьте референсы (до 10 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
             [AiToolId.FLUX]:
-                'Опишите задачу и при желании добавьте референсы (до 10 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
+                'Опишите задачу и при желании добавьте референсы (до 8 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
+            [AiToolId.FLUX_MAX]:
+                'Максимальное качество Flux 2. Опишите задачу и при желании добавьте референсы (до 8 изображений).',
+            [AiToolId.FLUX_FLEX]:
+                'Flux 2 Flex — лучше для текста и мелких деталей. Опишите задачу и при желании добавьте референсы.',
+            [AiToolId.FLUX_KLEIN_9B]:
+                'Быстрая генерация Flux Klein 9B. Опишите задачу и при желании добавьте референсы.',
+            [AiToolId.FLUX_KLEIN_4B]:
+                'Самая быстрая модель Flux Klein 4B. Опишите задачу и при желании добавьте референсы.',
+            [AiToolId.FLUX_OUTPAINT]:
+                'Загрузите изображение — модель расширит его за границы кадра. Настройте размер холста в параметрах.',
+            [AiToolId.FLUX_ERASE]:
+                'Загрузите изображение и маску (белым — что удалить). Промпт не нужен.',
+            [AiToolId.FLUX_DEBLUR]:
+                'Загрузите размытое фото — модель повысит резкость. Промпт не нужен.',
+            [AiToolId.FLUX_VTO]:
+                'Загрузите фото человека и фото одежды. Можно добавить текстовое описание.',
+            [AiToolId.FLUX_VIDEO]:
+                'Генерация видео FLUX 3. Опишите сцену или загрузите стартовый кадр / видео. Выберите режим в параметрах.',
+            [AiToolId.LUMA_IMAGE]:
+                'Генерация изображений Luma uni-1. Опишите сцену и при желании добавьте референсы (до 9).',
+            [AiToolId.LUMA_IMAGE_MAX]:
+                'Максимальное качество Luma uni-1-max. Опишите сцену и при желании добавьте референсы.',
+            [AiToolId.LUMA_IMAGE_EDIT]:
+                'Загрузите исходное изображение и опишите, что нужно изменить.',
+            [AiToolId.LUMA_LAYERING]:
+                'Загрузите изображение — модель разделит его на слои (RGBA). Можно добавить подсказку для разбиения.',
+            [AiToolId.LUMA_VIDEO_EDIT]:
+                'Загрузите видео и опишите, как его изменить.',
+            [AiToolId.LUMA_VIDEO_REFRAME]:
+                'Загрузите видео и выберите новый формат кадра в параметрах.',
             [AiToolId.NANO_BANANA]:
                 'Опишите задачу и при желании добавьте референсы (до 10 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
             [AiToolId.SEEDREAM]:

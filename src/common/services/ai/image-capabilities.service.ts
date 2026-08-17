@@ -168,7 +168,6 @@ export class ImageCapabilitiesService implements OnModuleInit {
 
         const models = [
             getOpenRouterModelForTool(AiToolId.GPT_IMAGES),
-            getOpenRouterModelForTool(AiToolId.FLUX),
             getOpenRouterModelForTool(AiToolId.SEEDREAM),
             getOpenRouterModelForTool(AiToolId.NANO_BANANA),
         ].filter(Boolean) as string[];

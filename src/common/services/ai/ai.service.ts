@@ -15,6 +15,8 @@ import {
     OpenRouterProvider,
     SharpiiProvider,
     TopazProvider,
+    BflProvider,
+    LumaProvider,
     isElevenLabsDubbingResultUrl,
 } from './providers';
 
@@ -27,6 +29,8 @@ export class AiService {
         private readonly higgsfieldProvider: HiggsfieldProvider,
         private readonly topazProvider: TopazProvider,
         private readonly elevenLabsProvider: ElevenLabsProvider,
+        private readonly bflProvider: BflProvider,
+        private readonly lumaProvider: LumaProvider,
     ) {}
 
     async listAccessibleElevenLabsVoices() {
@@ -61,6 +65,14 @@ export class AiService {
                 return this.sharpiiProvider.generate(toolId, input);
             case AiProviderId.ELEVENLABS:
                 return this.elevenLabsProvider.generate(toolId, input);
+            case AiProviderId.BFL:
+                throw new Error(
+                    `Sync generation not supported for BFL — use async job`,
+                );
+            case AiProviderId.LUMA:
+                throw new Error(
+                    `Sync generation not supported for Luma — use async job`,
+                );
             default:
                 throw new Error(
                     `Sync generation not supported for provider ${String(tool.provider)}`,
@@ -90,6 +102,10 @@ export class AiService {
                 return this.higgsfieldProvider.createJob(input);
             case AiProviderId.TOPAZ:
                 return this.topazProvider.createJob(input);
+            case AiProviderId.BFL:
+                return this.bflProvider.createJob(toolId, input);
+            case AiProviderId.LUMA:
+                return this.lumaProvider.createJob(toolId, input);
             default:
                 throw new Error(
                     `Async generation not supported for provider ${String(tool.provider)}`,
@@ -119,6 +135,10 @@ export class AiService {
                 return this.higgsfieldProvider.getJobStatus(providerJobId);
             case AiProviderId.TOPAZ:
                 return this.topazProvider.getJobStatus(providerJobId);
+            case AiProviderId.BFL:
+                return this.bflProvider.getJobStatus(providerJobId);
+            case AiProviderId.LUMA:
+                return this.lumaProvider.getJobStatus(providerJobId);
             default:
                 throw new Error(
                     `Job status not supported for provider ${String(tool.provider)}`,
@@ -143,5 +163,41 @@ export class AiService {
         }
 
         return result;
+    }
+
+    async generateViaAsyncJob(
+        toolId: AiToolId,
+        input: AiGenerationInput,
+        options?: { maxWaitMs?: number; pollIntervalMs?: number },
+    ): Promise<AiGenerationResult> {
+        const maxWaitMs = options?.maxWaitMs ?? 180_000;
+        const pollIntervalMs = options?.pollIntervalMs ?? 2_000;
+
+        const { providerJobId } = await this.createJob(toolId, input);
+        const deadline = Date.now() + maxWaitMs;
+
+        while (Date.now() < deadline) {
+            const status = await this.getJobStatus(toolId, providerJobId);
+
+            if (status.status === 'completed' && status.result) {
+                return this.resolveResultForDelivery(
+                    toolId,
+                    providerJobId,
+                    status.result,
+                );
+            }
+
+            if (status.status === 'failed') {
+                throw new Error(
+                    status.errorMessage ?? 'Генерация не удалась',
+                );
+            }
+
+            await new Promise((resolve) =>
+                setTimeout(resolve, pollIntervalMs),
+            );
+        }
+
+        throw new Error('Превышено время ожидания генерации');
     }
 }

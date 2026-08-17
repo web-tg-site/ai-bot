@@ -367,7 +367,10 @@ export class AiJobCron {
         const input = job.inputJson as AiGenerationInput;
 
         try {
-            const result = await this.aiService.generate(AiToolId.FLUX, input);
+            const result = await this.aiService.generateViaAsyncJob(
+                AiToolId.FLUX,
+                input,
+            );
 
             await this.aiJobService.updateJobStatus(
                 job.id,

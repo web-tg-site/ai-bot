@@ -31,7 +31,7 @@ import {
 import { CurrentUser, TelegramJwtGuard } from '@/common/auth';
 import type { CurrentUserPayload } from '@/common/auth';
 import { PrismaService } from '@/common/services/prisma';
-import type { AiFileInput } from '@/common/services/ai/types';
+import type { AiFileInput, AiGenerationInput } from '@/common/services/ai/types';
 import { AiToolId } from '@/common/services/ai/types';
 import { JobStatus } from '@/generated/prisma/enums';
 import { UserAiToolSettingsModelService } from '@/common/models/user-ai-tool-settings';
@@ -173,6 +173,46 @@ class GenerateBodyDto {
     @IsOptional()
     @IsString()
     sunoLyrics?: string;
+
+    @IsOptional()
+    @IsNumberString()
+    outpaintWidth?: string;
+
+    @IsOptional()
+    @IsNumberString()
+    outpaintHeight?: string;
+
+    @IsOptional()
+    @IsNumberString()
+    outpaintOffsetX?: string;
+
+    @IsOptional()
+    @IsNumberString()
+    outpaintOffsetY?: string;
+
+    @IsOptional()
+    @IsIn(['t2v', 'i2v', 'v2v', 'draft_enhance'])
+    fluxVideoMode?: 't2v' | 'i2v' | 'v2v' | 'draft_enhance';
+
+    @IsOptional()
+    @IsIn(['auto', 'manga'])
+    lumaStyle?: 'auto' | 'manga';
+
+    @IsOptional()
+    @IsString()
+    lumaWebSearch?: string;
+
+    @IsOptional()
+    @IsIn(['png', 'jpeg'])
+    lumaOutputFormat?: 'png' | 'jpeg';
+
+    @IsOptional()
+    @IsString()
+    sourceGenerationId?: string;
+
+    @IsOptional()
+    @IsString()
+    attachmentRoles?: string;
 }
 
 class SavedPromptBodyDto {
@@ -410,6 +450,37 @@ export class AiController {
                         body.sunoInstrumental === 'true' ||
                         body.sunoInstrumental === '1',
                     sunoLyrics: body.sunoLyrics,
+                    outpaintWidth: body.outpaintWidth
+                        ? Number(body.outpaintWidth)
+                        : undefined,
+                    outpaintHeight: body.outpaintHeight
+                        ? Number(body.outpaintHeight)
+                        : undefined,
+                    outpaintOffsetX: body.outpaintOffsetX
+                        ? Number(body.outpaintOffsetX)
+                        : undefined,
+                    outpaintOffsetY: body.outpaintOffsetY
+                        ? Number(body.outpaintOffsetY)
+                        : undefined,
+                    fluxVideoMode: body.fluxVideoMode,
+                    lumaStyle: body.lumaStyle,
+                    lumaWebSearch:
+                        body.lumaWebSearch === 'true' ||
+                        body.lumaWebSearch === '1',
+                    lumaOutputFormat: body.lumaOutputFormat,
+                    sourceGenerationId: body.sourceGenerationId,
+                    attachmentRoles: (() => {
+                        if (!body.attachmentRoles) return undefined;
+                        try {
+                            return JSON.parse(
+                                body.attachmentRoles,
+                            ) as AiGenerationInput['attachmentRoles'];
+                        } catch {
+                            return body.attachmentRoles
+                                .split(',')
+                                .map((role) => role.trim()) as AiGenerationInput['attachmentRoles'];
+                        }
+                    })(),
                 },
             });
         } catch (error) {

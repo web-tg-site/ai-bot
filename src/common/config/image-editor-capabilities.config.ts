@@ -29,6 +29,12 @@ export const NANO_BANANA_ASPECT_RATIOS = [...UI_ASPECT_RATIOS] as const;
 
 export const NANO_BANANA_MAX_REFERENCES = 10;
 
+export const BFL_MAX_REFERENCES = 8;
+
+export const LUMA_IMAGE_MAX_REFERENCES = 9;
+
+export const LUMA_MANGA_ASPECT_RATIOS = ['2:3', '9:16', '1:2', '1:3'] as const;
+
 export const DEFAULT_IMAGE_QUALITIES = [
     'auto',
     'low',
@@ -53,28 +59,79 @@ export type ImageModelCapabilities = {
     qualities: string[];
 };
 
+const BFL_FLUX_TOOLS: AiToolId[] = [
+    AiToolId.FLUX,
+    AiToolId.FLUX_MAX,
+    AiToolId.FLUX_FLEX,
+    AiToolId.FLUX_KLEIN_9B,
+    AiToolId.FLUX_KLEIN_4B,
+];
+
+const LUMA_IMAGE_TOOLS: AiToolId[] = [
+    AiToolId.LUMA_IMAGE,
+    AiToolId.LUMA_IMAGE_MAX,
+    AiToolId.LUMA_IMAGE_EDIT,
+];
+
 export const STATIC_IMAGE_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.GPT_IMAGES]: [...UI_ASPECT_RATIOS],
     [AiToolId.FLUX]: [...UI_ASPECT_RATIOS],
+    [AiToolId.FLUX_MAX]: [...UI_ASPECT_RATIOS],
+    [AiToolId.FLUX_FLEX]: [...UI_ASPECT_RATIOS],
+    [AiToolId.FLUX_KLEIN_9B]: [...UI_ASPECT_RATIOS],
+    [AiToolId.FLUX_KLEIN_4B]: [...UI_ASPECT_RATIOS],
+    [AiToolId.FLUX_VTO]: [...UI_ASPECT_RATIOS],
     [AiToolId.NANO_BANANA]: [...NANO_BANANA_ASPECT_RATIOS],
     [AiToolId.SEEDREAM]: [...UI_ASPECT_RATIOS],
     [AiToolId.MIDJOURNEY]: [...UI_ASPECT_RATIOS],
+    [AiToolId.LUMA_IMAGE]: [...UI_ASPECT_RATIOS],
+    [AiToolId.LUMA_IMAGE_MAX]: [...UI_ASPECT_RATIOS],
+    [AiToolId.LUMA_IMAGE_EDIT]: [...UI_ASPECT_RATIOS],
 };
 
 export const IMAGE_TOOLS_WITH_REFERENCES: AiToolId[] = [
     AiToolId.GPT_IMAGES,
     AiToolId.FLUX,
+    AiToolId.FLUX_MAX,
+    AiToolId.FLUX_FLEX,
+    AiToolId.FLUX_KLEIN_9B,
+    AiToolId.FLUX_KLEIN_4B,
+    AiToolId.FLUX_VTO,
     AiToolId.NANO_BANANA,
     AiToolId.SEEDREAM,
     AiToolId.MIDJOURNEY,
+    AiToolId.LUMA_IMAGE,
+    AiToolId.LUMA_IMAGE_MAX,
+    AiToolId.LUMA_IMAGE_EDIT,
 ];
 
 export const IMAGE_TOOLS_WITH_ASPECT_SETTINGS: AiToolId[] = [
     AiToolId.GPT_IMAGES,
     AiToolId.FLUX,
+    AiToolId.FLUX_MAX,
+    AiToolId.FLUX_FLEX,
+    AiToolId.FLUX_KLEIN_9B,
+    AiToolId.FLUX_KLEIN_4B,
+    AiToolId.FLUX_VTO,
     AiToolId.NANO_BANANA,
     AiToolId.SEEDREAM,
     AiToolId.MIDJOURNEY,
+    AiToolId.LUMA_IMAGE,
+    AiToolId.LUMA_IMAGE_MAX,
+    AiToolId.LUMA_IMAGE_EDIT,
+];
+
+export const IMAGE_TOOLS_REQUIRING_SOURCE: AiToolId[] = [
+    AiToolId.FLUX_OUTPAINT,
+    AiToolId.FLUX_ERASE,
+    AiToolId.FLUX_DEBLUR,
+    AiToolId.LUMA_IMAGE_EDIT,
+    AiToolId.LUMA_LAYERING,
+];
+
+export const IMAGE_TOOLS_WITHOUT_PROMPT: AiToolId[] = [
+    AiToolId.FLUX_DEBLUR,
+    AiToolId.FLUX_ERASE,
 ];
 
 export function isImageToolWithReferences(toolId: AiToolId): boolean {
@@ -89,9 +146,41 @@ export function isTopazTool(toolId: AiToolId): boolean {
     return toolId === AiToolId.TOPAZ;
 }
 
+export function isBflFluxTool(toolId: AiToolId): boolean {
+    return BFL_FLUX_TOOLS.includes(toolId);
+}
+
+export function isLumaImageTool(toolId: AiToolId): boolean {
+    return LUMA_IMAGE_TOOLS.includes(toolId);
+}
+
+export function imageToolRequiresPrompt(toolId: AiToolId): boolean {
+    return !IMAGE_TOOLS_WITHOUT_PROMPT.includes(toolId);
+}
+
 export function getImageMaxReferences(toolId: AiToolId): number {
     if (toolId === AiToolId.NANO_BANANA) {
         return NANO_BANANA_MAX_REFERENCES;
+    }
+    if (toolId === AiToolId.FLUX_ERASE || toolId === AiToolId.FLUX_VTO) {
+        return 2;
+    }
+    if (isBflFluxTool(toolId)) {
+        return BFL_MAX_REFERENCES;
+    }
+    if (
+        toolId === AiToolId.LUMA_IMAGE ||
+        toolId === AiToolId.LUMA_IMAGE_MAX ||
+        toolId === AiToolId.LUMA_IMAGE_EDIT
+    ) {
+        return LUMA_IMAGE_MAX_REFERENCES;
+    }
+    if (
+        toolId === AiToolId.FLUX_OUTPAINT ||
+        toolId === AiToolId.FLUX_DEBLUR ||
+        toolId === AiToolId.LUMA_LAYERING
+    ) {
+        return 1;
     }
     return 10;
 }

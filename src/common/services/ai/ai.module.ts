@@ -14,6 +14,8 @@ import {
     OpenRouterProvider,
     SharpiiProvider,
     TopazProvider,
+    BflProvider,
+    LumaProvider,
 } from './providers';
 import { AiJobService } from './jobs/ai-job.service';
 import { AiJobCron } from './jobs/ai-job.cron';
@@ -32,6 +34,8 @@ import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/eleve
         HiggsfieldProvider,
         TopazProvider,
         ElevenLabsProvider,
+        BflProvider,
+        LumaProvider,
         ElevenLabsVoicePreviewService,
         AiJobService,
         AiJobCron,
