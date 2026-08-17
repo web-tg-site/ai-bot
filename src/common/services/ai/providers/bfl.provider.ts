@@ -15,25 +15,14 @@ import { downloadRemoteFile } from '@/common/utils/download-remote-file';
 const BFL_BASE_URL = 'https://api.bfl.ai';
 export const BFL_JOB_PREFIX = 'bfl|';
 
-const BFL_FLUX2_TOOLS = new Set<AiToolId>([
-    AiToolId.FLUX,
-    AiToolId.FLUX_MAX,
-    AiToolId.FLUX_FLEX,
-    AiToolId.FLUX_KLEIN_9B,
-    AiToolId.FLUX_KLEIN_4B,
-]);
+type FluxOperation = 'pro' | 'outpaint' | 'erase' | 'deblur' | 'vto';
 
-const BFL_TOOL_ENDPOINTS: Partial<Record<AiToolId, string>> = {
-    [AiToolId.FLUX]: '/v1/flux-2-pro',
-    [AiToolId.FLUX_MAX]: '/v1/flux-2-max',
-    [AiToolId.FLUX_FLEX]: '/v1/flux-2-flex',
-    [AiToolId.FLUX_KLEIN_9B]: '/v1/flux-2-klein-9b',
-    [AiToolId.FLUX_KLEIN_4B]: '/v1/flux-2-klein-4b',
-    [AiToolId.FLUX_OUTPAINT]: '/v1/flux-tools/outpainting-v1',
-    [AiToolId.FLUX_ERASE]: '/v1/flux-tools/erase-v1',
-    [AiToolId.FLUX_DEBLUR]: '/v1/flux-tools/deblur-v1',
-    [AiToolId.FLUX_VTO]: '/v1/vto-v2',
-    [AiToolId.FLUX_VIDEO]: '/v1/flux-3-video',
+const FLUX_ENDPOINTS: Record<FluxOperation, string> = {
+    pro: '/v1/flux-2-pro',
+    outpaint: '/v1/flux-tools/outpainting-v1',
+    erase: '/v1/flux-tools/erase-v1',
+    deblur: '/v1/flux-tools/deblur-v1',
+    vto: '/v1/vto-v2',
 };
 
 type BflSubmitResponse = {
@@ -67,12 +56,13 @@ export class BflProvider {
     ): Promise<AiJobCreateResult> {
         this.ensureApiKey();
 
-        const endpoint = BFL_TOOL_ENDPOINTS[toolId];
-        if (!endpoint) {
-            throw new Error(`BFL endpoint not configured for ${toolId}`);
+        if (toolId !== AiToolId.FLUX) {
+            throw new Error(`BFL supports only Flux tool, got ${toolId}`);
         }
 
-        const body = this.buildRequestBody(toolId, input);
+        const operation = this.resolveFluxOperation(input);
+        const endpoint = FLUX_ENDPOINTS[operation];
+        const body = this.buildFluxBody(operation, input);
         const response = await this.post<BflSubmitResponse>(endpoint, body);
 
         if (!response.polling_url) {
@@ -99,11 +89,10 @@ export class BflProvider {
             const sampleUrl = result.result.sample;
             try {
                 const { buffer, mimeType } = await downloadRemoteFile(sampleUrl);
-                const resultType = this.inferResultType(sampleUrl, mimeType);
                 return {
                     status,
                     result: {
-                        type: resultType,
+                        type: this.inferResultType(sampleUrl, mimeType),
                         buffer,
                         mimeType,
                         url: sampleUrl,
@@ -116,10 +105,7 @@ export class BflProvider {
                 );
                 return {
                     status,
-                    result: {
-                        type: 'image',
-                        url: sampleUrl,
-                    },
+                    result: { type: 'image', url: sampleUrl },
                 };
             }
         }
@@ -136,31 +122,56 @@ export class BflProvider {
         return { status };
     }
 
-    private buildRequestBody(
-        toolId: AiToolId,
-        input: AiGenerationInput,
-    ): Record<string, unknown> {
-        if (BFL_FLUX2_TOOLS.has(toolId)) {
-            return this.buildFlux2Body(input);
+    private resolveFluxOperation(input: AiGenerationInput): FluxOperation {
+        const images =
+            input.files?.filter((file) => file.mimeType.startsWith('image/')) ??
+            [];
+        const roles = input.attachmentRoles ?? [];
+
+        if (input.outpaintWidth && input.outpaintHeight) {
+            return 'outpaint';
         }
 
-        switch (toolId) {
-            case AiToolId.FLUX_OUTPAINT:
+        if (roles.includes('mask') || (roles.includes('source') && images.length >= 2)) {
+            return 'erase';
+        }
+
+        if (
+            roles.includes('person') &&
+            roles.includes('garment') &&
+            images.length >= 2
+        ) {
+            return 'vto';
+        }
+
+        if (images.length === 1 && !input.prompt?.trim()) {
+            return 'deblur';
+        }
+
+        return 'pro';
+    }
+
+    private buildFluxBody(
+        operation: FluxOperation,
+        input: AiGenerationInput,
+    ): Record<string, unknown> {
+        switch (operation) {
+            case 'outpaint':
                 return this.buildOutpaintBody(input);
-            case AiToolId.FLUX_ERASE:
+            case 'erase':
                 return this.buildEraseBody(input);
-            case AiToolId.FLUX_DEBLUR:
+            case 'deblur':
                 return this.buildDeblurBody(input);
-            case AiToolId.FLUX_VTO:
+            case 'vto':
                 return this.buildVtoBody(input);
-            case AiToolId.FLUX_VIDEO:
-                return this.buildFluxVideoBody(input);
             default:
-                throw new Error(`Unsupported BFL tool: ${toolId}`);
+                return this.buildFlux2ProBody(input);
         }
     }
 
-    private buildFlux2Body(input: AiGenerationInput): Record<string, unknown> {
+    private buildFlux2ProBody(
+        input: AiGenerationInput,
+    ): Record<string, unknown> {
         const prompt = input.prompt?.trim();
         if (!prompt) {
             throw new Error('Опишите, что нужно сгенерировать или изменить');
@@ -175,8 +186,8 @@ export class BflProvider {
         body.width = dimensions.width;
         body.height = dimensions.height;
 
-        const images = input.files?.filter((f) =>
-            f.mimeType.startsWith('image/'),
+        const images = input.files?.filter((file) =>
+            file.mimeType.startsWith('image/'),
         );
         if (images?.length) {
             images.slice(0, 8).forEach((file, index) => {
@@ -198,18 +209,17 @@ export class BflProvider {
     private buildOutpaintBody(
         input: AiGenerationInput,
     ): Record<string, unknown> {
-        const image = input.files?.find((f) => f.mimeType.startsWith('image/'));
+        const image = input.files?.find((file) =>
+            file.mimeType.startsWith('image/'),
+        );
         if (!image) {
-            throw new Error('Загрузите изображение для расширения (outpaint)');
+            throw new Error('Загрузите изображение для расширения кадра');
         }
-
-        const width = input.outpaintWidth ?? 1024;
-        const height = input.outpaintHeight ?? 1024;
 
         const body: Record<string, unknown> = {
             input_image: fileToBase64(image),
-            width,
-            height,
+            width: input.outpaintWidth ?? 1024,
+            height: input.outpaintHeight ?? 1024,
             output_format: 'png',
         };
 
@@ -227,29 +237,23 @@ export class BflProvider {
     }
 
     private buildEraseBody(input: AiGenerationInput): Record<string, unknown> {
-        const images = input.files?.filter((f) =>
-            f.mimeType.startsWith('image/'),
+        const images = input.files?.filter((file) =>
+            file.mimeType.startsWith('image/'),
         );
-        if (!images?.length) {
+        if ((images?.length ?? 0) < 2) {
             throw new Error(
-                'Загрузите изображение и маску для удаления объекта',
+                'Загрузите изображение и маску (второе фото) для удаления объекта',
             );
         }
 
         const roles = input.attachmentRoles ?? [];
-        let source = images[0];
-        let mask = images[1];
+        let source = images![0];
+        let mask = images![1];
 
-        if (roles.length >= 2) {
-            const sourceIdx = roles.findIndex((r) => r === 'source');
-            const maskIdx = roles.findIndex((r) => r === 'mask');
-            if (sourceIdx >= 0) source = images[sourceIdx];
-            if (maskIdx >= 0) mask = images[maskIdx];
-        }
-
-        if (!mask) {
-            throw new Error('Загрузите маску (второе изображение) для Erase');
-        }
+        const sourceIdx = roles.findIndex((role) => role === 'source');
+        const maskIdx = roles.findIndex((role) => role === 'mask');
+        if (sourceIdx >= 0) source = images![sourceIdx];
+        if (maskIdx >= 0) mask = images![maskIdx];
 
         return {
             input_image: fileToBase64(source),
@@ -259,7 +263,9 @@ export class BflProvider {
     }
 
     private buildDeblurBody(input: AiGenerationInput): Record<string, unknown> {
-        const image = input.files?.find((f) => f.mimeType.startsWith('image/'));
+        const image = input.files?.find((file) =>
+            file.mimeType.startsWith('image/'),
+        );
         if (!image) {
             throw new Error('Загрузите размытое изображение для улучшения');
         }
@@ -271,8 +277,8 @@ export class BflProvider {
     }
 
     private buildVtoBody(input: AiGenerationInput): Record<string, unknown> {
-        const images = input.files?.filter((f) =>
-            f.mimeType.startsWith('image/'),
+        const images = input.files?.filter((file) =>
+            file.mimeType.startsWith('image/'),
         );
         if ((images?.length ?? 0) < 2) {
             throw new Error(
@@ -284,8 +290,8 @@ export class BflProvider {
         let person = images![0];
         let garment = images![1];
 
-        const personIdx = roles.findIndex((r) => r === 'person');
-        const garmentIdx = roles.findIndex((r) => r === 'garment');
+        const personIdx = roles.findIndex((role) => role === 'person');
+        const garmentIdx = roles.findIndex((role) => role === 'garment');
         if (personIdx >= 0) person = images![personIdx];
         if (garmentIdx >= 0) garment = images![garmentIdx];
 
@@ -302,66 +308,14 @@ export class BflProvider {
         return body;
     }
 
-    private buildFluxVideoBody(
-        input: AiGenerationInput,
-    ): Record<string, unknown> {
-        const mode = input.fluxVideoMode ?? 't2v';
-        const body: Record<string, unknown> = {
-            mode,
-            version: 'latest',
-            generate_audio: true,
-        };
-
-        if (mode === 't2v') {
-            const prompt = input.prompt?.trim();
-            if (!prompt) {
-                throw new Error('Опишите сцену для генерации видео');
-            }
-            body.prompt = prompt;
-        } else if (mode === 'i2v') {
-            const images = input.files?.filter((f) =>
-                f.mimeType.startsWith('image/'),
-            );
-            if (!images?.length) {
-                throw new Error('Загрузите стартовый кадр для image-to-video');
-            }
-            body.start_frame = fileToBase64(images[0]);
-            if (input.prompt?.trim()) {
-                body.prompt = input.prompt.trim();
-            }
-        } else if (mode === 'v2v') {
-            const video = input.files?.find((f) =>
-                f.mimeType.startsWith('video/'),
-            );
-            if (!video) {
-                throw new Error('Загрузите видео для video-to-video');
-            }
-            body.start_video = fileToBase64(video);
-            if (input.prompt?.trim()) {
-                body.prompt = input.prompt.trim();
-            }
-        }
-
-        if (input.aspectRatio) {
-            body.aspect_ratio = input.aspectRatio;
-        }
-
-        const duration = input.durationSeconds ?? 5;
-        body.duration = Math.min(20, Math.max(5, duration));
-
-        if (input.resolution === '1080p') {
-            body.resolution = 'fhd';
-        } else {
-            body.resolution = 'hd';
-        }
-
-        return body;
-    }
-
     private mapStatus(status: string): AiJobStatusResult['status'] {
         const normalized = status.toLowerCase();
         if (normalized === 'ready') return 'completed';
-        if (['error', 'failed', 'request moderated', 'content moderated'].includes(normalized)) {
+        if (
+            ['error', 'failed', 'request moderated', 'content moderated'].includes(
+                normalized,
+            )
+        ) {
             return 'failed';
         }
         if (['pending', 'queued'].includes(normalized)) return 'pending';

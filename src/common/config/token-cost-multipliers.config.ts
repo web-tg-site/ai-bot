@@ -27,11 +27,6 @@ const VIDEO_QUALITY_MULTIPLIERS: Record<string, number> = {
 const IMAGE_TOOLS_WITH_RESOLUTION_COST: AiToolId[] = [
     AiToolId.GPT_IMAGES,
     AiToolId.FLUX,
-    AiToolId.FLUX_MAX,
-    AiToolId.FLUX_FLEX,
-    AiToolId.FLUX_KLEIN_9B,
-    AiToolId.FLUX_KLEIN_4B,
-    AiToolId.LUMA_LAYERING,
     AiToolId.NANO_BANANA,
     AiToolId.SEEDREAM,
 ];
@@ -39,10 +34,6 @@ const IMAGE_TOOLS_WITH_RESOLUTION_COST: AiToolId[] = [
 const IMAGE_TOOLS_WITH_QUALITY_COST: AiToolId[] = [
     AiToolId.GPT_IMAGES,
     AiToolId.FLUX,
-    AiToolId.FLUX_MAX,
-    AiToolId.FLUX_FLEX,
-    AiToolId.FLUX_KLEIN_9B,
-    AiToolId.FLUX_KLEIN_4B,
     AiToolId.SEEDREAM,
 ];
 
@@ -50,7 +41,6 @@ const VIDEO_TOOLS_WITH_RESOLUTION_COST: AiToolId[] = [
     AiToolId.SORA,
     AiToolId.SEEDANCE,
     AiToolId.HEYGEN,
-    AiToolId.FLUX_VIDEO,
 ];
 
 const VIDEO_TOOLS_WITH_QUALITY_COST: AiToolId[] = [AiToolId.SORA];

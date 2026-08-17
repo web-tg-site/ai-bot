@@ -14,6 +14,8 @@ import { downloadRemoteFile } from '@/common/utils/download-remote-file';
 
 const LUMA_BASE_URL = 'https://agents.lumalabs.ai/v1';
 
+type LumaRayOperation = 'video' | 'video_edit' | 'video_reframe';
+
 type LumaGenerationResponse = {
     id: string;
     type?: string;
@@ -23,11 +25,6 @@ type LumaGenerationResponse = {
     failure_reason?: string | null;
     failure_code?: string | null;
 };
-
-const LUMA_IMAGE_TOOLS = new Set<AiToolId>([
-    AiToolId.LUMA_IMAGE,
-    AiToolId.LUMA_IMAGE_MAX,
-]);
 
 @Injectable()
 export class LumaProvider {
@@ -51,7 +48,11 @@ export class LumaProvider {
     ): Promise<AiJobCreateResult> {
         this.ensureApiKey();
 
-        const body = this.buildRequestBody(toolId, input);
+        if (toolId !== AiToolId.LUMA_RAY) {
+            throw new Error(`Luma supports only Luma Ray tool, got ${toolId}`);
+        }
+
+        const body = this.buildLumaRayBody(input);
         const response = await this.post<LumaGenerationResponse>(
             '/generations',
             body,
@@ -76,9 +77,9 @@ export class LumaProvider {
         const status = this.mapState(response.state);
 
         if (status === 'completed' && response.output?.length) {
-            const outputs = response.output.filter((o) => o.url);
+            const outputs = response.output.filter((item) => item.url);
             const primary = outputs[0];
-            const additionalUrls = outputs.slice(1).map((o) => o.url!);
+            const additionalUrls = outputs.slice(1).map((item) => item.url!);
 
             if (!primary?.url) {
                 return {
@@ -91,16 +92,10 @@ export class LumaProvider {
                 const { buffer, mimeType } = await downloadRemoteFile(
                     primary.url,
                 );
-                const resultType = this.inferResultType(
-                    toolIdFromResponse(response),
-                    primary.url,
-                    mimeType,
-                );
-
                 return {
                     status,
                     result: {
-                        type: resultType,
+                        type: this.inferResultType(primary.url, mimeType),
                         buffer,
                         mimeType,
                         url: primary.url,
@@ -118,10 +113,7 @@ export class LumaProvider {
                 return {
                     status,
                     result: {
-                        type: this.inferResultType(
-                            toolIdFromResponse(response),
-                            primary.url,
-                        ),
+                        type: this.inferResultType(primary.url),
                         url: primary.url,
                         additionalUrls:
                             additionalUrls.length > 0
@@ -145,121 +137,36 @@ export class LumaProvider {
         return { status };
     }
 
-    private buildRequestBody(
-        toolId: AiToolId,
+    private resolveLumaRayOperation(
+        input: AiGenerationInput,
+    ): LumaRayOperation {
+        const video = input.files?.find((file) =>
+            file.mimeType.startsWith('video/'),
+        );
+        if (!video) {
+            return 'video';
+        }
+
+        if (input.prompt?.trim()) {
+            return 'video_edit';
+        }
+
+        return 'video_reframe';
+    }
+
+    private buildLumaRayBody(
         input: AiGenerationInput,
     ): Record<string, unknown> {
-        switch (toolId) {
-            case AiToolId.LUMA_RAY:
-                return this.buildVideoBody(input);
-            case AiToolId.LUMA_IMAGE:
-                return this.buildImageBody(input, 'uni-1');
-            case AiToolId.LUMA_IMAGE_MAX:
-                return this.buildImageBody(input, 'uni-1-max');
-            case AiToolId.LUMA_IMAGE_EDIT:
-                return this.buildImageEditBody(input);
-            case AiToolId.LUMA_LAYERING:
-                return this.buildLayeringBody(input);
-            case AiToolId.LUMA_VIDEO_EDIT:
+        const operation = this.resolveLumaRayOperation(input);
+
+        switch (operation) {
+            case 'video_edit':
                 return this.buildVideoEditBody(input);
-            case AiToolId.LUMA_VIDEO_REFRAME:
+            case 'video_reframe':
                 return this.buildVideoReframeBody(input);
             default:
-                throw new Error(`Unsupported Luma tool: ${toolId}`);
+                return this.buildVideoBody(input);
         }
-    }
-
-    private buildImageBody(
-        input: AiGenerationInput,
-        model: string,
-    ): Record<string, unknown> {
-        const prompt = input.prompt?.trim();
-        if (!prompt) {
-            throw new Error('Опишите изображение для генерации');
-        }
-
-        const body: Record<string, unknown> = {
-            type: 'image',
-            model,
-            prompt,
-        };
-
-        if (input.aspectRatio) {
-            body.aspect_ratio = input.aspectRatio;
-        }
-
-        if (input.lumaStyle) {
-            body.style = input.lumaStyle;
-        }
-
-        if (input.lumaOutputFormat) {
-            body.output_format = input.lumaOutputFormat;
-        }
-
-        if (input.lumaWebSearch) {
-            body.web_search = true;
-        }
-
-        const refs = input.files?.filter((f) =>
-            f.mimeType.startsWith('image/'),
-        );
-        if (refs?.length) {
-            body.image_ref = refs.slice(0, 9).map((file) => toImageRef(file));
-        }
-
-        return body;
-    }
-
-    private buildImageEditBody(
-        input: AiGenerationInput,
-    ): Record<string, unknown> {
-        const prompt = input.prompt?.trim();
-        if (!prompt) {
-            throw new Error('Опишите, что нужно изменить в изображении');
-        }
-
-        const source = this.resolveSource(input);
-        const body: Record<string, unknown> = {
-            type: 'image_edit',
-            model: 'uni-1',
-            prompt,
-            source,
-        };
-
-        if (input.lumaStyle) {
-            body.style = input.lumaStyle;
-        }
-
-        const refs = input.files?.filter(
-            (f, i) =>
-                f.mimeType.startsWith('image/') &&
-                input.attachmentRoles?.[i] !== 'source',
-        );
-        if (refs?.length) {
-            body.image_ref = refs.slice(0, 9).map((file) => toImageRef(file));
-        }
-
-        return body;
-    }
-
-    private buildLayeringBody(
-        input: AiGenerationInput,
-    ): Record<string, unknown> {
-        const source = this.resolveSource(input);
-        const body: Record<string, unknown> = {
-            type: 'layering',
-            model: 'uni-1',
-            prompt: input.prompt?.trim()?.slice(0, 500) ?? '',
-            source,
-        };
-
-        if (input.resolution === '2K') {
-            body.layering = { resolution: '2k' };
-        } else {
-            body.layering = { resolution: '1k' };
-        }
-
-        return body;
     }
 
     private buildVideoBody(input: AiGenerationInput): Record<string, unknown> {
@@ -276,8 +183,8 @@ export class LumaProvider {
             duration,
         };
 
-        const images = input.files?.filter((f) =>
-            f.mimeType.startsWith('image/'),
+        const images = input.files?.filter((file) =>
+            file.mimeType.startsWith('image/'),
         );
         if (images?.[0]) {
             video.start_frame = toImageRef(images[0]);
@@ -303,46 +210,23 @@ export class LumaProvider {
             throw new Error('Опишите, как изменить видео');
         }
 
-        const source = this.resolveVideoSource(input);
-
         return {
             model: 'ray-3.2',
             type: 'video_edit',
             prompt,
-            source,
+            source: this.resolveVideoSource(input),
         };
     }
 
     private buildVideoReframeBody(
         input: AiGenerationInput,
     ): Record<string, unknown> {
-        const source = this.resolveVideoSource(input);
-
         return {
             model: 'ray-3.2',
             type: 'video_reframe',
             aspect_ratio: input.aspectRatio ?? '16:9',
-            source,
+            source: this.resolveVideoSource(input),
         };
-    }
-
-    private resolveSource(input: AiGenerationInput): Record<string, unknown> {
-        if (input.sourceGenerationId) {
-            return { generation_id: input.sourceGenerationId };
-        }
-
-        const images = input.files?.filter((f) =>
-            f.mimeType.startsWith('image/'),
-        );
-        const sourceFile =
-            images?.find((_, i) => input.attachmentRoles?.[i] === 'source') ??
-            images?.[0];
-
-        if (!sourceFile) {
-            throw new Error('Загрузите исходное изображение');
-        }
-
-        return toImageRef(sourceFile);
     }
 
     private resolveVideoSource(
@@ -352,7 +236,9 @@ export class LumaProvider {
             return { generation_id: input.sourceGenerationId };
         }
 
-        const video = input.files?.find((f) => f.mimeType.startsWith('video/'));
+        const video = input.files?.find((file) =>
+            file.mimeType.startsWith('video/'),
+        );
         if (video) {
             return {
                 data: video.buffer.toString('base64'),
@@ -372,11 +258,10 @@ export class LumaProvider {
     }
 
     private inferResultType(
-        typeHint: string | undefined,
         url: string,
         mimeType?: string,
     ): 'image' | 'video' {
-        if (typeHint === 'video' || mimeType?.startsWith('video/')) {
+        if (mimeType?.startsWith('video/')) {
             return 'video';
         }
         if (
@@ -429,12 +314,4 @@ function toImageRef(file: AiFileInput): Record<string, unknown> {
         data: file.buffer.toString('base64'),
         media_type: file.mimeType,
     };
-}
-
-function toolIdFromResponse(response: LumaGenerationResponse): string {
-    return response.type ?? 'image';
-}
-
-export function isLumaImageTool(toolId: AiToolId): boolean {
-    return LUMA_IMAGE_TOOLS.has(toolId);
 }

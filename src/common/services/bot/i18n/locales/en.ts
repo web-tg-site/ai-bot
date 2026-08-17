@@ -363,15 +363,6 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.CLAUDE_SONNET]: 'Claude Sonnet',
             [AiToolId.GPT_IMAGES]: 'Sora',
             [AiToolId.FLUX]: 'Flux',
-            [AiToolId.FLUX_MAX]: 'Flux Max',
-            [AiToolId.FLUX_FLEX]: 'Flux Flex',
-            [AiToolId.FLUX_KLEIN_9B]: 'Flux Klein 9B',
-            [AiToolId.FLUX_KLEIN_4B]: 'Flux Klein 4B',
-            [AiToolId.FLUX_OUTPAINT]: 'Flux Outpaint',
-            [AiToolId.FLUX_ERASE]: 'Flux Erase',
-            [AiToolId.FLUX_DEBLUR]: 'Flux Deblur',
-            [AiToolId.FLUX_VTO]: 'Flux Try-On',
-            [AiToolId.FLUX_VIDEO]: 'Flux Video',
             [AiToolId.NANO_BANANA]: 'Nano Banana',
             [AiToolId.SEEDREAM]: 'Seedream',
             [AiToolId.MIDJOURNEY]: 'Midjourney',
@@ -381,12 +372,6 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.SORA]: 'Sora',
             [AiToolId.SEEDANCE]: 'Seedance',
             [AiToolId.LUMA_RAY]: 'Luma Ray',
-            [AiToolId.LUMA_IMAGE]: 'Luma Image',
-            [AiToolId.LUMA_IMAGE_MAX]: 'Luma Image Max',
-            [AiToolId.LUMA_IMAGE_EDIT]: 'Luma Edit',
-            [AiToolId.LUMA_LAYERING]: 'Luma Layers',
-            [AiToolId.LUMA_VIDEO_EDIT]: 'Luma Video Edit',
-            [AiToolId.LUMA_VIDEO_REFRAME]: 'Luma Reframe',
             [AiToolId.HIGGSFIELD]: 'Higgsfield',
             [AiToolId.HEYGEN]: 'HeyGen',
             [AiToolId.TOPAZ]: 'Topaz AI',
@@ -402,37 +387,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.GPT_IMAGES]:
                 "Describe the task and optionally add references (up to 10 images). The more precisely you specify each image's role, the more predictable the result.",
             [AiToolId.FLUX]:
-                "Describe the task and optionally add references (up to 8 images). The more precisely you specify each image's role, the more predictable the result.",
-            [AiToolId.FLUX_MAX]:
-                'Maximum quality Flux 2. Describe the task and optionally add references (up to 8 images).',
-            [AiToolId.FLUX_FLEX]:
-                'Flux 2 Flex — best for typography and fine details. Describe the task and optionally add references.',
-            [AiToolId.FLUX_KLEIN_9B]:
-                'Fast Flux Klein 9B generation. Describe the task and optionally add references.',
-            [AiToolId.FLUX_KLEIN_4B]:
-                'Fastest Flux Klein 4B model. Describe the task and optionally add references.',
-            [AiToolId.FLUX_OUTPAINT]:
-                'Upload an image — the model will extend it beyond the frame. Set canvas size in settings.',
-            [AiToolId.FLUX_ERASE]:
-                'Upload an image and a mask (white = remove). No prompt needed.',
-            [AiToolId.FLUX_DEBLUR]:
-                'Upload a blurry photo — the model will sharpen it. No prompt needed.',
-            [AiToolId.FLUX_VTO]:
-                'Upload a person photo and a garment photo. You can add a text description.',
-            [AiToolId.FLUX_VIDEO]:
-                'FLUX 3 video generation. Describe the scene or upload a start frame / video. Choose mode in settings.',
-            [AiToolId.LUMA_IMAGE]:
-                'Luma uni-1 image generation. Describe the scene and optionally add references (up to 9).',
-            [AiToolId.LUMA_IMAGE_MAX]:
-                'Maximum quality Luma uni-1-max. Describe the scene and optionally add references.',
-            [AiToolId.LUMA_IMAGE_EDIT]:
-                'Upload a source image and describe what to change.',
-            [AiToolId.LUMA_LAYERING]:
-                'Upload an image — the model will split it into RGBA layers. You can add split guidance.',
-            [AiToolId.LUMA_VIDEO_EDIT]:
-                'Upload a video and describe how to edit it.',
-            [AiToolId.LUMA_VIDEO_REFRAME]:
-                'Upload a video and choose a new aspect ratio in settings.',
+                'Flux 2 Pro: generate or edit with a prompt (up to 8 references). One photo without text — sharpen/deblur. Two photos (source + mask) — erase object. Person + garment — virtual try-on. Outpaint canvas size in settings.',
             [AiToolId.NANO_BANANA]:
                 "Describe the task and optionally add references (up to 10 images). The more precisely you specify each image's role, the more predictable the result.",
             [AiToolId.SEEDREAM]:
@@ -450,7 +405,7 @@ Email us: <a href="mailto:support@project-ai.com">support@project-ai.com</a>`,
             [AiToolId.SEEDANCE]:
                 'Upload up to 2 references: video and/or photo (one video + photo), adjust settings, then describe the scene.',
             [AiToolId.LUMA_RAY]:
-                'Upload up to 2 frames for a transition, adjust settings, then describe the scene.',
+                'Generate video from a prompt (up to 2 frames). Video + prompt — edit. Video without prompt — reframe via aspect ratio in settings.',
             [AiToolId.HIGGSFIELD]:
                 'Upload a reference (optional), adjust settings, then describe the scene.',
             [AiToolId.HEYGEN]:
