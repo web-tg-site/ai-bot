@@ -268,7 +268,10 @@ export class VideoCapabilitiesService implements OnModuleInit {
         }
 
         if (toolId === AiToolId.SORA) {
-            return durationSeconds <= 10 ? 10 : 15;
+            if (![4, 8, 12].includes(durationSeconds)) {
+                throw new Error('Длительность Sora: только 4, 8 или 12 секунд');
+            }
+            return durationSeconds;
         }
 
         if (toolId === AiToolId.SEEDANCE) {
@@ -291,7 +294,7 @@ export class VideoCapabilitiesService implements OnModuleInit {
         }
 
         if (toolId === AiToolId.SORA) {
-            return 15;
+            return 12;
         }
 
         if (toolId === AiToolId.LUMA_RAY) {
@@ -337,7 +340,7 @@ export class VideoCapabilitiesService implements OnModuleInit {
         }
 
         if (toolId === AiToolId.SORA) {
-            return tier === 10 || tier === 15;
+            return tier === 4 || tier === 8 || tier === 12;
         }
 
         if (toolId === AiToolId.SEEDANCE) {

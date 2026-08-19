@@ -266,7 +266,7 @@ export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
     [AiToolId.KLING]: 10,
     [AiToolId.KLING_MOTION]: 2,
     [AiToolId.VEO]: 10,
-    [AiToolId.SORA]: 2,
+    [AiToolId.SORA]: 1,
     [AiToolId.SEEDANCE]: 2,
     [AiToolId.LUMA_RAY]: 2,
     [AiToolId.HIGGSFIELD]: 1,
@@ -281,11 +281,13 @@ export const VIDEO_TOOL_MAX_AUDIO_REFERENCES: Partial<Record<AiToolId, number>> 
         [AiToolId.KLING_MOTION]: 1,
     };
 
+export const SORA_EXTEND_DURATIONS = [4, 8, 12, 16, 20] as const;
+
 export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
     [AiToolId.KLING]: [5, 10, 15],
     [AiToolId.KLING_MOTION]: [5, 10, 15, 30],
     [AiToolId.VEO]: [4, 6, 8],
-    [AiToolId.SORA]: [10, 15],
+    [AiToolId.SORA]: [4, 8, 12],
     [AiToolId.SEEDANCE]: [5, 10, 15],
     [AiToolId.LUMA_RAY]: [5, 10],
     [AiToolId.HIGGSFIELD]: [5, 10, 15],

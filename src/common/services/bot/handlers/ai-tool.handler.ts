@@ -43,7 +43,12 @@ import {
     getMessageText,
     bufferToInputFile,
 } from '../utils/download-telegram-file';
-import { withPersistedSession } from '../utils/bot-session-store';
+import {
+    buildSoraGenerationFields,
+    resetSoraSessionMode,
+} from '../utils/sora-bot.helpers';
+import { isVideoMedia } from '@/common/utils/media-kind';
+import { SORA_EXTEND_DURATIONS } from '@/common/config/video-editor-capabilities.config';
 import { collectMediaGroupMessage } from '../utils/media-group-collector';
 import { mimeTypeToExtension } from '@/common/utils/parse-data-url';
 import { serializeGptUserMessage } from '@/common/utils/gpt-message-content';
@@ -294,6 +299,14 @@ export const registerAiToolHandlers = (bot: Telegraf, deps: AiHandlerDeps) => {
 
     bot.action(/^ai:ref:del:([a-f0-9-]+)$/i, async (ctx) => {
         await handleReferenceDeleteCallback(
+            asBotContext(ctx),
+            deps,
+            ctx.match[1],
+        );
+    });
+
+    bot.action(/^ai:sora:extend:(.+)$/, async (ctx) => {
+        await handleSoraExtendCallback(
             asBotContext(ctx),
             deps,
             ctx.match[1],

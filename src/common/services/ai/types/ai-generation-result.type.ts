@@ -70,6 +70,9 @@ export type AiGenerationInput = {
     lumaWebSearch?: boolean;
     lumaOutputFormat?: 'png' | 'jpeg';
     sourceGenerationId?: string;
+    soraVideoMode?: 'create' | 'extend' | 'edit';
+    soraCharacterIds?: string[];
+    soraCharacterName?: string;
 };
 
 export type AiFileInput = {

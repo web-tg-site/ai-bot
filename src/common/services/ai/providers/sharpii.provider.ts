@@ -514,7 +514,6 @@ export class SharpiiProvider {
 
         if (
             [
-                AiToolId.SORA,
                 AiToolId.SEEDANCE,
                 AiToolId.LUMA_RAY,
                 AiToolId.VIDEO_TO_AUDIO,
@@ -728,10 +727,6 @@ export class SharpiiProvider {
         toolId: AiToolId,
         durationSeconds: number,
     ): number {
-        if (toolId === AiToolId.SORA) {
-            return durationSeconds <= 10 ? 10 : 15;
-        }
-
         if (toolId === AiToolId.SEEDANCE) {
             return Math.min(15, Math.max(4, durationSeconds));
         }

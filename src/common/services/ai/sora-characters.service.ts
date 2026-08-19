@@ -1,0 +1,142 @@
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import OpenAI, { toFile } from 'openai';
+import { AiToolId } from './types';
+import { UserAiToolSettingsModelService } from '@/common/models/user-ai-tool-settings';
+import type { VideoToolSettings } from '@/common/types/video-tool-settings.type';
+
+export type SoraCharacterRecord = VideoToolSettings['characters'] extends
+    | (infer Item)[]
+    | undefined
+    ? Item
+    : never;
+
+const MAX_SORA_CHARACTERS = 20;
+const MAX_SORA_CHARACTERS_PER_VIDEO = 2;
+
+@Injectable()
+export class SoraCharactersService {
+    private readonly apiKey: string;
+    private readonly client: OpenAI | null;
+
+    constructor(
+        configService: ConfigService,
+        private readonly userAiToolSettingsModelService: UserAiToolSettingsModelService,
+        @InjectPinoLogger(SoraCharactersService.name)
+        private readonly logger: PinoLogger,
+    ) {
+        this.apiKey = configService.get<string>('OPENAI_API_KEY') ?? '';
+        this.client = this.apiKey
+            ? new OpenAI({
+                  apiKey: this.apiKey,
+                  timeout: 240_000,
+                  maxRetries: 1,
+              })
+            : null;
+    }
+
+    async listCharacters(userId: string): Promise<SoraCharacterRecord[]> {
+        const settings = await this.readSettings(userId);
+        return settings.characters ?? [];
+    }
+
+    async createCharacter(params: {
+        userId: string;
+        name: string;
+        videoBuffer: Buffer;
+        mimeType: string;
+        fileName?: string;
+    }): Promise<SoraCharacterRecord> {
+        this.ensureApiKey();
+        const name = params.name.trim();
+        if (!name) {
+            throw new Error('Укажите имя персонажа');
+        }
+
+        const settings = await this.readSettings(params.userId);
+        const existing = settings.characters ?? [];
+        if (existing.length >= MAX_SORA_CHARACTERS) {
+            throw new Error(
+                `Можно сохранить не более ${MAX_SORA_CHARACTERS} персонажей Sora`,
+            );
+        }
+
+        const client = this.requireClient();
+        const videoFile = await toFile(
+            params.videoBuffer,
+            params.fileName ?? 'character.mp4',
+            { type: params.mimeType || 'video/mp4' },
+        );
+
+        const response = await client.videos.createCharacter({
+            name,
+            video: videoFile,
+        });
+
+        const characterId = response.id?.trim();
+        if (!characterId) {
+            throw new Error('OpenAI не вернул ID персонажа Sora');
+        }
+
+        const record: SoraCharacterRecord = {
+            id: characterId,
+            name,
+            createdAt: new Date().toISOString(),
+        };
+
+        await this.writeSettings(params.userId, {
+            characters: [record, ...existing],
+        });
+
+        return record;
+    }
+
+    async deleteCharacter(
+        userId: string,
+        characterId: string,
+    ): Promise<void> {
+        const settings = await this.readSettings(userId);
+        const next = (settings.characters ?? []).filter(
+            (item) => item.id !== characterId,
+        );
+        await this.writeSettings(userId, { characters: next });
+    }
+
+    validateSelectedCharacterIds(characterIds?: string[]): string[] {
+        const unique = [...new Set((characterIds ?? []).map((id) => id.trim()))]
+            .filter(Boolean)
+            .slice(0, MAX_SORA_CHARACTERS_PER_VIDEO);
+
+        return unique;
+    }
+
+    private async readSettings(userId: string) {
+        return this.userAiToolSettingsModelService.getVideoSettings(
+            userId,
+            AiToolId.SORA,
+        );
+    }
+
+    private async writeSettings(
+        userId: string,
+        patch: Pick<VideoToolSettings, 'characters'>,
+    ): Promise<void> {
+        await this.userAiToolSettingsModelService.upsertVideoSettings(
+            userId,
+            AiToolId.SORA,
+            patch,
+        );
+    }
+
+    private ensureApiKey() {
+        if (!this.apiKey || !this.client) {
+            throw new Error('OPENAI_API_KEY is not configured');
+        }
+    }
+
+    private requireClient(): OpenAI {
+        this.ensureApiKey();
+        return this.client!;
+    }
+}

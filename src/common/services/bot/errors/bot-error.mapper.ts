@@ -111,7 +111,7 @@ function isUserFriendlyMessage(message: string): boolean {
     }
 
     if (
-        /try again|please try|Попробуйте|Недостаточно|недоступен|недоступна|стороне провайдера/i.test(
+        /try again|please try|Попробуйте|Недостаточно|недоступен|недоступна|стороне провайдера|Sora отклонила|OpenAI Sora/i.test(
             stripped,
         )
     ) {

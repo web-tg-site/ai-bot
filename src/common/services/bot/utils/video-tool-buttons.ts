@@ -1,5 +1,5 @@
 import { AiToolId } from '@/common/services/ai/types';
-import { AiSessionStep } from '@/common/services/ai/types/ai-session-state.type';
+import { AiSessionStep, BotSession } from '@/common/services/ai/types/ai-session-state.type';
 import { VideoCapabilitiesService } from '@/common/services/ai/video-capabilities.service';
 import {
     getVideoQualityLabel,
@@ -30,6 +30,7 @@ import {
 } from '../keyboards/video.keyboard';
 import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
 import { resolveVideoSendAsFile } from '@/common/utils/resolve-send-as-file';
+import { resolveVideoDurationsForSession } from './sora-bot.helpers';
 
 export type VideoToolButtonAction =
     | { type: 'open_settings' }
@@ -66,7 +67,10 @@ export type VideoToolButtonAction =
     | { type: 'continue_prompt' }
     | { type: 'skip_refs' }
     | { type: 'back_to_settings' }
-    | { type: 'back_to_editor' };
+    | { type: 'back_to_editor' }
+    | { type: 'open_sora_characters' }
+    | { type: 'create_sora_character' }
+    | { type: 'toggle_sora_character'; value: string };
 
 export function resolveVideoToolButtonAction(
     text: string,
@@ -87,8 +91,23 @@ export function resolveVideoToolButtonAction(
         heygenAvatarPage?: number;
         currentSettings: VideoToolSettings;
         localeTag: 'ru-RU' | 'en-US';
+        soraCharacters?: Array<{ id: string; name: string }>;
     },
 ): VideoToolButtonAction | null {
+    if (options.keyboardMode === 'sora_characters') {
+        if (text === i18n.videoTool.createSoraCharacterButton) {
+            return { type: 'create_sora_character' };
+        }
+        for (const character of options.soraCharacters ?? []) {
+            if (
+                text === i18n.videoTool.soraCharacterOption(character.name) ||
+                text === i18n.videoTool.soraCharacterSelected(character.name)
+            ) {
+                return { type: 'toggle_sora_character', value: character.id };
+            }
+        }
+    }
+
     if (
         text === i18n.videoTool.continueToPrompt &&
         options.step === 'awaiting_video_references'
@@ -445,6 +464,13 @@ export function resolveVideoToolButtonAction(
         }
 
         if (
+            options.toolId === AiToolId.SORA &&
+            text === i18n.videoTool.changeSoraCharactersButton
+        ) {
+            return { type: 'open_sora_characters' };
+        }
+
+        if (
             text ===
                 i18n.videoTool.sendAsFileButton(
                     resolveVideoSendAsFile(
@@ -501,7 +527,10 @@ export function isVideoToolControlButton(text: string | undefined): boolean {
             text === i18n.videoTool.toggleHeygenCaptionsButton(true) ||
             text === i18n.videoTool.toggleHeygenCaptionsButton(false) ||
             text === i18n.videoTool.heygenNextPage ||
-            text === i18n.videoTool.heygenPrevPage
+            text === i18n.videoTool.heygenPrevPage ||
+            text === i18n.videoTool.changeSoraCharactersButton ||
+            text === i18n.videoTool.createSoraCharacterButton ||
+            text === i18n.videoTool.soraCharactersEmpty
         ) {
             return true;
         }
@@ -539,6 +568,7 @@ export function getVideoToolCapabilities(
     toolId: AiToolId,
     capabilitiesService: VideoCapabilitiesService,
     localeTag: 'ru-RU' | 'en-US',
+    session?: BotSession,
 ) {
     const styleOptions = capabilitiesService.getStyleOptions(toolId);
     const qualityOptions = capabilitiesService.getQualityOptions(toolId);
@@ -549,7 +579,11 @@ export function getVideoToolCapabilities(
             value: option.value,
             label: localeTag === 'ru-RU' ? option.labelRu : option.labelEn,
         })),
-        durations: capabilitiesService.getSupportedDurations(toolId),
+        durations: resolveVideoDurationsForSession(
+            session,
+            toolId,
+            capabilitiesService,
+        ),
         stylePresets: styleOptions.map((option) => {
             const baseLabel =
                 localeTag === 'ru-RU' ? option.labelRu : option.labelEn;

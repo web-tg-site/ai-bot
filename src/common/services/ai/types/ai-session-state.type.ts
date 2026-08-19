@@ -67,7 +67,8 @@ export type BotSession = {
             | 'heygen_background'
             | 'heygen_expressiveness'
             | 'heygen_speed'
-            | 'heygen_pitch';
+            | 'heygen_pitch'
+            | 'sora_characters';
         voiceKeyboardMode?:
             | 'main'
             | 'settings'
@@ -118,5 +119,13 @@ export type BotSession = {
         }>;
         heygenVoicePage?: number;
         heygenAvatarPage?: number;
+        /** Sora: create | extend | edit */
+        soraVideoMode?: 'create' | 'extend' | 'edit';
+        /** OpenAI video_* id for extend */
+        soraExtendSourceId?: string;
+        soraSelectedCharacterIds?: string[];
+        awaitingSoraCharacterVideo?: boolean;
+        awaitingSoraCharacterName?: boolean;
+        pendingSoraCharacterVideo?: StoredVoiceSample;
     };
 };

@@ -346,6 +346,21 @@ export type I18nBundle = {
         sendAsFileButton: (asFile: boolean) => string;
         sendAsFileChanged: (asFile: boolean) => string;
         deliveryLine: (asFile: boolean) => string;
+        changeSoraCharactersButton: string;
+        createSoraCharacterButton: string;
+        soraCharactersEmpty: string;
+        soraCharacterOption: (name: string) => string;
+        soraCharacterSelected: (name: string) => string;
+        selectSoraCharactersTitle: string;
+        soraCharactersChanged: (count: number) => string;
+        soraExtendButton: string;
+        soraExtendHint: string;
+        soraExtendPromptHint: string;
+        soraFaceWarning: string;
+        soraNeedCharacterVideo: string;
+        soraNeedCharacterName: string;
+        soraCharacterCreated: (name: string) => string;
+        selectExtendDurationTitle: string;
     };
     voiceTool: {
         selectVoiceButton: string;

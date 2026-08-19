@@ -20,6 +20,7 @@ import {
 } from './providers';
 import { AiJobService } from './jobs/ai-job.service';
 import { AiJobCron } from './jobs/ai-job.cron';
+import { SoraCharactersService } from './sora-characters.service';
 import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/elevenlabs-voice-preview.service';
 
 @Module({
@@ -41,17 +42,20 @@ import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/eleve
         ElevenLabsVoicePreviewService,
         AiJobService,
         AiJobCron,
+        SoraCharactersService,
     ],
     exports: [
         AiService,
         TokenBillingService,
         AiJobService,
+        SoraCharactersService,
         ImageCapabilitiesService,
         VideoCapabilitiesService,
         ElevenLabsProvider,
         ElevenLabsVoicePreviewService,
         HiggsfieldProvider,
         HeyGenProvider,
+        OpenAiProvider,
     ],
 })
 export class AiModule {}

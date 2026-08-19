@@ -10,6 +10,12 @@ import {
     type HeyGenExpressiveness,
 } from '@/common/config/heygen.config';
 
+export type SoraCharacterSettingsRecord = {
+    id: string;
+    name: string;
+    createdAt: string;
+};
+
 export type VideoToolSettings = {
     aspectRatio?: string;
     resolution?: string;
@@ -28,6 +34,8 @@ export type VideoToolSettings = {
     heygenMotionPrompt?: string;
     heygenVoiceSpeed?: number;
     heygenVoicePitch?: number;
+    /** Sora characters stored in UserAiToolSettings for toolId sora */
+    characters?: SoraCharacterSettingsRecord[];
 };
 
 export const DEFAULT_VIDEO_TOOL_SETTINGS: VideoToolSettings = {

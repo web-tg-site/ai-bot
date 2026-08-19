@@ -96,6 +96,8 @@ export class AiService {
         switch (tool.provider) {
             case AiProviderId.OPENROUTER:
                 return this.openRouterProvider.createJob(toolId, input);
+            case AiProviderId.OPENAI:
+                return this.openAiProvider.createJob(toolId, input);
             case AiProviderId.SHARPII:
                 return this.sharpiiProvider.createJob(toolId, input);
             case AiProviderId.ELEVENLABS:
@@ -129,6 +131,8 @@ export class AiService {
         switch (tool.provider) {
             case AiProviderId.OPENROUTER:
                 return this.openRouterProvider.getJobStatus(providerJobId);
+            case AiProviderId.OPENAI:
+                return this.openAiProvider.getJobStatus(providerJobId);
             case AiProviderId.SHARPII:
                 return this.sharpiiProvider.getJobStatus(providerJobId, toolId);
             case AiProviderId.ELEVENLABS:

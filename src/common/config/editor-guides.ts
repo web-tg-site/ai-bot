@@ -147,25 +147,25 @@ Seedream 5.0 также поддерживает вывод в 4K через Mod
 4. Настройте разрешение/качество.
 5. Запустите генерацию.`,
 
-    [AiToolId.SORA]: `Sora — AI для генерации видео по тексту и изображениям.
-Используйте её, когда нужно превратить идею или статичный визуал в полноценную видеосцену.
+    [AiToolId.SORA]: `Sora — видео через OpenAI API (4, 8 или 12 секунд).
 
 Что можно делать
 • текст → видео
-• изображение → видео
-• создавать рекламные ролики
-• анимировать изображения
-• создавать кинематографичные сцены
-• создавать короткие видео для соц.сетей
-• визуализировать сценарии
-• создавать атмосферные сцены
+• одно фото как первый кадр
+• редактирование видео по промпту
+• продление готового ролика Sora
+• персонажи из короткого видео (без лиц людей)
+
+Ограничения
+• длительность: 4, 8 или 12 секунд
+• одно фото-референс
+• лица людей на фото могут быть отклонены
 
 Как пользоваться
 1. Опишите сцену.
-2. При необходимости загрузите изображение начального кадра (с какого кадра начинается сцена) и конечного кадра (в какой должна перетечь сцена).
-3. Выберите формат видео.
-4. Выберите длительность/качество/стиль генерации.
-5. Запустите генерацию.`,
+2. При необходимости загрузите одно фото или видео для редактирования.
+3. Выберите формат, разрешение, длительность и качество.
+4. Запустите генерацию.`,
 
     [AiToolId.KLING]: `Kling 3.0 — AI для генерации видео.
 Он подходит для создания рекламных роликов, cinematic-видео, product videos, персонажей, сцен с движением камеры и анимации изображений.
@@ -561,25 +561,25 @@ How to use
 4. Set resolution/quality.
 5. Run generation.`,
 
-    [AiToolId.SORA]: `Sora is an AI for generating video from text and images.
-Use it when you need to turn an idea or static visual into a full video scene.
+    [AiToolId.SORA]: `Sora — OpenAI video API (4, 8, or 12 seconds).
 
 What you can do
 • text → video
-• image → video
-• create ad clips
-• animate images
-• create cinematic scenes
-• create short videos for social media
-• visualize scripts
-• create atmospheric scenes
+• one photo as the first frame
+• edit video with a prompt
+• extend a completed Sora clip
+• characters from short video clips (no human faces)
+
+Limits
+• duration: 4, 8, or 12 seconds
+• one photo reference
+• human faces in photos may be rejected
 
 How to use
 1. Describe the scene.
-2. If needed, upload a start frame (where the scene begins) and end frame (where it should transition).
-3. Choose video format.
-4. Choose duration/quality/generation style.
-5. Run generation.`,
+2. Optionally upload one photo or a video to edit.
+3. Choose format, resolution, duration, and quality.
+4. Run generation.`,
 
     [AiToolId.KLING]: `Kling 3.0 is an AI for video generation.
 It suits ad clips, cinematic video, product videos, characters, camera movement scenes and image animation.

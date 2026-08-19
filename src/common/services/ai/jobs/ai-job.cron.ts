@@ -17,6 +17,7 @@ import {
     isSharpiiMidjourneyUpstreamError,
     isSharpiiMidjourneyGenericFailure,
 } from '../providers/sharpii.provider';
+import { buildOpenAiVideoResultUrl } from '../providers/openai.provider';
 import {
     AI_JOB_STALE_REMINDER_TEXT,
     AI_MIDJOURNEY_FALLBACK_TEXT,
@@ -229,12 +230,21 @@ export class AiJobCron {
                 result,
             );
 
+            let resultUrl = resolved.url ?? result.url;
+            if (
+                !resultUrl &&
+                job.toolId === AiToolId.SORA &&
+                job.providerJobId
+            ) {
+                resultUrl = buildOpenAiVideoResultUrl(job.providerJobId);
+            }
+
             // Persist URL first so mini-app polling is not blocked by Telegram delivery.
             await this.aiJobService.updateJobStatus(
                 job.id,
                 JobStatus.COMPLETED,
                 {
-                    resultUrl: resolved.url ?? result.url,
+                    resultUrl,
                 },
             );
 
