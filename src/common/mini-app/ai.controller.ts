@@ -64,6 +64,7 @@ import { GenerationFacade } from './generation.facade';
 import { ModuleRef } from '@nestjs/core';
 import { BotService } from '@/common/services/bot';
 import { compressReferenceImage } from '@/common/utils/compress-reference-image';
+import { normalizeUploadMime } from '@/common/utils/normalize-upload-mime';
 import { getI18n } from '@/common/services/bot/i18n';
 import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
 
@@ -419,11 +420,13 @@ export class AiController {
         const fileInputs: AiFileInput[] | undefined = files?.length
             ? await Promise.all(
                   files.map(async (file) =>
-                      compressReferenceImage({
-                          buffer: file.buffer,
-                          mimeType: file.mimetype,
-                          fileName: file.originalname,
-                      }),
+                      compressReferenceImage(
+                          normalizeUploadMime({
+                              buffer: file.buffer,
+                              mimeType: file.mimetype,
+                              fileName: file.originalname,
+                          }),
+                      ),
                   ),
               )
             : undefined;

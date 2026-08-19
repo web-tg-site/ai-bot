@@ -20,6 +20,7 @@ import {
 } from '@/common/utils/sound-effect-prompt';
 import { getI18n } from '@/common/services/bot/i18n';
 import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
+import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
 
 type OpenRouterMessageContent =
     | string
@@ -129,12 +130,11 @@ export class OpenRouterProvider {
             return this.createKlingMotionJob(tool.model, input);
         }
 
-        const images =
-            input.files?.filter((file) => file.mimeType.startsWith('image/')) ??
-            [];
+        const { images, videos, audios } = splitMediaFiles(input.files);
+        const hasVisualMedia = images.length > 0 || videos.length > 0;
         const prompt = this.resolveGenerationPrompt(
             input.prompt,
-            images.length > 0,
+            hasVisualMedia,
             'video',
         );
 
@@ -192,18 +192,7 @@ export class OpenRouterProvider {
         model: string,
         input: AiGenerationInput,
     ): Promise<AiJobCreateResult> {
-        const images =
-            input.files?.filter((file) => file.mimeType.startsWith('image/')) ??
-            [];
-        const videos =
-            input.files?.filter((file) => file.mimeType.startsWith('video/')) ??
-            [];
-        const audios =
-            input.files?.filter(
-                (file) =>
-                    file.mimeType.startsWith('audio/') ||
-                    file.mimeType === 'application/ogg',
-            ) ?? [];
+        const { images, videos, audios } = splitMediaFiles(input.files);
 
         if (!images.length || !videos.length) {
             throw new Error(
@@ -349,18 +338,7 @@ export class OpenRouterProvider {
               }
         >;
     } {
-        const images =
-            input.files?.filter((file) => file.mimeType.startsWith('image/')) ??
-            [];
-        const videos =
-            input.files?.filter((file) => file.mimeType.startsWith('video/')) ??
-            [];
-        const audios =
-            input.files?.filter(
-                (file) =>
-                    file.mimeType.startsWith('audio/') ||
-                    file.mimeType === 'application/ogg',
-            ) ?? [];
+        const { images, videos, audios } = splitMediaFiles(input.files);
 
         const toData = (
             file: NonNullable<AiGenerationInput['files']>[number],

@@ -16,6 +16,7 @@ import {
     AiJobStatusResult,
 } from '../types';
 import { AiToolId } from '../types';
+import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
 
 export function stripSharpiiErrorMessage(message: string): string {
     return message.split('\n\nID запроса:')[0].trim();
@@ -532,12 +533,7 @@ export class SharpiiProvider {
         input: AiGenerationInput,
         isVideo: boolean,
     ): Record<string, unknown> {
-        const images =
-            input.files?.filter((file) => file.mimeType.startsWith('image/')) ??
-            [];
-        const videos =
-            input.files?.filter((file) => file.mimeType.startsWith('video/')) ??
-            [];
+        const { images, videos, audios } = splitMediaFiles(input.files);
         const hasMedia = images.length > 0 || videos.length > 0;
         const prompt = this.resolveGenerationPrompt(
             input.prompt,
@@ -592,11 +588,6 @@ export class SharpiiProvider {
             }
 
             if (toolId === AiToolId.SEEDANCE) {
-                const audios = (input.files ?? []).filter(
-                    (file) =>
-                        file.mimeType.startsWith('audio/') ||
-                        file.mimeType === 'application/ogg',
-                );
                 if (audios.length) {
                     body.reference_audios = audios
                         .slice(0, 3)
@@ -617,14 +608,11 @@ export class SharpiiProvider {
         } else {
             body.aspect_ratio = input.aspectRatio ?? '1:1';
 
-            const images =
-                input.files?.filter((file) =>
-                    file.mimeType.startsWith('image/'),
-                ) ?? [];
-            if (images.length) {
+            const imageRefs = splitMediaFiles(input.files).images;
+            if (imageRefs.length) {
                 const maxRefs =
-                    toolId === AiToolId.NANO_BANANA ? 4 : images.length;
-                body.reference_image_urls = images
+                    toolId === AiToolId.NANO_BANANA ? 4 : imageRefs.length;
+                body.reference_image_urls = imageRefs
                     .slice(0, maxRefs)
                     .map((file) => this.toDataUrl(file));
             }

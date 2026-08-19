@@ -2,11 +2,12 @@ import { randomUUID } from 'crypto';
 import { AiFileInput } from '@/common/services/ai/types';
 import { StoredReference } from '@/common/services/ai/types/ai-session-state.type';
 import { compressReferenceImage } from '@/common/utils/compress-reference-image';
+import { normalizeUploadMime } from '@/common/utils/normalize-upload-mime';
 
 export async function serializeReference(
     file: AiFileInput,
 ): Promise<StoredReference> {
-    const compressed = await compressReferenceImage(file);
+    const compressed = await compressReferenceImage(normalizeUploadMime(file));
 
     return {
         id: randomUUID(),

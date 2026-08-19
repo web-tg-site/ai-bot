@@ -11,6 +11,7 @@ import {
 } from '../types';
 import { AiToolId } from '../types';
 import { downloadRemoteFile } from '@/common/utils/download-remote-file';
+import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
 
 const LUMA_BASE_URL = 'https://agents.lumalabs.ai/v1';
 
@@ -140,9 +141,8 @@ export class LumaProvider {
     private resolveLumaRayOperation(
         input: AiGenerationInput,
     ): LumaRayOperation {
-        const video = input.files?.find((file) =>
-            file.mimeType.startsWith('video/'),
-        );
+        const { videos } = splitMediaFiles(input.files);
+        const video = videos[0];
         if (!video) {
             return 'video';
         }
@@ -183,13 +183,11 @@ export class LumaProvider {
             duration,
         };
 
-        const images = input.files?.filter((file) =>
-            file.mimeType.startsWith('image/'),
-        );
-        if (images?.[0]) {
+        const { images } = splitMediaFiles(input.files);
+        if (images[0]) {
             video.start_frame = toImageRef(images[0]);
         }
-        if (images?.[1]) {
+        if (images[1]) {
             video.end_frame = toImageRef(images[1]);
         }
 
@@ -236,9 +234,8 @@ export class LumaProvider {
             return { generation_id: input.sourceGenerationId };
         }
 
-        const video = input.files?.find((file) =>
-            file.mimeType.startsWith('video/'),
-        );
+        const { videos } = splitMediaFiles(input.files);
+        const video = videos[0];
         if (video) {
             return {
                 data: video.buffer.toString('base64'),
