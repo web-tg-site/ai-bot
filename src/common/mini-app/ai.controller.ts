@@ -71,7 +71,7 @@ import { BotService } from '@/common/services/bot';
 import { SoraCharactersService } from '@/common/services/ai/sora-characters.service';
 import { compressReferenceImage } from '@/common/utils/compress-reference-image';
 import { normalizeUploadMime } from '@/common/utils/normalize-upload-mime';
-import { getI18n } from '@/common/services/bot/i18n';
+import { getI18n, getToolLabel } from '@/common/services/bot/i18n';
 import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
@@ -1014,6 +1014,7 @@ export class AiController {
             job.toolId as AiToolId,
         );
         const type = this.resolveMediaType(job.toolId as AiToolId, mimeType);
+        const caption = getToolLabel(job.toolId as AiToolId);
 
         try {
             const botService = this.moduleRef.get(BotService, {
@@ -1024,6 +1025,8 @@ export class AiController {
                     current.telegramId,
                     buffer,
                     mimeType,
+                    false,
+                    caption,
                 );
             } else if (type === 'audio') {
                 await botService.sendAudioBuffer(
@@ -1040,6 +1043,7 @@ export class AiController {
                         buffer,
                         mimeType,
                         false,
+                        caption,
                     );
                     photoSent = true;
                 } catch {
@@ -1052,6 +1056,7 @@ export class AiController {
                         buffer,
                         mimeType,
                         true,
+                        caption,
                     );
                 } catch (fileError) {
                     if (photoSent) {
