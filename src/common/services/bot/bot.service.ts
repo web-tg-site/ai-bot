@@ -156,10 +156,10 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         await this.bot.telegram.sendMessage(chatId, message, options);
     }
 
-    public async sendPhoto(chatId: string, url: string) {
+    public async sendPhoto(chatId: string, url: string, caption?: string) {
         const parsed = parseDataUrl(url);
         if (parsed) {
-            await this.sendPhotoBuffer(chatId, parsed.buffer, parsed.mimeType);
+            await this.sendPhotoBuffer(chatId, parsed.buffer, parsed.mimeType, false, caption);
             return;
         }
 
@@ -167,7 +167,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
             url,
             getAuthHeadersForUrl(url),
         );
-        await this.sendPhotoBuffer(chatId, buffer, mimeType);
+        await this.sendPhotoBuffer(chatId, buffer, mimeType, false, caption);
     }
 
     public async sendPhotoBuffer(
@@ -175,14 +175,16 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         buffer: Buffer,
         mimeType = 'image/png',
         sendAsFile = false,
+        caption?: string,
     ) {
         const ext = mimeTypeToExtension(mimeType, 'png');
         const inputFile = bufferToInputFile(buffer, `image.${ext}`);
+        const extra = caption ? { caption } : undefined;
         if (sendAsFile) {
-            await this.bot.telegram.sendDocument(chatId, inputFile);
+            await this.bot.telegram.sendDocument(chatId, inputFile, extra);
             return;
         }
-        await this.bot.telegram.sendPhoto(chatId, inputFile);
+        await this.bot.telegram.sendPhoto(chatId, inputFile, extra);
     }
 
     public async sendPhotoBufferAsDocument(
@@ -193,10 +195,10 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         await this.sendPhotoBuffer(chatId, buffer, mimeType, true);
     }
 
-    public async sendVideo(chatId: string, url: string) {
+    public async sendVideo(chatId: string, url: string, caption?: string) {
         const parsed = parseDataUrl(url);
         if (parsed) {
-            await this.sendVideoBuffer(chatId, parsed.buffer, parsed.mimeType);
+            await this.sendVideoBuffer(chatId, parsed.buffer, parsed.mimeType, false, caption);
             return;
         }
 
@@ -204,7 +206,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
             url,
             getAuthHeadersForUrl(url),
         );
-        await this.sendVideoBuffer(chatId, buffer, mimeType);
+        await this.sendVideoBuffer(chatId, buffer, mimeType, false, caption);
     }
 
     public async sendVideoBuffer(
@@ -212,13 +214,17 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         buffer: Buffer,
         mimeType = 'video/mp4',
         sendAsFile = false,
+        caption?: string,
     ) {
         await deliverVideoBuffer(
             {
                 sendVideo: (file, extra) =>
-                    this.bot.telegram.sendVideo(chatId, file, extra),
+                    this.bot.telegram.sendVideo(chatId, file, {
+                        ...extra,
+                        ...(caption ? { caption } : {}),
+                    }),
                 sendDocument: (file) =>
-                    this.bot.telegram.sendDocument(chatId, file),
+                    this.bot.telegram.sendDocument(chatId, file, caption ? { caption } : undefined),
             },
             buffer,
             mimeType,

@@ -20,6 +20,7 @@ export async function sendGenerationResultWithDelivery(
     result: AiGenerationResult,
     toolId: AiToolId,
     sendAsFile: boolean,
+    caption?: string,
 ) {
     if (result.type === 'text' && result.text) {
         return;
@@ -39,6 +40,7 @@ export async function sendGenerationResultWithDelivery(
                     parsed.buffer,
                     parsed.mimeType,
                     sendAsFile,
+                    caption,
                 );
                 return;
             }
@@ -47,10 +49,10 @@ export async function sendGenerationResultWithDelivery(
                     result.url,
                     getAuthHeadersForUrl(result.url),
                 );
-                await sendImageBuffer(ctx, buffer, mimeType, true);
+                await sendImageBuffer(ctx, buffer, mimeType, true, caption);
                 return;
             }
-            await ctx.replyWithPhoto(result.url);
+            await ctx.replyWithPhoto(result.url, caption ? { caption } : undefined);
             return;
         }
 
@@ -61,6 +63,7 @@ export async function sendGenerationResultWithDelivery(
                     parsed.buffer,
                     parsed.mimeType,
                     sendAsFile,
+                    caption,
                 );
                 return;
             }
@@ -68,7 +71,7 @@ export async function sendGenerationResultWithDelivery(
                 result.url,
                 getAuthHeadersForUrl(result.url),
             );
-            await sendVideoBuffer(ctx, buffer, mimeType, sendAsFile);
+            await sendVideoBuffer(ctx, buffer, mimeType, sendAsFile, caption);
             return;
         }
 
@@ -89,6 +92,7 @@ export async function sendGenerationResultWithDelivery(
                 result.buffer,
                 result.mimeType ?? 'image/png',
                 sendAsFile,
+                caption,
             );
         } else if (result.type === 'video') {
             await sendVideoBuffer(
@@ -96,6 +100,7 @@ export async function sendGenerationResultWithDelivery(
                 result.buffer,
                 result.mimeType ?? 'video/mp4',
                 sendAsFile,
+                caption,
             );
         } else if (result.type === 'audio') {
             await sendAudioBuffer(
@@ -113,14 +118,16 @@ export async function sendImageBuffer(
     buffer: Buffer,
     mimeType: string,
     sendAsFile: boolean,
+    caption?: string,
 ) {
     const ext = mimeTypeToExtension(mimeType, 'png');
     const inputFile = bufferToInputFile(buffer, `image.${ext}`);
+    const extra = caption ? { caption } : undefined;
     if (sendAsFile) {
-        await ctx.replyWithDocument(inputFile);
+        await ctx.replyWithDocument(inputFile, extra);
         return;
     }
-    await ctx.replyWithPhoto(inputFile);
+    await ctx.replyWithPhoto(inputFile, extra);
 }
 
 export async function sendVideoBuffer(
@@ -128,11 +135,14 @@ export async function sendVideoBuffer(
     buffer: Buffer,
     mimeType: string,
     sendAsFile: boolean,
+    caption?: string,
 ) {
     await deliverVideoBuffer(
         {
-            sendVideo: (file, extra) => ctx.replyWithVideo(file, extra),
-            sendDocument: (file) => ctx.replyWithDocument(file),
+            sendVideo: (file, extra) =>
+                ctx.replyWithVideo(file, { ...extra, ...(caption ? { caption } : {}) }),
+            sendDocument: (file) =>
+                ctx.replyWithDocument(file, caption ? { caption } : undefined),
         },
         buffer,
         mimeType,

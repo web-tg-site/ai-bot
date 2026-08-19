@@ -263,6 +263,7 @@ export class AiJobCron {
                         job.userId,
                         job.toolId as AiToolId,
                     ),
+                    getToolLabel(job.toolId as AiToolId, job.user.language),
                 );
 
                 if (
@@ -436,6 +437,7 @@ export class AiJobCron {
                     result.type,
                     result,
                     await this.resolveSendAsFile(job.userId, AiToolId.FLUX),
+                    getToolLabel(AiToolId.FLUX, job.user.language),
                 );
                 await botService.sendMessage(
                     job.user.telegramId,
@@ -503,6 +505,7 @@ export class AiJobCron {
             text?: string;
         },
         sendAsFile: boolean,
+        caption?: string,
     ) {
         if (result.url && !isElevenLabsDubbingResultUrl(result.url)) {
             if (type === 'video') {
@@ -516,9 +519,10 @@ export class AiJobCron {
                         buffer,
                         mimeType,
                         true,
+                        caption,
                     );
                 } else {
-                    await botService.sendVideo(telegramId, result.url);
+                    await botService.sendVideo(telegramId, result.url, caption);
                 }
             } else if (type === 'image') {
                 const parsed = parseDataUrl(result.url);
@@ -528,6 +532,7 @@ export class AiJobCron {
                         parsed.buffer,
                         parsed.mimeType,
                         sendAsFile,
+                        caption,
                     );
                 } else if (sendAsFile) {
                     const { buffer, mimeType } = await downloadRemoteFile(
@@ -539,9 +544,10 @@ export class AiJobCron {
                         buffer,
                         mimeType,
                         true,
+                        caption,
                     );
                 } else {
-                    await botService.sendPhoto(telegramId, result.url);
+                    await botService.sendPhoto(telegramId, result.url, caption);
                 }
             } else if (type === 'audio') {
                 if (sendAsFile) {
@@ -568,6 +574,7 @@ export class AiJobCron {
                     result.buffer,
                     result.mimeType,
                     sendAsFile,
+                    caption,
                 );
             } else if (type === 'video') {
                 await botService.sendVideoBuffer(
@@ -575,6 +582,7 @@ export class AiJobCron {
                     result.buffer,
                     result.mimeType,
                     sendAsFile,
+                    caption,
                 );
             } else if (type === 'audio') {
                 await botService.sendAudioBuffer(

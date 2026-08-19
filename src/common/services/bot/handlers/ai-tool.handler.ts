@@ -3703,6 +3703,7 @@ async function runGeneration(
                         generationResult,
                         AiToolId.FLUX,
                         sendAsFile,
+                        getToolLabel(AiToolId.FLUX, user.language),
                     );
                     return;
                 }
@@ -3744,7 +3745,7 @@ async function runGeneration(
             toolId,
             session,
         );
-        await sendGenerationResult(ctx, generationResult, toolId, sendAsFile);
+        await sendGenerationResult(ctx, generationResult, toolId, sendAsFile, getToolLabel(toolId, user.language));
 
         if (
             isChatAssistantTool(toolId) &&
@@ -3827,6 +3828,7 @@ async function sendGenerationResult(
     result: Awaited<ReturnType<AiService['generate']>>,
     toolId: AiToolId,
     sendAsFile: boolean,
+    caption?: string,
 ) {
     if (result.type === 'text' && (result.text || result.images?.length)) {
         if (result.text) {
@@ -3847,12 +3849,12 @@ async function sendGenerationResult(
                 await ctx.replyWithVoice(inputFile);
             }
         }
-        await sendChatImages(ctx, result.images, sendAsFile);
+        await sendChatImages(ctx, result.images, sendAsFile, caption);
         return;
     }
 
     if (result.images?.length) {
-        await sendChatImages(ctx, result.images, sendAsFile);
+        await sendChatImages(ctx, result.images, sendAsFile, caption);
     }
 
     if (
@@ -3860,7 +3862,7 @@ async function sendGenerationResult(
         result.type === 'video' ||
         result.type === 'audio'
     ) {
-        await sendGenerationResultWithDelivery(ctx, result, toolId, sendAsFile);
+        await sendGenerationResultWithDelivery(ctx, result, toolId, sendAsFile, caption);
     }
 }
 
@@ -3868,17 +3870,20 @@ async function sendChatImages(
     ctx: BotContext,
     images: Array<{ buffer: Buffer; mimeType: string }> | undefined,
     sendAsFile: boolean,
+    caption?: string,
 ) {
     if (!images?.length) {
         return;
     }
 
-    for (const image of images) {
+    for (let i = 0; i < images.length; i++) {
+        const image = images[i];
         await sendImageBuffer(
             ctx,
             image.buffer,
             image.mimeType || 'image/png',
             sendAsFile,
+            i === 0 ? caption : undefined,
         );
     }
 }
