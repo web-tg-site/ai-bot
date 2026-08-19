@@ -265,6 +265,34 @@ export class AiJobCron {
                     ),
                 );
 
+                if (
+                    job.toolId === AiToolId.SORA &&
+                    job.providerJobId &&
+                    job.inputJson &&
+                    (job.inputJson as AiGenerationInput).soraVideoMode !==
+                        'extend'
+                ) {
+                    const i18n = getI18n(job.user.language);
+                    await botService.sendMessage(
+                        job.user.telegramId,
+                        i18n.videoTool.soraExtendHint,
+                        {
+                            parse_mode: 'HTML',
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: i18n.videoTool
+                                                .soraExtendButton,
+                                            callback_data: `ai:sora:extend:${job.providerJobId}`,
+                                        },
+                                    ],
+                                ],
+                            },
+                        },
+                    );
+                }
+
                 await botService.sendMessage(
                     job.user.telegramId,
                     getI18n(job.user.language).aiResult.jobCompleted(

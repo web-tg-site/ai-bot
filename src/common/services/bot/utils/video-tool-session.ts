@@ -106,12 +106,14 @@ export function buildVideoEditorReplyKeyboard(
         capabilitiesService: VideoCapabilitiesService;
         keyboardMode?: VideoKeyboardMode;
         localeTag: 'ru-RU' | 'en-US';
+        session?: BotSession;
     },
 ) {
     const caps = getVideoToolCapabilities(
         options.toolId,
         options.capabilitiesService,
         options.localeTag,
+        options.session,
     );
 
     return generateVideoEditorReplyKeyboard(i18n, {
@@ -154,6 +156,7 @@ export async function replyWithVideoEditorKeyboard(
         capabilitiesService,
         keyboardMode: options?.keyboardMode ?? getVideoKeyboardMode(session),
         localeTag,
+        session,
     });
 
     if (options?.text) {

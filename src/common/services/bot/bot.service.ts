@@ -23,6 +23,7 @@ import {
     ElevenLabsVoicePreviewService,
 } from '@/common/services/ai';
 import { SoraCharactersService } from '@/common/services/ai/sora-characters.service';
+import { RedisService } from '@/common/services/redis';
 import { CryptoPayService } from '@/common/services/crypto-pay';
 import { AntilopayService } from '@/common/services/antilopay';
 import { bufferToInputFile } from './utils/download-telegram-file';

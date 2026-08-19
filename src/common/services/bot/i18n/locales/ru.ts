@@ -578,30 +578,6 @@ ${getTariffIncludesText(type, plan, ru)}
                 : 'Результат будет отправлен <b>как фото</b>',
         deliveryLine: (asFile) =>
             asFile ? 'Отправка: <b>файлом</b>' : 'Отправка: <b>как фото</b>',
-        changeSoraCharactersButton: '👤 Персонажи Sora',
-        createSoraCharacterButton: '➕ Создать персонажа',
-        soraCharactersEmpty: 'Персонажей пока нет',
-        soraCharacterOption: (name) => name,
-        soraCharacterSelected: (name) => `✓ ${name}`,
-        selectSoraCharactersTitle:
-            'Выберите до 2 персонажей (имя должно быть в промпте):',
-        soraCharactersChanged: (count) =>
-            count > 0
-                ? `Персонажи для генерации: <b>${count}</b>`
-                : 'Персонажи не выбраны',
-        soraExtendButton: '➕ Продлить видео',
-        soraExtendHint:
-            'Можно продлить этот ролик — нажмите кнопку ниже и опишите продолжение.',
-        soraExtendPromptHint:
-            'Режим <b>продления Sora</b>. Опишите, как продолжить сцену (4–20 сек).',
-        soraFaceWarning:
-            '⚠️ Фото с лицами людей могут быть отклонены OpenAI Sora.',
-        soraNeedCharacterVideo:
-            'Отправьте короткое видео персонажа (2–4 сек, без человеческих лиц).',
-        soraNeedCharacterName: 'Введите имя персонажа (латиница или кириллица):',
-        soraCharacterCreated: (name) =>
-            `Персонаж <b>${name}</b> создан и сохранён.`,
-        selectExtendDurationTitle: 'Длительность продления (4–20 сек):',
     },
     videoTool: {
         promptHint: 'Опишите сцену и движение камеры.',
@@ -776,6 +752,30 @@ ${getTariffIncludesText(type, plan, ru)}
                 : 'Результат будет отправлен <b>как видео</b>',
         deliveryLine: (asFile) =>
             asFile ? 'Отправка: <b>файлом</b>' : 'Отправка: <b>как видео</b>',
+        changeSoraCharactersButton: '👤 Персонажи Sora',
+        createSoraCharacterButton: '➕ Создать персонажа',
+        soraCharactersEmpty: 'Персонажей пока нет',
+        soraCharacterOption: (name) => name,
+        soraCharacterSelected: (name) => `✓ ${name}`,
+        selectSoraCharactersTitle:
+            'Выберите до 2 персонажей (имя должно быть в промпте):',
+        soraCharactersChanged: (count) =>
+            count > 0
+                ? `Персонажи для генерации: <b>${count}</b>`
+                : 'Персонажи не выбраны',
+        soraExtendButton: '➕ Продлить видео',
+        soraExtendHint:
+            'Можно продлить этот ролик — нажмите кнопку ниже и опишите продолжение.',
+        soraExtendPromptHint:
+            'Режим <b>продления Sora</b>. Опишите, как продолжить сцену (4–20 сек).',
+        soraFaceWarning:
+            '⚠️ Фото с лицами людей могут быть отклонены OpenAI Sora.',
+        soraNeedCharacterVideo:
+            'Отправьте короткое видео персонажа (2–4 сек, без человеческих лиц).',
+        soraNeedCharacterName: 'Введите имя персонажа (латиница или кириллица):',
+        soraCharacterCreated: (name) =>
+            `Персонаж <b>${name}</b> создан и сохранён.`,
+        selectExtendDurationTitle: 'Длительность продления (4–20 сек):',
     },
     voiceTool: {
         selectVoiceButton: '🎙 Доступные голоса',

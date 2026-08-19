@@ -47,8 +47,8 @@ import {
     buildSoraGenerationFields,
     resetSoraSessionMode,
 } from '../utils/sora-bot.helpers';
-import { isVideoMedia } from '@/common/utils/media-kind';
 import { SORA_EXTEND_DURATIONS } from '@/common/config/video-editor-capabilities.config';
+import { withPersistedSession } from '../utils/bot-session-store';
 import { collectMediaGroupMessage } from '../utils/media-group-collector';
 import { mimeTypeToExtension } from '@/common/utils/parse-data-url';
 import { serializeGptUserMessage } from '@/common/utils/gpt-message-content';
@@ -123,6 +123,7 @@ import {
     goToVideoPromptStep,
     getVideoKeyboardMode,
     buildVideoToolMainScreenText,
+    replyWithVideoEditorKeyboard,
 } from '../utils/video-tool-session';
 import {
     loadVoiceToolSettings,
@@ -313,6 +314,80 @@ export const registerAiToolHandlers = (bot: Telegraf, deps: AiHandlerDeps) => {
         );
     });
 };
+
+async function handleSoraExtendCallback(
+    ctx: BotContext,
+    deps: AiHandlerDeps,
+    providerJobId: string,
+) {
+    try {
+        await ctx.answerCbQuery();
+    } catch {
+        // ignore stale callback
+    }
+
+    if (!ctx.from) {
+        return;
+    }
+
+    const user = await deps.userModelService.getUserByTelegramId(
+        ctx.from.id.toString(),
+    );
+    if (!user) {
+        return;
+    }
+
+    const i18n = getI18nForUser(user);
+    const session = getSession(ctx);
+    const toolId = AiToolId.SORA;
+    const storedSettings = await loadVideoToolSettings(
+        user.id,
+        toolId,
+        deps.userAiToolSettingsModelService,
+        deps.videoCapabilitiesService,
+    );
+    const extendDuration =
+        storedSettings.durationSeconds &&
+        SORA_EXTEND_DURATIONS.includes(
+            storedSettings.durationSeconds as (typeof SORA_EXTEND_DURATIONS)[number],
+        )
+            ? storedSettings.durationSeconds
+            : 8;
+    const toolSettings =
+        await deps.userAiToolSettingsModelService.upsertVideoSettings(
+            user.id,
+            toolId,
+            { durationSeconds: extendDuration },
+        );
+
+    session.ai = {
+        activeToolId: toolId,
+        step: 'awaiting_video_prompt',
+        activeConversationId: session.ai?.activeConversationId,
+        gptWebSearch: session.ai?.gptWebSearch,
+        gptReplyMode: session.ai?.gptReplyMode,
+        referenceFiles: [],
+        toolSettings,
+        videoKeyboardMode: 'main',
+        soraVideoMode: 'extend',
+        soraExtendSourceId: providerJobId,
+        activeCategory: session.ai?.activeCategory,
+    };
+
+    await ctx.reply(i18n.videoTool.soraExtendPromptHint, {
+        parse_mode: 'HTML',
+    });
+    await replyWithVideoEditorKeyboard(
+        ctx,
+        session,
+        toolId,
+        i18n,
+        deps.videoCapabilitiesService,
+        user.language,
+        i18n.localeTag,
+        { text: i18n.videoTool.promptHint },
+    );
+}
 
 async function selectTool(
     ctx: BotContext,
@@ -1351,6 +1426,16 @@ async function appendVideoReferences(
         return;
     }
 
+    if (toolId === AiToolId.SORA) {
+        if (
+            mediaFiles.some((file) => isVideoMedia(file.mimeType, file.fileName))
+        ) {
+            session.ai.soraVideoMode = 'edit';
+        } else if (session.ai.soraVideoMode !== 'extend') {
+            session.ai.soraVideoMode = 'create';
+        }
+    }
+
     if (toolId === AiToolId.SEEDANCE) {
         const existingVideos = session.ai.referenceFiles.filter((ref) =>
             isVideoMedia(ref.mimeType, ref.fileName),
@@ -1412,6 +1497,7 @@ async function appendVideoReferences(
         toolId,
         deps.videoCapabilitiesService,
         i18n.localeTag,
+        session,
     );
     const replyKeyboard = generateVideoEditorReplyKeyboard(i18n, {
         toolId,
@@ -1443,6 +1529,15 @@ async function appendVideoReferences(
         limitReached,
         replyKeyboard,
     );
+
+    if (
+        toolId === AiToolId.SORA &&
+        addedRefs.some((ref) => ref.mimeType.startsWith('image/'))
+    ) {
+        await ctx.reply(i18n.videoTool.soraFaceWarning, {
+            parse_mode: 'HTML',
+        });
+    }
 }
 
 function filterVideoReferenceFiles(
@@ -1477,10 +1572,18 @@ async function handleVideoToolButtonPress(
         toolId,
         deps.videoCapabilitiesService,
         i18n.localeTag,
+        session,
     );
     const keyboardMode = getVideoKeyboardMode(session);
     const currentSettings = (session.ai.toolSettings ??
         {}) as VideoToolSettings;
+
+    const soraCharacters =
+        toolId === AiToolId.SORA &&
+        (keyboardMode === 'sora_characters' ||
+            text === i18n.videoTool.changeSoraCharactersButton)
+            ? await deps.soraCharactersService.listCharacters(user.id)
+            : undefined;
 
     if (
         toolId === AiToolId.HIGGSFIELD &&
@@ -1527,6 +1630,7 @@ async function handleVideoToolButtonPress(
         heygenAvatarPage: session.ai.heygenAvatarPage ?? 0,
         currentSettings,
         localeTag: i18n.localeTag,
+        soraCharacters,
     });
 
     if (!action) {
@@ -1553,6 +1657,8 @@ async function handleVideoToolButtonPress(
             step: session.ai!.step,
             keyboardMode: mode,
             localeTag: i18n.localeTag,
+            soraCharacters,
+            soraSelectedCharacterIds: session.ai!.soraSelectedCharacterIds,
         });
 
     const summaryOptions = (settings: VideoToolSettings) => ({
@@ -1616,8 +1722,47 @@ async function handleVideoToolButtonPress(
 
     if (action.type === 'open_duration_picker') {
         session.ai.videoKeyboardMode = 'duration';
-        await ctx.reply(i18n.videoTool.selectDurationTitle, {
+        const title =
+            toolId === AiToolId.SORA && session.ai.soraVideoMode === 'extend'
+                ? i18n.videoTool.selectExtendDurationTitle
+                : i18n.videoTool.selectDurationTitle;
+        await ctx.reply(title, {
             ...replyKeyboard('duration'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'open_sora_characters') {
+        session.ai.videoKeyboardMode = 'sora_characters';
+        await ctx.reply(i18n.videoTool.selectSoraCharactersTitle, {
+            ...replyKeyboard('sora_characters'),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'create_sora_character') {
+        session.ai.awaitingSoraCharacterVideo = true;
+        session.ai.awaitingSoraCharacterName = false;
+        session.ai.pendingSoraCharacterVideo = undefined;
+        session.ai.videoKeyboardMode = 'main';
+        await ctx.reply(i18n.videoTool.soraNeedCharacterVideo, {
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'toggle_sora_character') {
+        const current = session.ai.soraSelectedCharacterIds ?? [];
+        const exists = current.includes(action.value);
+        const next = exists
+            ? current.filter((id) => id !== action.value)
+            : [...current, action.value].slice(-2);
+        session.ai.soraSelectedCharacterIds = next;
+        session.ai.videoKeyboardMode = 'sora_characters';
+        await ctx.reply(i18n.videoTool.soraCharactersChanged(next.length), {
+            ...replyKeyboard('sora_characters'),
             parse_mode: 'HTML',
         });
         return true;
@@ -2865,6 +3010,92 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
         return;
     }
 
+    if (
+        toolId === AiToolId.SORA &&
+        session.ai?.awaitingSoraCharacterVideo &&
+        files.length
+    ) {
+        const video = files.find((file) =>
+            isVideoMedia(file.mimeType, file.fileName),
+        );
+        if (!video) {
+            await ctx.reply(i18n.videoTool.soraNeedCharacterVideo, {
+                parse_mode: 'HTML',
+            });
+            return;
+        }
+        session.ai.pendingSoraCharacterVideo = {
+            data: video.buffer.toString('base64'),
+            mimeType: video.mimeType,
+            fileName: video.fileName,
+        };
+        session.ai.awaitingSoraCharacterVideo = false;
+        session.ai.awaitingSoraCharacterName = true;
+        await ctx.reply(i18n.videoTool.soraNeedCharacterName, {
+            parse_mode: 'HTML',
+        });
+        return;
+    }
+
+    if (
+        toolId === AiToolId.SORA &&
+        session.ai?.awaitingSoraCharacterName &&
+        text?.trim()
+    ) {
+        const pending = session.ai.pendingSoraCharacterVideo;
+        if (!pending) {
+            session.ai.awaitingSoraCharacterName = false;
+            session.ai.awaitingSoraCharacterVideo = true;
+            await ctx.reply(i18n.videoTool.soraNeedCharacterVideo, {
+                parse_mode: 'HTML',
+            });
+            return;
+        }
+
+        try {
+            const character = await deps.soraCharactersService.createCharacter({
+                userId: user.id,
+                name: text.trim(),
+                videoBuffer: Buffer.from(pending.data, 'base64'),
+                mimeType: pending.mimeType,
+                fileName: pending.fileName,
+            });
+            session.ai.awaitingSoraCharacterName = false;
+            session.ai.pendingSoraCharacterVideo = undefined;
+            session.ai.videoKeyboardMode = 'sora_characters';
+            await ctx.reply(
+                i18n.videoTool.soraCharacterCreated(character.name),
+                { parse_mode: 'HTML' },
+            );
+            const soraCharacters =
+                await deps.soraCharactersService.listCharacters(user.id);
+            await ctx.reply(i18n.videoTool.selectSoraCharactersTitle, {
+                ...generateVideoEditorReplyKeyboard(i18n, {
+                    toolId,
+                    settings: (session.ai.toolSettings ??
+                        {}) as VideoToolSettings,
+                    aspectRatios: [],
+                    resolutions: [],
+                    qualities: [],
+                    durations: [],
+                    stylePresets: [],
+                    step: session.ai.step,
+                    keyboardMode: 'sora_characters',
+                    localeTag: i18n.localeTag,
+                    soraCharacters,
+                    soraSelectedCharacterIds:
+                        session.ai.soraSelectedCharacterIds,
+                }),
+                parse_mode: 'HTML',
+            });
+        } catch (error) {
+            await ctx.reply(formatUserBotError(error, i18n), {
+                parse_mode: 'HTML',
+            });
+        }
+        return;
+    }
+
     if (toolId === AiToolId.VOICE_CLONE) {
         const cloneInput = await resolveVoiceCloneInput(
             ctx,
@@ -3279,6 +3510,7 @@ async function buildAiGenerationInput(
             imageSettings?.fluxImageMode === 'outpaint'
                 ? FLUX_OUTPAINT_CANVAS.height
                 : undefined,
+        ...buildSoraGenerationFields(session, files.length ? files : []),
     };
 }
 
@@ -3426,6 +3658,7 @@ async function runGeneration(
                     toolId,
                     input,
                 });
+                resetSoraSessionMode(session);
                 await ctx.reply(i18n.aiResult.asyncStarted);
                 return;
             } catch (error) {
