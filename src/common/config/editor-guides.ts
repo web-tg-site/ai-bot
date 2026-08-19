@@ -162,11 +162,19 @@ Seedream 5.0 также поддерживает вывод в 4K через Mod
 • одно фото-референс
 • лица людей на фото могут быть отклонены
 
+Стоимость
+• 4 сек — 600 кредитов
+• 8 сек — 1 200 кредитов
+• 12 сек — 1 800 кредитов
+• качество «высокое» — ×1.5
+
 Как пользоваться
 1. Опишите сцену.
 2. При необходимости загрузите одно фото или видео для редактирования.
 3. Выберите формат, разрешение, длительность и качество.
-4. Запустите генерацию.`,
+4. Запустите генерацию.
+
+Продлить видео: под готовым роликом нажмите «Продлить видео», опишите продолжение сцены и запустите генерацию. Стоимость продления — от 600 кредитов (4 сек).`,
 
     [AiToolId.KLING]: `Kling 3.0 — AI для генерации видео.
 Он подходит для создания рекламных роликов, cinematic-видео, product videos, персонажей, сцен с движением камеры и анимации изображений.
@@ -186,20 +194,6 @@ Seedream 5.0 также поддерживает вывод в 4K через Mod
 2. Опишите действие и движение.
 3. Выберите разрешение/длительность/качество/стиль генерации.
 4. Запустите генерацию.`,
-
-    [AiToolId.KLING_MOTION]: `Kling Motion — AI для переноса движения из видео на персонажа.
-Персонаж повторяет движение из загруженного ролика — подходит для рекламных роликов, анимации аватаров и контента для соцсетей.
-
-Что можно делать
-• переносить движение с видео на фото персонажа
-• создавать говорящие аватары с движением
-• оживлять статичные персонажи
-
-Как пользоваться
-1. Загрузите фото персонажа.
-2. Загрузите видео с движением.
-3. При желании прикрепите голос — то, что должен сказать аватар.
-4. Опишите сцену и запустите генерацию.`,
 
     [AiToolId.VEO]: `Veo — AI-модель Google для генерации видео.
 Она особенно полезна для cinematic-сцен, рекламы, storytelling и коротких реалистичных видеороликов.
@@ -577,11 +571,19 @@ Limits
 • one photo reference
 • human faces in photos may be rejected
 
+Cost
+• 4 sec — 600 credits
+• 8 sec — 1,200 credits
+• 12 sec — 1,800 credits
+• "high" quality — ×1.5
+
 How to use
 1. Describe the scene.
 2. Optionally upload one photo or a video to edit.
 3. Choose format, resolution, duration, and quality.
-4. Run generation.`,
+4. Run generation.
+
+Extend video: tap "Extend video" under a finished clip, describe how the scene should continue, and generate again. Extension costs from 600 credits (4 sec).`,
 
     [AiToolId.KLING]: `Kling 3.0 is an AI for video generation.
 It suits ad clips, cinematic video, product videos, characters, camera movement scenes and image animation.
@@ -601,20 +603,6 @@ How to use
 2. Describe the action and movement.
 3. Choose resolution/duration/quality/generation style.
 4. Run generation.`,
-
-    [AiToolId.KLING_MOTION]: `Kling Motion is an AI for transferring motion from video onto a character.
-The character repeats motion from the uploaded clip — suited for ads, avatar animation and social content.
-
-What you can do
-• transfer motion from video to a character photo
-• create talking avatars with motion
-• animate static characters
-
-How to use
-1. Upload a character photo.
-2. Upload a motion video.
-3. Optionally attach voice — what the avatar should say.
-4. Describe the scene and run generation.`,
 
     [AiToolId.VEO]: `Veo is Google's AI model for video generation.
 It is especially useful for cinematic scenes, ads, storytelling and short realistic clips.

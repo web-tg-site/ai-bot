@@ -126,10 +126,6 @@ export class OpenRouterProvider {
             throw new Error(`Model not configured for ${toolId}`);
         }
 
-        if (toolId === AiToolId.KLING_MOTION) {
-            return this.createKlingMotionJob(tool.model, input);
-        }
-
         const { images, videos, audios } = splitMediaFiles(input.files);
         const hasVisualMedia = images.length > 0 || videos.length > 0;
         const prompt = this.resolveGenerationPrompt(
@@ -170,77 +166,6 @@ export class OpenRouterProvider {
 
         if (input.quality) {
             body.quality = input.quality;
-        }
-
-        const response = await this.post<{
-            id: string;
-            polling_url?: string;
-            status?: string;
-        }>('/videos', body);
-
-        if (!response.id) {
-            throw new Error('OpenRouter did not return video job id');
-        }
-
-        return {
-            providerJobId: response.id,
-            estimatedTokenCost: 0,
-        };
-    }
-
-    private async createKlingMotionJob(
-        model: string,
-        input: AiGenerationInput,
-    ): Promise<AiJobCreateResult> {
-        const { images, videos, audios } = splitMediaFiles(input.files);
-
-        if (!images.length || !videos.length) {
-            throw new Error(
-                'Для Kling Motion нужны фото персонажа и видео с движением',
-            );
-        }
-
-        const prompt =
-            input.prompt?.trim() ||
-            'Animate the character using the motion from the reference video';
-
-        const body: Record<string, unknown> = {
-            model,
-            prompt,
-            aspect_ratio: input.aspectRatio ?? '16:9',
-            resolution: input.resolution ?? '720p',
-            duration: this.resolveVideoDuration(
-                AiToolId.KLING_MOTION,
-                input.durationSeconds ?? 5,
-            ),
-            frame_images: [
-                {
-                    type: 'image_url',
-                    image_url: {
-                        url: `data:${images[0].mimeType};base64,${images[0].buffer.toString('base64')}`,
-                    },
-                    frame_type: 'first_frame',
-                },
-            ],
-            input_references: [
-                {
-                    type: 'video_url',
-                    video_url: {
-                        url: `data:${videos[0].mimeType};base64,${videos[0].buffer.toString('base64')}`,
-                    },
-                },
-                ...audios.map((file) => ({
-                    type: 'audio_url' as const,
-                    audio_url: {
-                        url: `data:${file.mimeType};base64,${file.buffer.toString('base64')}`,
-                    },
-                })),
-            ],
-            character_orientation: 'video',
-        };
-
-        if (input.videoStylePassthrough) {
-            Object.assign(body, input.videoStylePassthrough);
         }
 
         const response = await this.post<{
@@ -308,10 +233,6 @@ export class OpenRouterProvider {
 
         if (toolId === AiToolId.KLING) {
             return Math.min(15, Math.max(3, durationSeconds));
-        }
-
-        if (toolId === AiToolId.KLING_MOTION) {
-            return Math.min(30, Math.max(3, durationSeconds));
         }
 
         return durationSeconds;

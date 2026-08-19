@@ -287,6 +287,62 @@ export class AiController {
         private readonly moduleRef: ModuleRef,
     ) {}
 
+    private static readonly MEDIA_CACHE_MAX = 80;
+    private static readonly MEDIA_CACHE_MAX_BYTES = 200 * 1024 * 1024;
+    private readonly mediaCache = new Map<
+        string,
+        { buffer: Buffer; mimeType: string; accessedAt: number }
+    >();
+    private mediaCacheBytes = 0;
+
+    private getCachedMedia(
+        jobId: string,
+    ): { buffer: Buffer; mimeType: string } | null {
+        const entry = this.mediaCache.get(jobId);
+        if (!entry) return null;
+        entry.accessedAt = Date.now();
+        return { buffer: entry.buffer, mimeType: entry.mimeType };
+    }
+
+    private setCachedMedia(
+        jobId: string,
+        buffer: Buffer,
+        mimeType: string,
+    ): void {
+        const existing = this.mediaCache.get(jobId);
+        if (existing) {
+            this.mediaCacheBytes -= existing.buffer.length;
+        }
+        this.mediaCacheBytes += buffer.length;
+        this.mediaCache.set(jobId, {
+            buffer,
+            mimeType,
+            accessedAt: Date.now(),
+        });
+        this.evictMediaCache();
+    }
+
+    private evictMediaCache(): void {
+        while (
+            (this.mediaCache.size > AiController.MEDIA_CACHE_MAX ||
+                this.mediaCacheBytes > AiController.MEDIA_CACHE_MAX_BYTES) &&
+            this.mediaCache.size > 0
+        ) {
+            let oldest: string | null = null;
+            let oldestTime = Infinity;
+            for (const [key, val] of this.mediaCache) {
+                if (val.accessedAt < oldestTime) {
+                    oldestTime = val.accessedAt;
+                    oldest = key;
+                }
+            }
+            if (!oldest) break;
+            const entry = this.mediaCache.get(oldest)!;
+            this.mediaCacheBytes -= entry.buffer.length;
+            this.mediaCache.delete(oldest);
+        }
+    }
+
     @Get('tools')
     listTools() {
         return AI_TOOLS_REGISTRY.map((tool) => ({
@@ -1063,31 +1119,38 @@ export class AiController {
         const filenameBase = `generation-${jobId.slice(0, 8)}`;
 
         try {
-            const buffered = await this.resolveBufferedJobMedia(
-                job.resultUrl,
-                job.providerJobId,
-            );
+            let media = this.getCachedMedia(jobId);
 
-            if (buffered) {
-                const ext = buffered.mimeType.startsWith('video/')
-                    ? 'mp4'
-                    : buffered.mimeType.startsWith('audio/')
-                      ? 'mp3'
-                      : buffered.mimeType.includes('png')
-                        ? 'png'
-                        : 'jpg';
-                const filename = `${filenameBase}.${ext}`;
-                this.sendBufferedMedia(req, res, buffered.buffer, {
-                    mimeType: buffered.mimeType,
-                    disposition,
-                    filename,
-                });
-                return;
+            if (!media) {
+                const buffered = await this.resolveBufferedJobMedia(
+                    job.resultUrl,
+                    job.providerJobId,
+                );
+
+                if (buffered) {
+                    media = buffered;
+                } else {
+                    media = await downloadRemoteFile(
+                        job.resultUrl,
+                        getAuthHeadersForUrl(job.resultUrl),
+                    );
+                }
+
+                this.setCachedMedia(jobId, media.buffer, media.mimeType);
             }
 
-            await streamRemoteFile(job.resultUrl, req, res, {
+            const ext = media.mimeType.startsWith('video/')
+                ? 'mp4'
+                : media.mimeType.startsWith('audio/')
+                  ? 'mp3'
+                  : media.mimeType.includes('png')
+                    ? 'png'
+                    : 'jpg';
+            const filename = `${filenameBase}.${ext}`;
+            this.sendBufferedMedia(req, res, media.buffer, {
+                mimeType: media.mimeType,
                 disposition,
-                filename: `${filenameBase}.mp4`,
+                filename,
             });
         } catch (error) {
             if (res.headersSent) {

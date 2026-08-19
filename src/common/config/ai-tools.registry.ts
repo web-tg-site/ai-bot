@@ -125,20 +125,6 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
             'Прикрепите фото или видео-референсы (можно пропустить), настройте параметры и опишите сцену.',
     },
     {
-        id: AiToolId.KLING_MOTION,
-        label: 'Kling Motion',
-        category: 'video',
-        provider: AiProviderId.OPENROUTER,
-        model: 'kwaivgi/kling-v2.6-motion-control',
-        baseTokenCost: 0,
-        perSecondCost: 63,
-        defaultDurationSeconds: 5,
-        accepts: ['text', 'photo', 'video', 'audio'],
-        isAsync: true,
-        instruction:
-            'Загрузите фото персонажа, видео с движением и при желании голос озвучки, затем опишите сцену.',
-    },
-    {
         id: AiToolId.VEO,
         label: 'Veo',
         category: 'video',

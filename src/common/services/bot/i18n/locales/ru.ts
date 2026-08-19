@@ -404,7 +404,6 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.SEEDREAM]: 'Seedream',
             [AiToolId.MIDJOURNEY]: 'Midjourney',
             [AiToolId.KLING]: 'Kling',
-            [AiToolId.KLING_MOTION]: 'Kling Motion',
             [AiToolId.VEO]: 'Veo',
             [AiToolId.SORA]: 'Sora',
             [AiToolId.SEEDANCE]: 'Seedance',
@@ -433,8 +432,6 @@ ${getTariffIncludesText(type, plan, ru)}
                 'Опишите задачу и при желании добавьте референсы (до 10 изображений).',
             [AiToolId.KLING]:
                 'Прикрепите фото или видео-референсы (можно пропустить), настройте параметры и опишите сцену.',
-            [AiToolId.KLING_MOTION]:
-                'Загрузите фото персонажа, видео с движением и при желании голос озвучки, затем опишите сцену.',
             [AiToolId.VEO]:
                 'Прикрепите фото или видео-референсы (можно пропустить), настройте параметры и опишите сцену.',
             [AiToolId.SORA]:

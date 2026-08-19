@@ -76,7 +76,7 @@ export class SoraCharactersService {
 
         const characterId = response.id?.trim();
         if (!characterId) {
-            throw new Error('OpenAI не вернул ID персонажа Sora');
+            throw new Error('Не удалось создать персонажа Sora. Попробуйте другое видео.');
         }
 
         const record: SoraCharacterRecord = {

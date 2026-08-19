@@ -796,7 +796,7 @@ export class OpenAiProvider {
         if (input.soraVideoMode === 'extend') {
             if (!input.sourceGenerationId?.trim()) {
                 throw new Error(
-                    'Для продления видео Sora нужен ID предыдущей генерации',
+                    'Сначала выберите готовое видео Sora и нажмите «Продлить видео»',
                 );
             }
             return 'extend';
@@ -908,7 +908,7 @@ export class OpenAiProvider {
 
         if (!videos[0]) {
             throw new Error(
-                'Для редактирования Sora прикрепите видео или выберите предыдущую генерацию',
+                'Для редактирования прикрепите видео и опишите, что изменить',
             );
         }
 

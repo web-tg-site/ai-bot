@@ -231,7 +231,6 @@ export const STATIC_VIDEO_QUALITIES: Partial<
 
 export const VIDEO_TOOLS_WITH_REFERENCES: AiToolId[] = [
     AiToolId.KLING,
-    AiToolId.KLING_MOTION,
     AiToolId.VEO,
     AiToolId.SORA,
     AiToolId.SEEDANCE,
@@ -242,7 +241,6 @@ export const VIDEO_TOOLS_WITH_REFERENCES: AiToolId[] = [
 
 export const VIDEO_FLOW_TOOLS: AiToolId[] = [
     AiToolId.KLING,
-    AiToolId.KLING_MOTION,
     AiToolId.VEO,
     AiToolId.SORA,
     AiToolId.SEEDANCE,
@@ -253,7 +251,6 @@ export const VIDEO_FLOW_TOOLS: AiToolId[] = [
 
 export const VIDEO_TOOLS_WITH_ASPECT_SETTINGS: AiToolId[] = [
     AiToolId.KLING,
-    AiToolId.KLING_MOTION,
     AiToolId.VEO,
     AiToolId.SORA,
     AiToolId.SEEDANCE,
@@ -264,7 +261,6 @@ export const VIDEO_TOOLS_WITH_ASPECT_SETTINGS: AiToolId[] = [
 
 export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
     [AiToolId.KLING]: 10,
-    [AiToolId.KLING_MOTION]: 2,
     [AiToolId.VEO]: 10,
     [AiToolId.SORA]: 1,
     [AiToolId.SEEDANCE]: 2,
@@ -278,14 +274,12 @@ export const VIDEO_TOOL_MAX_AUDIO_REFERENCES: Partial<Record<AiToolId, number>> 
     {
         [AiToolId.SEEDANCE]: 3,
         [AiToolId.HEYGEN]: 1,
-        [AiToolId.KLING_MOTION]: 1,
     };
 
 export const SORA_EXTEND_DURATIONS = [4, 8, 12, 16, 20] as const;
 
 export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
     [AiToolId.KLING]: [5, 10, 15],
-    [AiToolId.KLING_MOTION]: [5, 10, 15, 30],
     [AiToolId.VEO]: [4, 6, 8],
     [AiToolId.SORA]: [4, 8, 12],
     [AiToolId.SEEDANCE]: [5, 10, 15],
@@ -296,7 +290,6 @@ export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
 
 export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.KLING]: [...UI_ASPECT_RATIOS],
-    [AiToolId.KLING_MOTION]: [...UI_ASPECT_RATIOS],
     [AiToolId.VEO]: [...UI_ASPECT_RATIOS],
     [AiToolId.SORA]: [...UI_ASPECT_RATIOS],
     [AiToolId.SEEDANCE]: [...UI_ASPECT_RATIOS],
@@ -307,7 +300,6 @@ export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
 
 export const STATIC_VIDEO_RESOLUTIONS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.KLING]: ['720p', '1080p'],
-    [AiToolId.KLING_MOTION]: ['720p', '1080p'],
     [AiToolId.SORA]: ['720p', '1080p'],
     [AiToolId.SEEDANCE]: ['720p', '1080p'],
     [AiToolId.LUMA_RAY]: ['1080p', '720p'],
