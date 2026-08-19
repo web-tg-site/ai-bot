@@ -11,6 +11,8 @@ export type ElevenLabsUseCaseId =
     | 'informative_educational'
     | 'advertisement';
 
+export type ElevenLabsAgeId = 'young' | 'middle_aged' | 'old';
+
 export type ElevenLabsVoiceOption = {
     id: string;
     labelRu: string;
@@ -408,6 +410,62 @@ const ELEVENLABS_USE_CASE_LABELS: Record<
     },
     advertisement: { labelRu: 'Реклама', labelEn: 'Advertisement' },
 };
+
+const ELEVENLABS_AGE_LABELS: Record<
+    ElevenLabsAgeId,
+    {
+        labelRu: { male: string; female: string; default: string };
+        labelEn: string;
+    }
+> = {
+    young: {
+        labelRu: { male: 'Молодой', female: 'Молодая', default: 'Молодой' },
+        labelEn: 'Young',
+    },
+    middle_aged: {
+        labelRu: {
+            male: 'Средний возраст',
+            female: 'Средний возраст',
+            default: 'Средний возраст',
+        },
+        labelEn: 'Middle aged',
+    },
+    old: {
+        labelRu: { male: 'Пожилой', female: 'Пожилая', default: 'Пожилой' },
+        labelEn: 'Old',
+    },
+};
+
+export function mapElevenLabsAge(
+    raw?: string | null,
+): ElevenLabsAgeId | undefined {
+    const value = raw?.trim().toLowerCase().replace(/[\s-]+/g, '_');
+    if (!value) return undefined;
+    if (value in ELEVENLABS_AGE_LABELS) {
+        return value as ElevenLabsAgeId;
+    }
+    return undefined;
+}
+
+export function getElevenLabsAgeLabel(
+    age: string | null | undefined,
+    localeTag: 'ru-RU' | 'en-US',
+    gender?: ElevenLabsVoiceGender,
+): string | undefined {
+    const ageId = mapElevenLabsAge(age);
+    if (!ageId) return undefined;
+    const labels = ELEVENLABS_AGE_LABELS[ageId];
+    if (localeTag === 'en-US') {
+        return labels.labelEn;
+    }
+    if (gender === 'Женский') {
+        return labels.labelRu.female;
+    }
+    if (gender === 'Мужской') {
+        return labels.labelRu.male;
+    }
+    return labels.labelRu.default;
+}
 
 export function mapElevenLabsUseCase(
     raw?: string | null,

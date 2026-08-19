@@ -49,7 +49,10 @@ import {
 } from '@/common/utils/download-remote-file';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
 import { ElevenLabsProvider } from '@/common/services/ai/providers/elevenlabs.provider';
-import { getElevenLabsUseCaseLabel } from '@/common/config/elevenlabs-voices.config';
+import {
+    getElevenLabsAgeLabel,
+    getElevenLabsUseCaseLabel,
+} from '@/common/config/elevenlabs-voices.config';
 import {
     ELEVENLABS_DUBBING_RESULT_PREFIX,
     isElevenLabsDubbingResultUrl,
@@ -285,6 +288,12 @@ export class AiController {
             useCaseRu:
                 getElevenLabsUseCaseLabel(voice.useCase, 'ru-RU') ?? null,
             age: voice.age ?? null,
+            ageRu:
+                getElevenLabsAgeLabel(
+                    voice.age,
+                    'ru-RU',
+                    voice.gender,
+                ) ?? null,
             previewUrl: voice.previewUrl ?? null,
         }));
     }
