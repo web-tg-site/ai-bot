@@ -148,6 +148,7 @@ Seedream 5.0 также поддерживает вывод в 4K через Mod
 5. Запустите генерацию.`,
 
     [AiToolId.SORA]: `Sora — видео через OpenAI API (4, 8 или 12 секунд).
+Подходит для рекламных роликов, анимации кадра и коротких сцен.
 
 Что можно делать
 • текст → видео
@@ -562,6 +563,7 @@ How to use
 5. Run generation.`,
 
     [AiToolId.SORA]: `Sora — OpenAI video API (4, 8, or 12 seconds).
+Suitable for ad clips, frame animation, and short scenes.
 
 What you can do
 • text → video
