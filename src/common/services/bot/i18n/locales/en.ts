@@ -406,7 +406,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             [AiToolId.KLING]: 'Kling',
             [AiToolId.VEO]: 'Veo',
             [AiToolId.SORA]: 'Sora',
-            [AiToolId.SEEDANCE]: 'Seedance',
+            [AiToolId.SEEDANCE]: 'Seedance 2.5',
             [AiToolId.LUMA_RAY]: 'Luma Ray',
             [AiToolId.HIGGSFIELD]: 'Higgsfield',
             [AiToolId.HEYGEN]: 'HeyGen',
@@ -437,7 +437,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             [AiToolId.SORA]:
                 'OpenAI Sora: 4/8/12 sec, one photo or video edit, extend completed clips, characters without human faces.',
             [AiToolId.SEEDANCE]:
-                'Attach photos, one video and optional audio, adjust settings, then describe the scene.',
+                'Describe the scene (up to 30s). You can attach up to 30 photos, 10 videos and 10 audio references.',
             [AiToolId.LUMA_RAY]:
                 'Attach a photo or video. Video + prompt — edit. Video without prompt — reframe via aspect ratio in settings.',
             [AiToolId.HIGGSFIELD]:

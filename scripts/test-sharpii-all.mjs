@@ -53,16 +53,6 @@ const tests = [
         },
     ],
     [
-        'Seedance',
-        '/v1/videos/generate',
-        {
-            model: 'seedance-2.0-720p',
-            prompt: 'dancer in rain',
-            aspect_ratio: '16:9',
-            duration: 5,
-        },
-    ],
-    [
         'Suno music',
         '/v1/audio/music',
         { model: 'suno-v5', prompt: 'short cinematic whoosh', duration: 5 },

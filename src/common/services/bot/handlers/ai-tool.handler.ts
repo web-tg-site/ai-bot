@@ -25,7 +25,9 @@ import {
 } from '@/common/config/image-editor-capabilities.config';
 import {
     getVideoMaxAudioReferences,
+    getVideoMaxImageReferences,
     getVideoMaxReferences,
+    getVideoMaxVideoReferences,
     isVideoFlowTool,
 } from '@/common/config/video-editor-capabilities.config';
 import { ImageToolSettings } from '@/common/types/image-tool-settings.type';
@@ -1440,34 +1442,23 @@ async function appendVideoReferences(
         const existingVideos = session.ai.referenceFiles.filter((ref) =>
             isVideoMedia(ref.mimeType, ref.fileName),
         ).length;
-        if (existingVideos >= 1) {
-            const withoutVideos = mediaFiles.filter(
-                (file) => !isVideoMedia(file.mimeType, file.fileName),
+        const incomingVideos = mediaFiles.filter((file) =>
+            isVideoMedia(file.mimeType, file.fileName),
+        ).length;
+        const maxVideos = getVideoMaxVideoReferences(toolId);
+        if (existingVideos + incomingVideos > maxVideos) {
+            await ctx.reply(
+                `Seedance 2.5 принимает до ${maxVideos} видео-референсов. Можно добавить ещё фото и аудио.`,
+                { parse_mode: 'HTML' },
             );
-            if (!withoutVideos.length) {
-                await ctx.reply(
-                    'Seedance принимает одно видео-референс. Можно добавить ещё фото и аудио.',
-                    { parse_mode: 'HTML' },
-                );
-                return;
-            }
-            mediaFiles = withoutVideos;
-        } else {
-            const videos = mediaFiles.filter((file) =>
-                isVideoMedia(file.mimeType, file.fileName),
-            );
-            if (videos.length > 1) {
-                await ctx.reply(
-                    'Seedance принимает одно видео-референс. Отправьте одно видео, затем фото или аудио.',
-                    { parse_mode: 'HTML' },
-                );
-                return;
-            }
+            return;
         }
     }
 
     const maxVisual = getVideoMaxReferences(toolId);
     const maxAudio = getVideoMaxAudioReferences(toolId);
+    const maxVideos = getVideoMaxVideoReferences(toolId);
+    const maxImages = getVideoMaxImageReferences(toolId);
     const addedRefs: StoredReference[] = [];
     let limitReached = false;
     for (const file of mediaFiles) {
@@ -1477,13 +1468,29 @@ async function appendVideoReferences(
         const existingAudio = session.ai.referenceFiles.filter((ref) =>
             isAudioMedia(ref.mimeType, ref.fileName),
         ).length;
+        const existingVideos = session.ai.referenceFiles.filter((ref) =>
+            isVideoMedia(ref.mimeType, ref.fileName),
+        ).length;
+        const existingImages = existingVisual - existingVideos;
         const isAudio = isAudioMedia(file.mimeType, file.fileName);
+        const isVideo = isVideoMedia(file.mimeType, file.fileName);
         if (isAudio) {
             if (existingAudio >= maxAudio) {
                 limitReached = true;
                 continue;
             }
-        } else if (existingVisual >= maxVisual) {
+        } else if (isVideo) {
+            if (
+                existingVideos >= maxVideos ||
+                existingVisual >= maxVisual
+            ) {
+                limitReached = true;
+                continue;
+            }
+        } else if (
+            existingImages >= maxImages ||
+            existingVisual >= maxVisual
+        ) {
             limitReached = true;
             continue;
         }

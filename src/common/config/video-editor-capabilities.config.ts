@@ -263,7 +263,7 @@ export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
     [AiToolId.KLING]: 10,
     [AiToolId.VEO]: 10,
     [AiToolId.SORA]: 1,
-    [AiToolId.SEEDANCE]: 2,
+    [AiToolId.SEEDANCE]: 40,
     [AiToolId.LUMA_RAY]: 2,
     [AiToolId.HIGGSFIELD]: 1,
     [AiToolId.HEYGEN]: 1,
@@ -272,7 +272,7 @@ export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
 /** Audio slots are counted separately from visual maxReferences. */
 export const VIDEO_TOOL_MAX_AUDIO_REFERENCES: Partial<Record<AiToolId, number>> =
     {
-        [AiToolId.SEEDANCE]: 3,
+        [AiToolId.SEEDANCE]: 10,
         [AiToolId.HEYGEN]: 1,
     };
 
@@ -282,7 +282,7 @@ export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
     [AiToolId.KLING]: [5, 10, 15],
     [AiToolId.VEO]: [4, 6, 8],
     [AiToolId.SORA]: [4, 8, 12],
-    [AiToolId.SEEDANCE]: [5, 10, 15],
+    [AiToolId.SEEDANCE]: [5, 10, 15, 30],
     [AiToolId.LUMA_RAY]: [5, 10],
     [AiToolId.HIGGSFIELD]: [5, 10, 15],
     [AiToolId.HEYGEN]: [5, 15],
@@ -301,7 +301,7 @@ export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
 export const STATIC_VIDEO_RESOLUTIONS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.KLING]: ['720p', '1080p'],
     [AiToolId.SORA]: ['720p', '1080p'],
-    [AiToolId.SEEDANCE]: ['720p', '1080p'],
+    [AiToolId.SEEDANCE]: ['480p', '720p'],
     [AiToolId.LUMA_RAY]: ['1080p', '720p'],
     [AiToolId.HIGGSFIELD]: ['720p'],
     [AiToolId.HEYGEN]: ['720p', '1080p'],
@@ -325,6 +325,26 @@ export function getVideoMaxReferences(toolId: AiToolId): number {
 
 export function getVideoMaxAudioReferences(toolId: AiToolId): number {
     return VIDEO_TOOL_MAX_AUDIO_REFERENCES[toolId] ?? 0;
+}
+
+/** Max video files among visual refs (Seedance 2.5: 10). */
+export const VIDEO_TOOL_MAX_VIDEO_REFERENCES: Partial<Record<AiToolId, number>> =
+    {
+        [AiToolId.SEEDANCE]: 10,
+    };
+
+/** Max image files among visual refs (Seedance 2.5: 30). */
+export const VIDEO_TOOL_MAX_IMAGE_REFERENCES: Partial<Record<AiToolId, number>> =
+    {
+        [AiToolId.SEEDANCE]: 30,
+    };
+
+export function getVideoMaxVideoReferences(toolId: AiToolId): number {
+    return VIDEO_TOOL_MAX_VIDEO_REFERENCES[toolId] ?? getVideoMaxReferences(toolId);
+}
+
+export function getVideoMaxImageReferences(toolId: AiToolId): number {
+    return VIDEO_TOOL_MAX_IMAGE_REFERENCES[toolId] ?? getVideoMaxReferences(toolId);
 }
 
 export function getOpenRouterVideoModelForTool(

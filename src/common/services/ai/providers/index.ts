@@ -7,3 +7,4 @@ export * from './topaz.provider';
 export * from './elevenlabs.provider';
 export * from './bfl.provider';
 export * from './luma.provider';
+export * from './byteplus.provider';

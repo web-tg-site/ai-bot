@@ -275,7 +275,7 @@ export class VideoCapabilitiesService implements OnModuleInit {
         }
 
         if (toolId === AiToolId.SEEDANCE) {
-            return Math.min(15, Math.max(4, durationSeconds));
+            return Math.min(30, Math.max(4, durationSeconds));
         }
 
         if (toolId === AiToolId.LUMA_RAY) {
@@ -289,8 +289,12 @@ export class VideoCapabilitiesService implements OnModuleInit {
         toolId: AiToolId,
         modelDurations: number[],
     ): number {
-        if (toolId === AiToolId.KLING || toolId === AiToolId.SEEDANCE) {
+        if (toolId === AiToolId.KLING) {
             return 15;
+        }
+
+        if (toolId === AiToolId.SEEDANCE) {
+            return 30;
         }
 
         if (toolId === AiToolId.SORA) {
@@ -344,7 +348,7 @@ export class VideoCapabilitiesService implements OnModuleInit {
         }
 
         if (toolId === AiToolId.SEEDANCE) {
-            return tier >= 4 && tier <= 15;
+            return tier >= 4 && tier <= 30;
         }
 
         if (toolId === AiToolId.LUMA_RAY) {

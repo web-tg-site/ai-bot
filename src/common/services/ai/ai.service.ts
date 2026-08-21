@@ -18,6 +18,7 @@ import {
     TopazProvider,
     BflProvider,
     LumaProvider,
+    BytePlusProvider,
     isElevenLabsDubbingResultUrl,
 } from './providers';
 
@@ -33,6 +34,7 @@ export class AiService {
         private readonly elevenLabsProvider: ElevenLabsProvider,
         private readonly bflProvider: BflProvider,
         private readonly lumaProvider: LumaProvider,
+        private readonly bytePlusProvider: BytePlusProvider,
     ) {}
 
     async listAccessibleElevenLabsVoices() {
@@ -77,6 +79,10 @@ export class AiService {
                 throw new Error(
                     `Sync generation not supported for Luma — use async job`,
                 );
+            case AiProviderId.BYTEPLUS:
+                throw new Error(
+                    `Sync generation not supported for BytePlus — use async job`,
+                );
             default:
                 throw new Error(
                     `Sync generation not supported for provider ${String(tool.provider)}`,
@@ -112,6 +118,8 @@ export class AiService {
                 return this.bflProvider.createJob(toolId, input);
             case AiProviderId.LUMA:
                 return this.lumaProvider.createJob(toolId, input);
+            case AiProviderId.BYTEPLUS:
+                return this.bytePlusProvider.createJob(toolId, input);
             default:
                 throw new Error(
                     `Async generation not supported for provider ${String(tool.provider)}`,
@@ -147,6 +155,8 @@ export class AiService {
                 return this.bflProvider.getJobStatus(providerJobId);
             case AiProviderId.LUMA:
                 return this.lumaProvider.getJobStatus(providerJobId);
+            case AiProviderId.BYTEPLUS:
+                return this.bytePlusProvider.getJobStatus(providerJobId);
             default:
                 throw new Error(
                     `Job status not supported for provider ${String(tool.provider)}`,

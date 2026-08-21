@@ -406,7 +406,7 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.KLING]: 'Kling',
             [AiToolId.VEO]: 'Veo',
             [AiToolId.SORA]: 'Sora',
-            [AiToolId.SEEDANCE]: 'Seedance',
+            [AiToolId.SEEDANCE]: 'Seedance 2.5',
             [AiToolId.LUMA_RAY]: 'Luma Ray',
             [AiToolId.HIGGSFIELD]: 'Higgsfield',
             [AiToolId.HEYGEN]: 'HeyGen',
@@ -437,7 +437,7 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.SORA]:
                 'OpenAI Sora: 4/8/12 сек, одно фото или видео для редактирования, продление готового ролика, персонажи без лиц людей.',
             [AiToolId.SEEDANCE]:
-                'Прикрепите фото, одно видео и при желании аудио, настройте параметры и опишите сцену.',
+                'Опишите сцену (до 30 сек). Можно прикрепить до 30 фото, до 10 видео и до 10 аудио-референсов.',
             [AiToolId.LUMA_RAY]:
                 'Прикрепите фото или видео. Видео + промпт — редактирование. Видео без промпта — смена формата кадра в параметрах.',
             [AiToolId.HIGGSFIELD]:

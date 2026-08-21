@@ -15,6 +15,7 @@ const IMAGE_QUALITY_MULTIPLIERS: Record<string, number> = {
 };
 
 const VIDEO_RESOLUTION_MULTIPLIERS: Record<string, number> = {
+    '480p': 1.0,
     '720p': 1.0,
     '1080p': 1.25,
 };
@@ -70,6 +71,11 @@ export function getVideoResolutionMultiplier(
     resolution?: string,
 ): number {
     if (!resolution || !VIDEO_TOOLS_WITH_RESOLUTION_COST.includes(toolId)) {
+        return 1.0;
+    }
+    if (toolId === AiToolId.SEEDANCE) {
+        if (resolution === '720p') return 1.25;
+        if (resolution === '480p') return 1.0;
         return 1.0;
     }
     return VIDEO_RESOLUTION_MULTIPLIERS[resolution] ?? 1.0;

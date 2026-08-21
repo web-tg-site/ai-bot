@@ -154,17 +154,17 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
     },
     {
         id: AiToolId.SEEDANCE,
-        label: 'Seedance',
+        label: 'Seedance 2.5',
         category: 'video',
-        provider: AiProviderId.SHARPII,
-        model: 'seedance-2.0-720p',
+        provider: AiProviderId.BYTEPLUS,
+        model: 'dreamina-seedance-2-5-260628',
         baseTokenCost: 0,
         perSecondCost: 34,
         defaultDurationSeconds: 5,
         accepts: ['text', 'photo', 'video', 'audio'],
         isAsync: true,
         instruction:
-            'Прикрепите фото, одно видео и при желании аудио, настройте параметры и опишите сцену.',
+            'Опишите сцену (до 30 сек). Можно прикрепить до 30 фото, до 10 видео и до 10 аудио-референсов.',
     },
     {
         id: AiToolId.LUMA_RAY,

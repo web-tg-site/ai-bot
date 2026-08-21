@@ -283,27 +283,26 @@ Topaz Photo сейчас включает, среди прочего, Upscale, D
 2. Выберите, во сколько раз улучшить качество.
 3. Запустите обработку.`,
 
-    [AiToolId.SEEDANCE]: `Seedance — AI-модель ByteDance для генерации и редактирования видео.
+    [AiToolId.SEEDANCE]: `Seedance 2.5 — AI-модель ByteDance для генерации и редактирования видео.
 Она особенно интересна для сложных мультимодальных сцен, где нужно использовать изображения, видео, аудио и текстовые инструкции одновременно.
-Seedance 2.0 поддерживает reference images, видео и аудио, а также генерацию, редактирование и extension видео.
+Seedance 2.5 поддерживает до 30 фото, 10 видео и 10 аудио-референсов, генерацию до 30 секунд, редактирование и extension видео (480p / 720p).
 
 Что можно делать
 • текст → видео
 • изображение → видео
 • редактировать видео
 • продолжать существующий ролик
-• использовать несколько референсов
+• использовать несколько референсов (фото, видео, аудио)
 • создавать рекламные ролики
 • синхронизировать видео с аудио
-• создавать сложные cinematic-сцены
+• создавать сложные cinematic-сцены длиной до 30 секунд
 
 Как пользоваться
-1. Выберите формат видео.
-2. Загрузите изображения/видео при необходимости.
+1. Выберите формат и длительность (4–30 сек).
+2. Загрузите изображения/видео/аудио при необходимости.
 3. Опишите сцену.
 4. Укажите, что должно измениться или произойти.
-5. Выберите доступное качество/хронометраж/стиль генерации.
-6. Запустите генерацию.`,
+5. Выберите разрешение (480p / 720p) и запустите генерацию.`,
 
     [AiToolId.LUMA_RAY]: `Luma Ray — AI-модель для создания реалистичных и кинематографичных видео из текста и изображений.
 С её помощью можно оживлять статичные изображения, создавать динамичные сцены, рекламные ролики, cinematic-видео и визуальный контент для социальных сетей. Модель хорошо подходит для работы с движением камеры, атмосферой, светом и реалистичной физикой объектов.
@@ -692,27 +691,26 @@ How to use
 2. Choose how many times to upscale quality.
 3. Run processing.`,
 
-    [AiToolId.SEEDANCE]: `Seedance is ByteDance's AI model for generating and editing video.
+    [AiToolId.SEEDANCE]: `Seedance 2.5 is ByteDance's AI model for generating and editing video.
 It is especially interesting for complex multimodal scenes that use images, video, audio and text instructions at once.
-Seedance 2.0 supports reference images, video and audio, as well as generation, editing and video extension.
+Seedance 2.5 supports up to 30 images, 10 videos and 10 audio references, generation up to 30 seconds, editing and video extension (480p / 720p).
 
 What you can do
 • text → video
 • image → video
 • edit video
 • continue an existing clip
-• use multiple references
+• use multiple references (photo, video, audio)
 • create ad clips
 • sync video with audio
-• create complex cinematic scenes
+• create complex cinematic scenes up to 30 seconds
 
 How to use
-1. Choose video format.
-2. Upload images/video if needed.
+1. Choose format and duration (4–30 sec).
+2. Upload images/video/audio if needed.
 3. Describe the scene.
 4. Specify what should change or happen.
-5. Choose available quality/duration/generation style.
-6. Run generation.`,
+5. Choose resolution (480p / 720p) and run generation.`,
 
     [AiToolId.LUMA_RAY]: `Luma Ray is an AI model for creating realistic and cinematic video from text and images.
 It can animate static images, create dynamic scenes, ad clips, cinematic video and visual content for social media. The model works well with camera movement, atmosphere, light and realistic object physics.

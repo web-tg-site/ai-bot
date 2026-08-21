@@ -17,6 +17,7 @@ import {
     TopazProvider,
     BflProvider,
     LumaProvider,
+    BytePlusProvider,
 } from './providers';
 import { AiJobService } from './jobs/ai-job.service';
 import { AiJobCron } from './jobs/ai-job.cron';
@@ -39,6 +40,7 @@ import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/eleve
         ElevenLabsProvider,
         BflProvider,
         LumaProvider,
+        BytePlusProvider,
         ElevenLabsVoicePreviewService,
         AiJobService,
         AiJobCron,
