@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import FormData from 'form-data';
 import { getToolById } from '@/common/config/ai-tools.registry';
 import {
     AiFileInput,
@@ -13,6 +14,7 @@ import {
 import { AiToolId } from '../types';
 import { downloadRemoteFile } from '@/common/utils/download-remote-file';
 import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
+import { TempPublicMediaService } from '../temp-public-media.service';
 
 const DEFAULT_BYTEPLUS_API_URL =
     'https://ark.ap-southeast.bytepluses.com/api/v3';
@@ -55,10 +57,12 @@ type SeedanceMode = 'generate' | 'edit' | 'extend' | 'first_last';
 export class BytePlusProvider {
     private readonly apiKey: string;
     private readonly baseUrl: string;
+    private readonly publicBaseUrl: string;
 
     constructor(
         private readonly httpService: HttpService,
         configService: ConfigService,
+        private readonly tempPublicMedia: TempPublicMediaService,
         @InjectPinoLogger(BytePlusProvider.name)
         private readonly logger: PinoLogger,
     ) {
@@ -70,6 +74,9 @@ export class BytePlusProvider {
             configService.get<string>('BYTEPLUS_API_URL') ??
             DEFAULT_BYTEPLUS_API_URL;
         this.baseUrl = rawUrl.replace(/\/$/, '');
+        this.publicBaseUrl = (
+            configService.get<string>('PUBLIC_BASE_URL') ?? ''
+        ).replace(/\/$/, '');
     }
 
     async createJob(
@@ -360,50 +367,120 @@ export class BytePlusProvider {
 
     /**
      * BytePlus requires reference_video as a publicly reachable http(s) URL.
-     * Upload to a temporary host (litterbox, 12h).
+     * Prefer our PUBLIC_BASE_URL temp endpoint; fall back to catbox / 0x0.st.
      */
     private async uploadTempPublicUrl(file: AiFileInput): Promise<string> {
         const fileName = this.resolveUploadFileName(file);
-        const form = new FormData();
-        form.append('reqtype', 'fileupload');
-        form.append('time', '12h');
-        form.append(
-            'fileToUpload',
-            new Blob([new Uint8Array(file.buffer)], { type: file.mimeType }),
-            fileName,
-        );
+        const errors: string[] = [];
+
+        if (this.publicBaseUrl) {
+            try {
+                const id = this.tempPublicMedia.put({
+                    buffer: file.buffer,
+                    mimeType: file.mimeType,
+                    fileName,
+                });
+                const url = `${this.publicBaseUrl}/api/public/tmp/${id}`;
+                this.logger.debug(
+                    { fileName, bytes: file.buffer.length, url, host: 'self' },
+                    'BytePlus video ref published via PUBLIC_BASE_URL',
+                );
+                return url;
+            } catch (error) {
+                errors.push(`self: ${this.formatError(error)}`);
+            }
+        } else {
+            errors.push('self: PUBLIC_BASE_URL is not configured');
+        }
 
         try {
-            const response = await firstValueFrom(
-                this.httpService.post<string>(
-                    'https://litterbox.catbox.moe/resources/internals/api.php',
-                    form,
-                    {
-                        timeout: 180000,
-                        maxBodyLength: Infinity,
-                        maxContentLength: Infinity,
-                        responseType: 'text',
-                        transformResponse: [(data) => data],
-                    },
-                ),
-            );
-            const url = String(response.data ?? '').trim();
-            if (!/^https?:\/\//i.test(url)) {
-                throw new Error(url || 'empty response');
-            }
+            const url = await this.uploadToCatbox(file, fileName);
             this.logger.debug(
-                { fileName, bytes: file.buffer.length, url },
-                'BytePlus video ref uploaded to temp host',
+                { fileName, bytes: file.buffer.length, url, host: 'catbox' },
+                'BytePlus video ref uploaded to catbox',
             );
             return url;
         } catch (error) {
-            this.logger.error(
-                `Temp video upload failed: ${this.formatError(error)}`,
-            );
-            throw new Error(
-                'Не удалось подготовить видео-референс для Seedance. Попробуйте другое видео или позже.',
-            );
+            errors.push(`catbox: ${this.formatError(error)}`);
         }
+
+        try {
+            const url = await this.uploadTo0x0(file, fileName);
+            this.logger.debug(
+                { fileName, bytes: file.buffer.length, url, host: '0x0' },
+                'BytePlus video ref uploaded to 0x0.st',
+            );
+            return url;
+        } catch (error) {
+            errors.push(`0x0: ${this.formatError(error)}`);
+        }
+
+        this.logger.error(
+            { errors },
+            'Temp video upload failed on all hosts',
+        );
+        throw new Error(
+            'Не удалось подготовить видео-референс для Seedance. Попробуйте другое видео или позже.',
+        );
+    }
+
+    private async uploadToCatbox(
+        file: AiFileInput,
+        fileName: string,
+    ): Promise<string> {
+        const form = new FormData();
+        form.append('reqtype', 'fileupload');
+        form.append('fileToUpload', file.buffer, {
+            filename: fileName,
+            contentType: file.mimeType,
+        });
+
+        const response = await firstValueFrom(
+            this.httpService.post<string>(
+                'https://catbox.moe/user/api.php',
+                form,
+                {
+                    headers: form.getHeaders(),
+                    timeout: 180000,
+                    maxBodyLength: Infinity,
+                    maxContentLength: Infinity,
+                    responseType: 'text',
+                    transformResponse: [(data) => data],
+                },
+            ),
+        );
+        const url = String(response.data ?? '').trim();
+        if (!/^https?:\/\//i.test(url)) {
+            throw new Error(url || 'empty response');
+        }
+        return url;
+    }
+
+    private async uploadTo0x0(
+        file: AiFileInput,
+        fileName: string,
+    ): Promise<string> {
+        const form = new FormData();
+        form.append('file', file.buffer, {
+            filename: fileName,
+            contentType: file.mimeType,
+        });
+
+        const response = await firstValueFrom(
+            this.httpService.post<string>('https://0x0.st', form, {
+                headers: form.getHeaders(),
+                timeout: 180000,
+                maxBodyLength: Infinity,
+                maxContentLength: Infinity,
+                responseType: 'text',
+                transformResponse: [(data) => data],
+            }),
+        );
+        const url = String(response.data ?? '').trim();
+        if (!/^https?:\/\//i.test(url)) {
+            throw new Error(url || 'empty response');
+        }
+        return url;
     }
 
     private resolveUploadFileName(file: AiFileInput): string {
@@ -411,7 +488,10 @@ export class BytePlusProvider {
         if (raw && /\.[a-z0-9]+$/i.test(raw)) {
             return raw.replace(/[^\w.\-]+/g, '_');
         }
-        if (file.mimeType.includes('quicktime') || file.mimeType.includes('mov')) {
+        if (
+            file.mimeType.includes('quicktime') ||
+            file.mimeType.includes('mov')
+        ) {
             return `ref-${Date.now()}.mov`;
         }
         return `ref-${Date.now()}.mp4`;

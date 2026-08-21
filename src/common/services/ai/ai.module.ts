@@ -23,9 +23,12 @@ import { AiJobService } from './jobs/ai-job.service';
 import { AiJobCron } from './jobs/ai-job.cron';
 import { SoraCharactersService } from './sora-characters.service';
 import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/elevenlabs-voice-preview.service';
+import { TempPublicMediaService } from './temp-public-media.service';
+import { PublicTmpController } from '@/common/controllers/public-tmp.controller';
 
 @Module({
     imports: [HttpModule, ConfigModule, UserModule, UserAiToolSettingsModule],
+    controllers: [PublicTmpController],
     providers: [
         AiService,
         TokenBillingService,
@@ -45,6 +48,7 @@ import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/eleve
         AiJobService,
         AiJobCron,
         SoraCharactersService,
+        TempPublicMediaService,
     ],
     exports: [
         AiService,
@@ -58,6 +62,7 @@ import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/eleve
         HiggsfieldProvider,
         HeyGenProvider,
         OpenAiProvider,
+        TempPublicMediaService,
     ],
 })
 export class AiModule {}
