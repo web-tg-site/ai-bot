@@ -86,7 +86,7 @@ export class BytePlusProvider {
 
         const tool = getToolById(toolId);
         const model = tool?.model ?? SEEDANCE_25_MODEL;
-        const body = this.buildSeedanceBody(model, input);
+        const body = await this.buildSeedanceBody(model, input);
 
         this.logger.debug(
             {
@@ -178,17 +178,17 @@ export class BytePlusProvider {
         return { status };
     }
 
-    private buildSeedanceBody(
+    private async buildSeedanceBody(
         model: string,
         input: AiGenerationInput,
-    ): Record<string, unknown> {
+    ): Promise<Record<string, unknown>> {
         const { images, videos, audios } = splitMediaFiles(input.files);
         this.validateMediaCounts(images, videos, audios);
         this.validateFileSizes([...images, ...videos, ...audios]);
 
         const mode = this.resolveMode(input, images, videos);
         const prompt = this.resolvePrompt(input, mode, images, videos, audios);
-        const content = this.buildContent(
+        const content = await this.buildContent(
             prompt,
             mode,
             images,
@@ -304,13 +304,13 @@ export class BytePlusProvider {
         return lines.join('\n');
     }
 
-    private buildContent(
+    private async buildContent(
         prompt: string,
         mode: SeedanceMode,
         images: AiFileInput[],
         videos: AiFileInput[],
         audios: AiFileInput[],
-    ): BytePlusContentItem[] {
+    ): Promise<BytePlusContentItem[]> {
         const content: BytePlusContentItem[] = [
             { type: 'text', text: prompt },
         ];
@@ -339,9 +339,11 @@ export class BytePlusProvider {
             });
         }
         for (const video of videos.slice(0, MAX_VIDEOS)) {
+            // BytePlus rejects data-URI for reference_video — needs a public HTTP URL.
+            const videoUrl = await this.uploadTempPublicUrl(video);
             content.push({
                 type: 'video_url',
-                video_url: { url: this.toDataUrl(video) },
+                video_url: { url: videoUrl },
                 role: 'reference_video',
             });
         }
@@ -354,6 +356,65 @@ export class BytePlusProvider {
         }
 
         return content;
+    }
+
+    /**
+     * BytePlus requires reference_video as a publicly reachable http(s) URL.
+     * Upload to a temporary host (litterbox, 12h).
+     */
+    private async uploadTempPublicUrl(file: AiFileInput): Promise<string> {
+        const fileName = this.resolveUploadFileName(file);
+        const form = new FormData();
+        form.append('reqtype', 'fileupload');
+        form.append('time', '12h');
+        form.append(
+            'fileToUpload',
+            new Blob([new Uint8Array(file.buffer)], { type: file.mimeType }),
+            fileName,
+        );
+
+        try {
+            const response = await firstValueFrom(
+                this.httpService.post<string>(
+                    'https://litterbox.catbox.moe/resources/internals/api.php',
+                    form,
+                    {
+                        timeout: 180000,
+                        maxBodyLength: Infinity,
+                        maxContentLength: Infinity,
+                        responseType: 'text',
+                        transformResponse: [(data) => data],
+                    },
+                ),
+            );
+            const url = String(response.data ?? '').trim();
+            if (!/^https?:\/\//i.test(url)) {
+                throw new Error(url || 'empty response');
+            }
+            this.logger.debug(
+                { fileName, bytes: file.buffer.length, url },
+                'BytePlus video ref uploaded to temp host',
+            );
+            return url;
+        } catch (error) {
+            this.logger.error(
+                `Temp video upload failed: ${this.formatError(error)}`,
+            );
+            throw new Error(
+                'Не удалось подготовить видео-референс для Seedance. Попробуйте другое видео или позже.',
+            );
+        }
+    }
+
+    private resolveUploadFileName(file: AiFileInput): string {
+        const raw = file.fileName?.trim();
+        if (raw && /\.[a-z0-9]+$/i.test(raw)) {
+            return raw.replace(/[^\w.\-]+/g, '_');
+        }
+        if (file.mimeType.includes('quicktime') || file.mimeType.includes('mov')) {
+            return `ref-${Date.now()}.mov`;
+        }
+        return `ref-${Date.now()}.mp4`;
     }
 
     private resolveDuration(durationSeconds: number): number {
@@ -501,7 +562,10 @@ export class BytePlusProvider {
                 axiosError.message ??
                 'BytePlus request failed';
             const status = axiosError.response?.status;
-            return status ? `${msg} (HTTP ${status})` : msg;
+            const friendly = /web url|reference_video/i.test(msg)
+                ? 'Seedance не принял видео-референс. Попробуйте другой файл (MP4/MOV) или позже.'
+                : msg;
+            return status ? `${friendly} (HTTP ${status})` : friendly;
         }
         if (error instanceof Error) {
             return error.message;
