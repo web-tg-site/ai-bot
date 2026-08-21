@@ -1448,7 +1448,7 @@ async function appendVideoReferences(
         const maxVideos = getVideoMaxVideoReferences(toolId);
         if (existingVideos + incomingVideos > maxVideos) {
             await ctx.reply(
-                `Seedance 2.5 принимает до ${maxVideos} видео-референсов. Можно добавить ещё фото и аудио.`,
+                `Seedance принимает до ${maxVideos} видео-референсов. Можно добавить ещё фото и аудио.`,
                 { parse_mode: 'HTML' },
             );
             return;

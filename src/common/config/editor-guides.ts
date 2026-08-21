@@ -283,9 +283,9 @@ Topaz Photo сейчас включает, среди прочего, Upscale, D
 2. Выберите, во сколько раз улучшить качество.
 3. Запустите обработку.`,
 
-    [AiToolId.SEEDANCE]: `Seedance 2.5 — AI-модель ByteDance для генерации и редактирования видео.
+    [AiToolId.SEEDANCE]: `Seedance — AI-модель ByteDance для генерации и редактирования видео.
 Она особенно интересна для сложных мультимодальных сцен, где нужно использовать изображения, видео, аудио и текстовые инструкции одновременно.
-Seedance 2.5 поддерживает до 30 фото, 10 видео и 10 аудио-референсов, генерацию до 30 секунд, редактирование и extension видео (480p / 720p).
+Seedance поддерживает до 30 фото, 10 видео и 10 аудио-референсов, генерацию до 30 секунд, редактирование и extension видео (480p / 720p).
 
 Что можно делать
 • текст → видео
@@ -691,9 +691,9 @@ How to use
 2. Choose how many times to upscale quality.
 3. Run processing.`,
 
-    [AiToolId.SEEDANCE]: `Seedance 2.5 is ByteDance's AI model for generating and editing video.
+    [AiToolId.SEEDANCE]: `Seedance is ByteDance's AI model for generating and editing video.
 It is especially interesting for complex multimodal scenes that use images, video, audio and text instructions at once.
-Seedance 2.5 supports up to 30 images, 10 videos and 10 audio references, generation up to 30 seconds, editing and video extension (480p / 720p).
+Seedance supports up to 30 images, 10 videos and 10 audio references, generation up to 30 seconds, editing and video extension (480p / 720p).
 
 What you can do
 • text → video

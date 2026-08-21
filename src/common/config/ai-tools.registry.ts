@@ -154,7 +154,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
     },
     {
         id: AiToolId.SEEDANCE,
-        label: 'Seedance 2.5',
+        label: 'Seedance',
         category: 'video',
         provider: AiProviderId.BYTEPLUS,
         model: 'dreamina-seedance-2-5-260628',

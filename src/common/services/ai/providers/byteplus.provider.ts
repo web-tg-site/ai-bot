@@ -381,17 +381,17 @@ export class BytePlusProvider {
     ) {
         if (images.length > MAX_IMAGES) {
             throw new Error(
-                `Seedance 2.5 принимает до ${MAX_IMAGES} изображений-референсов.`,
+                `Seedance принимает до ${MAX_IMAGES} изображений-референсов.`,
             );
         }
         if (videos.length > MAX_VIDEOS) {
             throw new Error(
-                `Seedance 2.5 принимает до ${MAX_VIDEOS} видео-референсов.`,
+                `Seedance принимает до ${MAX_VIDEOS} видео-референсов.`,
             );
         }
         if (audios.length > MAX_AUDIOS) {
             throw new Error(
-                `Seedance 2.5 принимает до ${MAX_AUDIOS} аудио-референсов.`,
+                `Seedance принимает до ${MAX_AUDIOS} аудио-референсов.`,
             );
         }
     }
