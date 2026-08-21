@@ -64,6 +64,8 @@ import {
 } from '@/common/services/ai/providers/elevenlabs.provider';
 import { HiggsfieldProvider } from '@/common/services/ai/providers/higgsfield.provider';
 import { HeyGenProvider } from '@/common/services/ai/providers/heygen.provider';
+import { BytePlusProvider } from '@/common/services/ai/providers/byteplus.provider';
+import { TempPublicMediaService } from '@/common/services/ai/temp-public-media.service';
 import { ElevenLabsVoicePreviewService } from '@/common/services/elevenlabs-voice-preview';
 import { GenerationFacade } from './generation.facade';
 import { ModuleRef } from '@nestjs/core';
@@ -284,6 +286,8 @@ export class AiController {
         private readonly elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService,
         private readonly soraCharactersService: SoraCharactersService,
         private readonly openAiProvider: OpenAiProvider,
+        private readonly bytePlusProvider: BytePlusProvider,
+        private readonly tempPublicMedia: TempPublicMediaService,
         private readonly moduleRef: ModuleRef,
     ) {}
 
@@ -1110,6 +1114,7 @@ export class AiController {
                 resultUrl: true,
                 status: true,
                 providerJobId: true,
+                toolId: true,
             },
         });
 
@@ -1127,21 +1132,61 @@ export class AiController {
             let media = this.getCachedMedia(jobId);
 
             if (!media) {
+                const jobLocal = this.tempPublicMedia.getByJobId(jobId);
+                if (jobLocal) {
+                    media = {
+                        buffer: jobLocal.buffer,
+                        mimeType: jobLocal.mimeType,
+                    };
+                }
+            }
+
+            if (!media) {
                 const buffered = await this.resolveBufferedJobMedia(
                     job.resultUrl,
                     job.providerJobId,
+                    job.toolId as AiToolId,
                 );
 
                 if (buffered) {
                     media = buffered;
                 } else {
-                    media = await downloadRemoteFile(
-                        job.resultUrl,
-                        getAuthHeadersForUrl(job.resultUrl),
-                    );
+                    try {
+                        media = await downloadRemoteFile(
+                            job.resultUrl,
+                            getAuthHeadersForUrl(job.resultUrl),
+                        );
+                    } catch (remoteError) {
+                        if (
+                            job.toolId === AiToolId.SEEDANCE &&
+                            job.providerJobId
+                        ) {
+                            const status =
+                                await this.bytePlusProvider.getJobStatus(
+                                    job.providerJobId,
+                                );
+                            if (status.result?.buffer) {
+                                media = {
+                                    buffer: status.result.buffer,
+                                    mimeType:
+                                        status.result.mimeType ?? 'video/mp4',
+                                };
+                            } else {
+                                throw remoteError;
+                            }
+                        } else {
+                            throw remoteError;
+                        }
+                    }
                 }
 
                 this.setCachedMedia(jobId, media.buffer, media.mimeType);
+                this.tempPublicMedia.put({
+                    buffer: media.buffer,
+                    mimeType: media.mimeType,
+                    fileName: filenameBase,
+                    jobId,
+                });
             }
 
             const ext = media.mimeType.startsWith('video/')
@@ -1176,6 +1221,7 @@ export class AiController {
     private async resolveBufferedJobMedia(
         resultUrl: string,
         providerJobId: string | null,
+        toolId?: AiToolId,
     ): Promise<{ buffer: Buffer; mimeType: string } | null> {
         const dataUrl = parseDataUrl(resultUrl);
         if (dataUrl) {
@@ -1191,6 +1237,21 @@ export class AiController {
                 buffer: status.result.buffer,
                 mimeType: status.result.mimeType,
             };
+        }
+
+        if (
+            toolId === AiToolId.SEEDANCE &&
+            providerJobId &&
+            /bytepluses?\.com|byteplus|tos-cn|tos-ap|ark\./i.test(resultUrl)
+        ) {
+            const status =
+                await this.bytePlusProvider.getJobStatus(providerJobId);
+            if (status.result?.buffer) {
+                return {
+                    buffer: status.result.buffer,
+                    mimeType: status.result.mimeType ?? 'video/mp4',
+                };
+            }
         }
 
         if (isElevenLabsDubbingResultUrl(resultUrl) && providerJobId) {
@@ -1274,17 +1335,35 @@ export class AiController {
     private async resolveJobMedia(
         resultUrl: string,
         providerJobId: string | null,
-        _toolId: AiToolId,
+        toolId: AiToolId,
     ): Promise<{ buffer: Buffer; mimeType: string }> {
         const buffered = await this.resolveBufferedJobMedia(
             resultUrl,
             providerJobId,
+            toolId,
         );
         if (buffered) {
             return buffered;
         }
 
-        return downloadRemoteFile(resultUrl, getAuthHeadersForUrl(resultUrl));
+        try {
+            return await downloadRemoteFile(
+                resultUrl,
+                getAuthHeadersForUrl(resultUrl),
+            );
+        } catch (remoteError) {
+            if (toolId === AiToolId.SEEDANCE && providerJobId) {
+                const status =
+                    await this.bytePlusProvider.getJobStatus(providerJobId);
+                if (status.result?.buffer) {
+                    return {
+                        buffer: status.result.buffer,
+                        mimeType: status.result.mimeType ?? 'video/mp4',
+                    };
+                }
+            }
+            throw remoteError;
+        }
     }
 
     private parseElevenLabsDubbingUrl(url: string): { mimeType: string } {

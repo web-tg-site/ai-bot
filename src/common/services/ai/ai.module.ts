@@ -63,6 +63,7 @@ import { PublicTmpController } from '@/common/controllers/public-tmp.controller'
         HeyGenProvider,
         OpenAiProvider,
         TempPublicMediaService,
+        BytePlusProvider,
     ],
 })
 export class AiModule {}

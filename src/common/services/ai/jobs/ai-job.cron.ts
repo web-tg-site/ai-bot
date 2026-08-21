@@ -40,6 +40,7 @@ import {
     downloadRemoteFile,
     getAuthHeadersForUrl,
 } from '@/common/utils/download-remote-file';
+import { TempPublicMediaService } from '../temp-public-media.service';
 
 type PendingJob = Awaited<ReturnType<AiJobService['getPendingJobs']>>[number];
 
@@ -55,6 +56,7 @@ export class AiJobCron {
         private readonly aiJobService: AiJobService,
         private readonly aiService: AiService,
         private readonly userAiToolSettingsModelService: UserAiToolSettingsModelService,
+        private readonly tempPublicMedia: TempPublicMediaService,
         private readonly moduleRef: ModuleRef,
     ) {}
 
@@ -237,6 +239,20 @@ export class AiJobCron {
                 job.providerJobId
             ) {
                 resultUrl = buildOpenAiVideoResultUrl(job.providerJobId);
+            }
+
+            // Keep a local copy so mini-app /media does not depend on short-lived CDN URLs.
+            if (resolved.buffer?.length) {
+                this.tempPublicMedia.put({
+                    buffer: resolved.buffer,
+                    mimeType:
+                        resolved.mimeType ??
+                        (resolved.type === 'video'
+                            ? 'video/mp4'
+                            : 'application/octet-stream'),
+                    fileName: `job-${job.id.slice(0, 8)}`,
+                    jobId: job.id,
+                });
             }
 
             // Persist URL first so mini-app polling is not blocked by Telegram delivery.
@@ -507,6 +523,35 @@ export class AiJobCron {
         sendAsFile: boolean,
         caption?: string,
     ) {
+        // Prefer already-downloaded buffer (BytePlus CDN URLs are short-lived).
+        if (result.buffer?.length) {
+            if (type === 'image') {
+                await botService.sendPhotoBuffer(
+                    telegramId,
+                    result.buffer,
+                    result.mimeType,
+                    sendAsFile,
+                    caption,
+                );
+            } else if (type === 'video') {
+                await botService.sendVideoBuffer(
+                    telegramId,
+                    result.buffer,
+                    result.mimeType,
+                    sendAsFile,
+                    caption,
+                );
+            } else if (type === 'audio') {
+                await botService.sendAudioBuffer(
+                    telegramId,
+                    result.buffer,
+                    result.mimeType,
+                    sendAsFile,
+                );
+            }
+            return;
+        }
+
         if (result.url && !isElevenLabsDubbingResultUrl(result.url)) {
             if (type === 'video') {
                 if (sendAsFile) {
@@ -565,33 +610,6 @@ export class AiJobCron {
                 }
             }
             return;
-        }
-
-        if (result.buffer) {
-            if (type === 'image') {
-                await botService.sendPhotoBuffer(
-                    telegramId,
-                    result.buffer,
-                    result.mimeType,
-                    sendAsFile,
-                    caption,
-                );
-            } else if (type === 'video') {
-                await botService.sendVideoBuffer(
-                    telegramId,
-                    result.buffer,
-                    result.mimeType,
-                    sendAsFile,
-                    caption,
-                );
-            } else if (type === 'audio') {
-                await botService.sendAudioBuffer(
-                    telegramId,
-                    result.buffer,
-                    result.mimeType,
-                    sendAsFile,
-                );
-            }
         }
     }
 }
