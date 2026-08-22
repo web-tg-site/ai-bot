@@ -27,6 +27,7 @@ export class AiJobService {
         toolId: AiToolId;
         input: AiGenerationInput;
         notifyTelegram?: boolean;
+        sessionId?: string;
     }) {
         const tool = getToolById(params.toolId);
         if (!tool) {
@@ -70,6 +71,7 @@ export class AiJobService {
                 tokenCost,
                 inputJson: params.input,
                 notifyTelegram: params.notifyTelegram ?? true,
+                sessionId: params.sessionId ?? null,
             },
         });
 
@@ -84,6 +86,7 @@ export class AiJobService {
         resultUrl?: string | null;
         tokenCost: number;
         notifyTelegram?: boolean;
+        sessionId?: string;
     }) {
         return this.prismaService.aiGenerationJob.create({
             data: {
@@ -94,6 +97,7 @@ export class AiJobService {
                 inputJson: params.input,
                 resultUrl: params.resultUrl ?? null,
                 notifyTelegram: params.notifyTelegram ?? true,
+                sessionId: params.sessionId ?? null,
             },
         });
     }

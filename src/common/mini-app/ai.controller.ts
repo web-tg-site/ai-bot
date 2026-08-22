@@ -97,6 +97,10 @@ class GenerateBodyDto {
 
     @IsOptional()
     @IsString()
+    sessionId?: string;
+
+    @IsOptional()
+    @IsString()
     aspectRatio?: string;
 
     @IsOptional()
@@ -581,6 +585,7 @@ export class AiController {
                 telegramId: current.telegramId,
                 toolId: body.toolId,
                 conversationId: body.conversationId,
+                sessionId: body.sessionId,
                 promptText: body.prompt,
                 input: {
                     prompt: body.prompt,
@@ -741,6 +746,7 @@ export class AiController {
                 errorMessage: true,
                 tokenCost: true,
                 inputJson: true,
+                sessionId: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -760,6 +766,7 @@ export class AiController {
                         : job.errorMessage,
                     tokenCost: job.tokenCost,
                     prompt: input?.prompt ?? '',
+                    sessionId: job.sessionId ?? undefined,
                     createdAt: job.createdAt,
                     updatedAt: job.updatedAt,
                 };
@@ -959,6 +966,7 @@ export class AiController {
                 errorMessage: true,
                 tokenCost: true,
                 inputJson: true,
+                sessionId: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -984,6 +992,7 @@ export class AiController {
                 : job.errorMessage,
             tokenCost: job.tokenCost,
             prompt: input?.prompt ?? '',
+            sessionId: job.sessionId ?? undefined,
             createdAt: job.createdAt,
             updatedAt: job.updatedAt,
         };

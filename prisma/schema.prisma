@@ -166,6 +166,8 @@ model AiGenerationJob {
   staleReminderSent Boolean @default(false)
   /// When false (mini-app), skip Telegram delivery of result / completion text.
   notifyTelegram Boolean  @default(true)
+  /// Client-side chat session id (mini-app); groups generations into separate chats.
+  sessionId     String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -173,6 +175,7 @@ model AiGenerationJob {
 
   @@index([status, createdAt])
   @@index([userId, toolId, createdAt])
+  @@index([userId, sessionId, createdAt])
   @@map("ai_generation_jobs")
 }
 

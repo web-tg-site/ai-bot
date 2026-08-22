@@ -23,6 +23,7 @@ export type GenerationRequest = {
     toolId: AiToolId;
     input: AiGenerationInput;
     conversationId?: string;
+    sessionId?: string;
     promptText?: string;
 };
 
@@ -159,6 +160,7 @@ export class GenerationFacade {
                 input,
                 // Mini-app shows results in-app; do not mirror to Telegram chat.
                 notifyTelegram: false,
+                sessionId: params.sessionId,
             });
 
             return {
@@ -238,6 +240,7 @@ export class GenerationFacade {
                     resultUrl,
                     tokenCost: actualCost,
                     notifyTelegram: false,
+                    sessionId: params.sessionId,
                 });
                 jobId = recorded.id;
             }
