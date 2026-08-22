@@ -16,12 +16,12 @@ import {
 } from '../types';
 
 const PLATFORM_JOB_PREFIX = 'hfplat:';
-const CLOUD_BASE_URL = 'https://cloud.higgsfield.ai/api/v1';
 const PLATFORM_BASE_URL = 'https://platform.higgsfield.ai';
+
+type DopVariant = 'standard' | 'turbo';
 
 @Injectable()
 export class HiggsfieldProvider {
-    private readonly cloudApiKey: string;
     private readonly platformApiKey: string;
     private readonly platformApiSecret: string;
     private motionsCache: {
@@ -42,12 +42,11 @@ export class HiggsfieldProvider {
             ? credentials.split(':', 2)
             : ['', ''];
 
-        this.cloudApiKey =
-            configService.get<string>('HIGGSFIELD_API_KEY')?.trim() ?? '';
         this.platformApiKey =
             credKey ||
             configService.get<string>('HIGGSFIELD_KEY_ID')?.trim() ||
-            this.cloudApiKey;
+            configService.get<string>('HIGGSFIELD_API_KEY')?.trim() ||
+            '';
         this.platformApiSecret =
             credSecret ||
             configService.get<string>('HIGGSFIELD_API_SECRET')?.trim() ||
@@ -71,15 +70,6 @@ export class HiggsfieldProvider {
             return fromPlatform;
         }
 
-        const fromCloud = await this.fetchCloudMotions();
-        if (fromCloud.length) {
-            this.motionsCache = {
-                fetchedAt: Date.now(),
-                motions: fromCloud,
-            };
-            return fromCloud;
-        }
-
         return HIGGSFIELD_CURATED_MOTION_NAMES.map((name) => ({
             id: `name:${name}`,
             name,
@@ -89,146 +79,47 @@ export class HiggsfieldProvider {
     }
 
     async createJob(input: AiGenerationInput): Promise<AiJobCreateResult> {
+        this.ensurePlatformCredentials();
+
+        const imageFile = input.files?.find((file) =>
+            file.mimeType.startsWith('image/'),
+        );
+        if (!imageFile) {
+            throw new Error(
+                'Для Higgsfield загрузите изображение — platform API поддерживает image-to-video.',
+            );
+        }
+
         const motionId = this.normalizeMotionId(input.higgsfieldMotionId);
         const strength =
             input.higgsfieldMotionStrength ?? DEFAULT_HIGGSFIELD_MOTION_STRENGTH;
 
         if (motionId) {
-            const imageFile = input.files?.find((file) =>
-                file.mimeType.startsWith('image/'),
-            );
-            if (!imageFile) {
-                throw new Error(
-                    'Для эффекта Higgsfield нужен фото-референс. Загрузите изображение и повторите.',
-                );
-            }
-
             const resolvedMotionId = await this.resolveMotionId(motionId);
-
-            if (this.hasPlatformCredentials()) {
-                return this.createPlatformDopJob(
-                    input,
-                    imageFile,
-                    resolvedMotionId,
-                    strength,
-                );
-            }
-
-            return this.createCloudJob(input, {
-                motionId: resolvedMotionId,
-                strength,
-            });
+            return this.createPlatformDopJob(
+                input,
+                imageFile,
+                [{ id: resolvedMotionId, strength }],
+                'turbo',
+            );
         }
 
-        this.ensureCloudApiKey();
-        return this.createCloudJob(input);
+        return this.createPlatformDopJob(input, imageFile, [], 'standard');
     }
 
     async getJobStatus(providerJobId: string): Promise<AiJobStatusResult> {
-        if (providerJobId.startsWith(PLATFORM_JOB_PREFIX)) {
-            return this.getPlatformJobStatus(
-                providerJobId.slice(PLATFORM_JOB_PREFIX.length),
-            );
-        }
+        const requestId = providerJobId.startsWith(PLATFORM_JOB_PREFIX)
+            ? providerJobId.slice(PLATFORM_JOB_PREFIX.length)
+            : providerJobId;
 
-        this.ensureCloudApiKey();
-        const response = await this.cloudGet<{
-            status: string;
-            output_url?: string;
-            error?: string;
-        }>(`/generations/${providerJobId}`);
-
-        const status = this.mapStatus(response.status);
-
-        if (status === 'completed' && response.output_url) {
-            return {
-                status,
-                result: { type: 'video', url: response.output_url },
-            };
-        }
-
-        if (status === 'failed') {
-            return {
-                status,
-                errorMessage:
-                    response.error ??
-                    'Не удалось завершить генерацию — сбой на стороне провайдера.',
-            };
-        }
-
-        return { status };
-    }
-
-    private async createCloudJob(
-        input: AiGenerationInput,
-        motion?: { motionId: string; strength: number },
-    ): Promise<AiJobCreateResult> {
-        this.ensureCloudApiKey();
-
-        const body: Record<string, unknown> = {
-            prompt: input.prompt,
-            duration: input.durationSeconds ?? 5,
-            resolution: input.resolution ?? '720p',
-            image: input.files?.[0]
-                ? `data:${input.files[0].mimeType};base64,${input.files[0].buffer.toString('base64')}`
-                : undefined,
-        };
-
-        if (motion) {
-            body.motion_id = motion.motionId;
-            body.motion_strength = motion.strength;
-            body.motions = [
-                { id: motion.motionId, strength: motion.strength },
-            ];
-        }
-
-        try {
-            const response = await this.cloudPost<{ id: string }>(
-                '/generations/video',
-                body,
-            );
-            return {
-                providerJobId: response.id,
-                estimatedTokenCost: 0,
-            };
-        } catch (error) {
-            if (motion && this.hasPlatformCredentials()) {
-                this.logger.warn(
-                    {
-                        err:
-                            error instanceof Error
-                                ? error.message
-                                : String(error),
-                    },
-                    'Cloud Higgsfield rejected motion params, falling back to platform DoP',
-                );
-                const imageFile = input.files?.find((file) =>
-                    file.mimeType.startsWith('image/'),
-                );
-                if (!imageFile) {
-                    throw error;
-                }
-                return this.createPlatformDopJob(
-                    input,
-                    imageFile,
-                    motion.motionId,
-                    motion.strength,
-                );
-            }
-            if (motion && !this.hasPlatformCredentials()) {
-                throw new Error(
-                    'Эффекты Higgsfield требуют platform API (HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET или HIGGSFIELD_CREDENTIALS). Cloud endpoint не принял motion.',
-                );
-            }
-            throw error;
-        }
+        return this.getPlatformJobStatus(requestId);
     }
 
     private async createPlatformDopJob(
         input: AiGenerationInput,
         imageFile: NonNullable<AiGenerationInput['files']>[number],
-        motionId: string,
-        strength: number,
+        motions: Array<{ id: string; strength: number }>,
+        variant: DopVariant,
     ): Promise<AiJobCreateResult> {
         this.ensurePlatformCredentials();
 
@@ -247,11 +138,11 @@ export class HiggsfieldProvider {
             request_id?: string;
             id?: string;
             status?: string;
-        }>('/higgsfield-ai/dop/turbo', {
+        }>(`/higgsfield-ai/dop/${variant}`, {
             prompt: input.prompt ?? '',
             image_url: imageUrl,
             ...(endImageUrl ? { end_image_url: endImageUrl } : {}),
-            motions: [{ id: motionId, strength }],
+            ...(motions.length ? { motions } : {}),
             enhance_prompt: true,
         });
 
@@ -273,16 +164,29 @@ export class HiggsfieldProvider {
         const response = await this.platformGet<{
             status: string;
             video?: { url?: string };
-            error?: string;
+            error?: string | null;
             detail?: string;
         }>(`/requests/${requestId}/status`);
 
         const status = this.mapStatus(response.status);
 
-        if (status === 'completed' && response.video?.url) {
+        if (status === 'completed') {
+            const videoUrl = response.video?.url;
+            if (videoUrl) {
+                return {
+                    status,
+                    result: { type: 'video', url: videoUrl },
+                };
+            }
+
+            this.logger.warn(
+                { requestId, taskStatus: response.status },
+                'Higgsfield task completed without video URL',
+            );
             return {
-                status,
-                result: { type: 'video', url: response.video.url },
+                status: 'failed',
+                errorMessage:
+                    'Higgsfield завершил задачу без видео. Попробуйте ещё раз.',
             };
         }
 
@@ -355,26 +259,6 @@ export class HiggsfieldProvider {
         }
     }
 
-    private async fetchCloudMotions(): Promise<HiggsfieldMotionOption[]> {
-        if (!this.cloudApiKey) {
-            return [];
-        }
-
-        for (const path of ['/motions', '/generations/motions']) {
-            try {
-                const response = await this.cloudGet<unknown>(path);
-                const motions = this.normalizeMotionList(response);
-                if (motions.length) {
-                    return motions;
-                }
-            } catch {
-                /* try next path */
-            }
-        }
-
-        return [];
-    }
-
     private normalizeMotionList(raw: unknown): HiggsfieldMotionOption[] {
         const list = Array.isArray(raw)
             ? raw
@@ -436,12 +320,6 @@ export class HiggsfieldProvider {
         return Boolean(this.platformApiKey && this.platformApiSecret);
     }
 
-    private ensureCloudApiKey() {
-        if (!this.cloudApiKey) {
-            throw new Error('HIGGSFIELD_API_KEY is not configured');
-        }
-    }
-
     private ensurePlatformCredentials() {
         if (!this.hasPlatformCredentials()) {
             throw new Error(
@@ -468,13 +346,6 @@ export class HiggsfieldProvider {
         return 'pending';
     }
 
-    private cloudHeaders() {
-        return {
-            Authorization: `Bearer ${this.cloudApiKey}`,
-            'Content-Type': 'application/json',
-        };
-    }
-
     private platformHeaders() {
         return {
             Authorization: `Key ${this.platformApiKey}:${this.platformApiSecret}`,
@@ -482,42 +353,6 @@ export class HiggsfieldProvider {
             'hf-api-key': this.platformApiKey,
             'hf-secret': this.platformApiSecret,
         };
-    }
-
-    private async cloudPost<T>(path: string, data: unknown): Promise<T> {
-        try {
-            const response = await firstValueFrom(
-                this.httpService.post<T>(`${CLOUD_BASE_URL}${path}`, data, {
-                    headers: this.cloudHeaders(),
-                    timeout: 60000,
-                    maxBodyLength: Infinity,
-                    maxContentLength: Infinity,
-                }),
-            );
-            return response.data;
-        } catch (error) {
-            this.logger.error(
-                `Higgsfield cloud POST ${path} failed: ${this.formatError(error)}`,
-            );
-            throw new Error(this.formatError(error));
-        }
-    }
-
-    private async cloudGet<T>(path: string): Promise<T> {
-        try {
-            const response = await firstValueFrom(
-                this.httpService.get<T>(`${CLOUD_BASE_URL}${path}`, {
-                    headers: this.cloudHeaders(),
-                    timeout: 30000,
-                }),
-            );
-            return response.data;
-        } catch (error) {
-            this.logger.error(
-                `Higgsfield cloud GET ${path} failed: ${this.formatError(error)}`,
-            );
-            throw new Error(this.formatError(error));
-        }
     }
 
     private async platformPost<T>(path: string, data: unknown): Promise<T> {
@@ -563,7 +398,7 @@ export class HiggsfieldProvider {
                     status?: number;
                     data?: {
                         message?: string;
-                        detail?: string | { msg?: string };
+                        detail?: string | { msg?: string } | Array<{ msg?: string }>;
                         error?: string;
                     };
                 };
@@ -573,15 +408,22 @@ export class HiggsfieldProvider {
             if (typeof data?.message === 'string') return data.message;
             if (typeof data?.error === 'string') return data.error;
             if (typeof data?.detail === 'string') return data.detail;
+            if (Array.isArray(data?.detail)) {
+                const messages = data.detail
+                    .map((item) => item?.msg)
+                    .filter((msg): msg is string => typeof msg === 'string');
+                if (messages.length) return messages.join('; ');
+            }
             if (
                 data?.detail &&
                 typeof data.detail === 'object' &&
+                !Array.isArray(data.detail) &&
                 typeof data.detail.msg === 'string'
             ) {
                 return data.detail.msg;
             }
             if (status === 401 || status === 403) {
-                return `Higgsfield отклонил ключи (HTTP ${status}). Проверьте HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET и баланс на cloud.higgsfield.ai`;
+                return `Higgsfield отклонил ключи (HTTP ${status}). Проверьте HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET на cloud.higgsfield.ai`;
             }
             return status
                 ? `Сбой Higgsfield (HTTP ${status})`

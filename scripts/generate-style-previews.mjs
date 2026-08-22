@@ -20,7 +20,8 @@ const OUTPUT_DIR = path.resolve(
 );
 
 const VEO_MODEL = "google/veo-3.1-lite";
-const HIGGSFIELD_CLOUD_URL = "https://cloud.higgsfield.ai/api/v1";
+const HIGGSFIELD_PLATFORM_URL = "https://platform.higgsfield.ai";
+const HIGGSFIELD_REFERENCE_IMAGE = "https://picsum.photos/800/600";
 const BASE_PROMPT =
     "A simple white ceramic mug on a neutral gray surface, soft diffused lighting, minimal static composition.";
 
@@ -169,11 +170,16 @@ async function loadProvider(env) {
         return { kind: "openrouter", apiKey: openRouterKey };
     }
     const higgsfieldKey = env.HIGGSFIELD_API_KEY?.trim();
-    if (higgsfieldKey) {
-        return { kind: "higgsfield", apiKey: higgsfieldKey };
+    const higgsfieldSecret = env.HIGGSFIELD_API_SECRET?.trim();
+    if (higgsfieldKey && higgsfieldSecret) {
+        return {
+            kind: "higgsfield",
+            apiKey: higgsfieldKey,
+            apiSecret: higgsfieldSecret,
+        };
     }
     throw new Error(
-        "Neither OPENROUTER_API_KEY nor HIGGSFIELD_API_KEY found in bot/.env",
+        "Neither OPENROUTER_API_KEY nor HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET found in bot/.env",
     );
 }
 
@@ -272,11 +278,11 @@ async function generateStylePreviewOpenRouter(apiKey, preset) {
     console.log(`  saved ${outPath} (${(buffer.length / 1024).toFixed(0)} KB)`);
 }
 
-async function higgsfieldPost(apiKey, route, body) {
-    const response = await fetch(`${HIGGSFIELD_CLOUD_URL}${route}`, {
+async function higgsfieldPost(apiKey, apiSecret, route, body) {
+    const response = await fetch(`${HIGGSFIELD_PLATFORM_URL}${route}`, {
         method: "POST",
         headers: {
-            Authorization: `Bearer ${apiKey}`,
+            Authorization: `Key ${apiKey}:${apiSecret}`,
             "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
@@ -288,9 +294,9 @@ async function higgsfieldPost(apiKey, route, body) {
     return JSON.parse(text);
 }
 
-async function higgsfieldGet(apiKey, route) {
-    const response = await fetch(`${HIGGSFIELD_CLOUD_URL}${route}`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
+async function higgsfieldGet(apiKey, apiSecret, route) {
+    const response = await fetch(`${HIGGSFIELD_PLATFORM_URL}${route}`, {
+        headers: { Authorization: `Key ${apiKey}:${apiSecret}` },
     });
     const text = await response.text();
     if (!response.ok) {
@@ -299,14 +305,14 @@ async function higgsfieldGet(apiKey, route) {
     return JSON.parse(text);
 }
 
-async function pollHiggsfieldVideo(apiKey, jobId) {
+async function pollHiggsfieldVideo(apiKey, apiSecret, requestId) {
     const deadline = Date.now() + 15 * 60 * 1000;
     while (Date.now() < deadline) {
-        const status = await higgsfieldGet(apiKey, `/generations/${jobId}`);
+        const status = await higgsfieldGet(apiKey, apiSecret, `/requests/${requestId}/status`);
         const mapped = mapStatus(status.status);
         process.stdout.write(`  status: ${status.status ?? mapped}\n`);
-        if (mapped === "completed" && status.output_url) {
-            return status.output_url;
+        if (mapped === "completed" && status.video?.url) {
+            return status.video.url;
         }
         if (mapped === "failed") {
             throw new Error(
@@ -315,24 +321,25 @@ async function pollHiggsfieldVideo(apiKey, jobId) {
         }
         await sleep(5000);
     }
-    throw new Error(`Timed out polling Higgsfield job ${jobId}`);
+    throw new Error(`Timed out polling Higgsfield job ${requestId}`);
 }
 
-async function generateStylePreviewHiggsfield(apiKey, preset) {
+async function generateStylePreviewHiggsfield(apiKey, apiSecret, preset) {
     const prompt = `${BASE_PROMPT} ${preset.promptSuffix}`.trim();
     console.log(`\n[${preset.id}] Creating Higgsfield job…`);
 
-    const created = await higgsfieldPost(apiKey, "/generations/video", {
+    const created = await higgsfieldPost(apiKey, apiSecret, "/higgsfield-ai/dop/standard", {
         prompt,
-        duration: 5,
-        resolution: "720p",
+        image_url: HIGGSFIELD_REFERENCE_IMAGE,
+        enhance_prompt: true,
     });
 
-    if (!created.id) {
-        throw new Error(`No job id returned: ${JSON.stringify(created).slice(0, 200)}`);
+    const requestId = created.request_id ?? created.id;
+    if (!requestId) {
+        throw new Error(`No request id returned: ${JSON.stringify(created).slice(0, 200)}`);
     }
 
-    const videoUrl = await pollHiggsfieldVideo(apiKey, created.id);
+    const videoUrl = await pollHiggsfieldVideo(apiKey, apiSecret, requestId);
     console.log(`  downloading…`);
     const buffer = await downloadVideo(videoUrl);
     const outPath = path.join(OUTPUT_DIR, `${preset.id}.mp4`);
@@ -345,7 +352,7 @@ async function generateStylePreview(provider, preset) {
         await generateStylePreviewOpenRouter(provider.apiKey, preset);
         return;
     }
-    await generateStylePreviewHiggsfield(provider.apiKey, preset);
+    await generateStylePreviewHiggsfield(provider.apiKey, provider.apiSecret, preset);
 }
 
 async function main() {

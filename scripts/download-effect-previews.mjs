@@ -18,7 +18,6 @@ const OUTPUT_DIR = path.resolve(
 );
 
 const PLATFORM_BASE_URL = "https://platform.higgsfield.ai";
-const CLOUD_BASE_URL = "https://cloud.higgsfield.ai/api/v1";
 
 const CURATED_MOTION_NAMES = [
     "Earth Zoom Out",
@@ -88,8 +87,7 @@ function loadCredentials(env) {
         platformSecret = env.HIGGSFIELD_API_SECRET?.trim() || "";
     }
 
-    const cloudKey = env.HIGGSFIELD_API_KEY?.trim() || "";
-    return { platformKey, platformSecret, cloudKey };
+    return { platformKey, platformSecret };
 }
 
 function normalizeMotionList(raw) {
@@ -132,21 +130,6 @@ async function fetchPlatformMotions(platformKey, platformSecret) {
     return normalizeMotionList(await response.json());
 }
 
-async function fetchCloudMotions(cloudKey) {
-    for (const route of ["/motions", "/generations/motions"]) {
-        const response = await fetch(`${CLOUD_BASE_URL}${route}`, {
-            headers: {
-                Authorization: `Bearer ${cloudKey}`,
-                "Content-Type": "application/json",
-            },
-        });
-        if (!response.ok) continue;
-        const motions = normalizeMotionList(await response.json());
-        if (motions.length) return motions;
-    }
-    return [];
-}
-
 function filterCurated(motions) {
     const byName = new Map(
         motions.map((motion) => [motion.name.trim().toLowerCase(), motion]),
@@ -171,20 +154,16 @@ async function main() {
     const force = process.argv.includes("--force");
     const envPath = path.join(BOT_ROOT, ".env");
     const env = parseEnvFile(await readFile(envPath, "utf8").catch(() => ""));
-    const { platformKey, platformSecret, cloudKey } = loadCredentials(env);
+    const { platformKey, platformSecret } = loadCredentials(env);
 
     let motions = [];
     if (platformKey && platformSecret) {
         console.log("Fetching motions from Higgsfield platform…");
         motions = await fetchPlatformMotions(platformKey, platformSecret);
     }
-    if (!motions.length && cloudKey) {
-        console.log("Fetching motions from Higgsfield cloud…");
-        motions = await fetchCloudMotions(cloudKey);
-    }
     if (!motions.length) {
         throw new Error(
-            "No motions fetched. Configure HIGGSFIELD_CREDENTIALS or HIGGSFIELD_API_KEY in bot/.env",
+            "No motions fetched. Configure HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET in bot/.env",
         );
     }
 

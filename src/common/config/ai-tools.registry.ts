@@ -192,7 +192,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         accepts: ['text', 'photo'],
         isAsync: true,
         instruction:
-            'Загрузите референс (можно пропустить), настройте параметры и опишите сцену.',
+            'Загрузите изображение (обязательно), настройте параметры, при желании выберите эффект и опишите сцену.',
     },
     {
         id: AiToolId.HEYGEN,

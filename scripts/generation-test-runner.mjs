@@ -204,25 +204,30 @@ async function testHeyGen(timeoutMs) {
     );
 }
 
-// Higgsfield (async)
+// Higgsfield Platform DoP (async)
 async function testHiggsfield(timeoutMs) {
     const apiKey = process.env.HIGGSFIELD_API_KEY;
     const apiSecret = process.env.HIGGSFIELD_API_SECRET;
     if (!apiKey || !apiSecret) throw new Error('HIGGSFIELD_API_KEY/SECRET not configured');
-    const createRes = await fetchJson('https://cloud.higgsfield.ai/api/v1/generations/video', {
+    const auth = { Authorization: `Key ${apiKey}:${apiSecret}`, 'Content-Type': 'application/json' };
+    const createRes = await fetchJson('https://platform.higgsfield.ai/higgsfield-ai/dop/standard', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: TEST_PROMPT, duration: 4, resolution: '720p' }),
+        headers: auth,
+        body: JSON.stringify({
+            prompt: TEST_PROMPT,
+            image_url: 'https://picsum.photos/800/600',
+            enhance_prompt: true,
+        }),
     });
-    const jobId = createRes.id ?? createRes.generation_id;
-    if (!jobId) throw new Error('No id from Higgsfield: ' + JSON.stringify(createRes).slice(0, 200));
+    const jobId = createRes.request_id ?? createRes.id;
+    if (!jobId) throw new Error('No request_id from Higgsfield: ' + JSON.stringify(createRes).slice(0, 200));
     return pollUntilDone(
-        `https://cloud.higgsfield.ai/api/v1/generations/${jobId}`,
-        { 'Authorization': `Bearer ${apiKey}` },
+        `https://platform.higgsfield.ai/requests/${jobId}/status`,
+        auth,
         timeoutMs,
         (data) => {
-            if (data.status === 'completed' || data.status === 'done') return { done: true, url: data.output_url };
-            if (data.status === 'failed') throw new Error(data.error ?? 'Higgsfield generation failed');
+            if (data.status === 'completed') return { done: true, url: data.video?.url };
+            if (data.status === 'failed' || data.status === 'nsfw') throw new Error(data.error ?? 'Higgsfield generation failed');
             return { done: false };
         },
     );
