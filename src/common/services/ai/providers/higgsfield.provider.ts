@@ -9,6 +9,7 @@ import {
     HIGGSFIELD_NO_MOTION_ID,
     type HiggsfieldMotionOption,
 } from '@/common/config/higgsfield-motions.config';
+import { downloadRemoteFile } from '@/common/utils/download-remote-file';
 import {
     AiGenerationInput,
     AiJobCreateResult,
@@ -84,17 +85,17 @@ export class HiggsfieldProvider {
         const imageFile = input.files?.find((file) =>
             file.mimeType.startsWith('image/'),
         );
-        if (!imageFile) {
-            throw new Error(
-                'Для Higgsfield загрузите изображение — platform API поддерживает image-to-video.',
-            );
-        }
-
         const motionId = this.normalizeMotionId(input.higgsfieldMotionId);
         const strength =
             input.higgsfieldMotionStrength ?? DEFAULT_HIGGSFIELD_MOTION_STRENGTH;
 
         if (motionId) {
+            if (!imageFile) {
+                throw new Error(
+                    'Для эффекта Higgsfield нужен фото-референс. Загрузите изображение и повторите.',
+                );
+            }
+
             const resolvedMotionId = await this.resolveMotionId(motionId);
             return this.createPlatformDopJob(
                 input,
@@ -104,7 +105,15 @@ export class HiggsfieldProvider {
             );
         }
 
-        return this.createPlatformDopJob(input, imageFile, [], 'standard');
+        if (imageFile) {
+            return this.createPlatformDopJob(input, imageFile, [], 'standard');
+        }
+
+        if (!input.prompt?.trim()) {
+            throw new Error('Отправьте текстовый промпт для генерации видео');
+        }
+
+        return this.createPlatformTextToVideoJob(input);
     }
 
     async getJobStatus(providerJobId: string): Promise<AiJobStatusResult> {
@@ -113,6 +122,33 @@ export class HiggsfieldProvider {
             : providerJobId;
 
         return this.getPlatformJobStatus(requestId);
+    }
+
+    async fetchResultMedia(
+        providerJobId: string,
+    ): Promise<{ buffer: Buffer; mimeType: string } | null> {
+        const status = await this.getJobStatus(providerJobId);
+        const url = status.result?.url;
+        if (status.status !== 'completed' || !url) {
+            return null;
+        }
+
+        try {
+            const { buffer, mimeType } = await downloadRemoteFile(url);
+            return {
+                buffer,
+                mimeType: status.result?.mimeType ?? mimeType ?? 'video/mp4',
+            };
+        } catch (error) {
+            this.logger.warn(
+                {
+                    providerJobId,
+                    err: error instanceof Error ? error.message : String(error),
+                },
+                'Failed to download Higgsfield result media',
+            );
+            return null;
+        }
     }
 
     private async createPlatformDopJob(
@@ -155,6 +191,44 @@ export class HiggsfieldProvider {
             providerJobId: `${PLATFORM_JOB_PREFIX}${requestId}`,
             estimatedTokenCost: 0,
         };
+    }
+
+    private async createPlatformTextToVideoJob(
+        input: AiGenerationInput,
+    ): Promise<AiJobCreateResult> {
+        this.ensurePlatformCredentials();
+
+        const response = await this.platformPost<{
+            request_id?: string;
+            id?: string;
+        }>('/wan-25-preview/text-to-video', {
+            prompt: input.prompt!.trim(),
+            duration: this.resolveTextToVideoDuration(input.durationSeconds),
+            resolution: this.resolveTextToVideoResolution(input.resolution),
+        });
+
+        const requestId = response.request_id ?? response.id;
+        if (!requestId) {
+            throw new Error('Higgsfield platform did not return request_id');
+        }
+
+        return {
+            providerJobId: `${PLATFORM_JOB_PREFIX}${requestId}`,
+            estimatedTokenCost: 0,
+        };
+    }
+
+    private resolveTextToVideoDuration(durationSeconds?: number): 5 | 10 {
+        return (durationSeconds ?? 5) >= 10 ? 10 : 5;
+    }
+
+    private resolveTextToVideoResolution(
+        resolution?: string,
+    ): '480p' | '720p' | '1080p' {
+        if (resolution === '480p' || resolution === '1080p') {
+            return resolution;
+        }
+        return '720p';
     }
 
     private async getPlatformJobStatus(

@@ -220,6 +220,55 @@ export class AiJobCron {
         }
     }
 
+    private async ensureJobMediaCached(
+        jobId: string,
+        resolved: AiGenerationResult,
+        resultUrl: string | null | undefined,
+    ): Promise<void> {
+        if (resolved.buffer?.length) {
+            this.tempPublicMedia.put({
+                buffer: resolved.buffer,
+                mimeType:
+                    resolved.mimeType ??
+                    (resolved.type === 'video'
+                        ? 'video/mp4'
+                        : 'application/octet-stream'),
+                fileName: `job-${jobId.slice(0, 8)}`,
+                jobId,
+            });
+            return;
+        }
+
+        const url = resultUrl ?? resolved.url;
+        if (!url || isElevenLabsDubbingResultUrl(url)) {
+            return;
+        }
+        if (!['video', 'audio', 'image'].includes(resolved.type)) {
+            return;
+        }
+
+        try {
+            const { buffer, mimeType } = await downloadRemoteFile(
+                url,
+                getAuthHeadersForUrl(url),
+            );
+            this.tempPublicMedia.put({
+                buffer,
+                mimeType: resolved.mimeType ?? mimeType,
+                fileName: `job-${jobId.slice(0, 8)}`,
+                jobId,
+            });
+        } catch (error) {
+            this.logger.warn(
+                {
+                    jobId,
+                    err: error instanceof Error ? error.message : String(error),
+                },
+                'Failed to cache job media from remote URL',
+            );
+        }
+    }
+
     private async deliverCompletedJob(
         botService: BotService,
         job: PendingJob,
@@ -241,19 +290,7 @@ export class AiJobCron {
                 resultUrl = buildOpenAiVideoResultUrl(job.providerJobId);
             }
 
-            // Keep a local copy so mini-app /media does not depend on short-lived CDN URLs.
-            if (resolved.buffer?.length) {
-                this.tempPublicMedia.put({
-                    buffer: resolved.buffer,
-                    mimeType:
-                        resolved.mimeType ??
-                        (resolved.type === 'video'
-                            ? 'video/mp4'
-                            : 'application/octet-stream'),
-                    fileName: `job-${job.id.slice(0, 8)}`,
-                    jobId: job.id,
-                });
-            }
+            await this.ensureJobMediaCached(job.id, resolved, resultUrl);
 
             // Persist URL first so mini-app polling is not blocked by Telegram delivery.
             await this.aiJobService.updateJobStatus(

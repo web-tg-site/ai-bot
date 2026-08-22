@@ -1183,6 +1183,19 @@ export class AiController {
                             } else {
                                 throw remoteError;
                             }
+                        } else if (
+                            job.toolId === AiToolId.HIGGSFIELD &&
+                            job.providerJobId
+                        ) {
+                            const fetched =
+                                await this.higgsfieldProvider.fetchResultMedia(
+                                    job.providerJobId,
+                                );
+                            if (fetched) {
+                                media = fetched;
+                            } else {
+                                throw remoteError;
+                            }
                         } else {
                             throw remoteError;
                         }
@@ -1283,6 +1296,10 @@ export class AiController {
                 buffer: downloaded.buffer,
                 mimeType: downloaded.mimeType,
             };
+        }
+
+        if (toolId === AiToolId.HIGGSFIELD && providerJobId) {
+            return this.higgsfieldProvider.fetchResultMedia(providerJobId);
         }
 
         return null;
