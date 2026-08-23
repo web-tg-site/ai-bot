@@ -16,6 +16,8 @@ export type AiGenerationResult = {
     images?: Array<{ buffer: Buffer; mimeType: string }>;
     actualTokenCost?: number;
     additionalUrls?: string[];
+    /** Apiframe multi-output (MJ grid / Suno tracks). */
+    resultJson?: import('@/common/config/apiframe.config').ApiframeResultJson;
 };
 
 export type GptReplyMode = 'text' | 'audio' | 'both';
@@ -52,6 +54,25 @@ export type AiGenerationInput = {
     sunoMoodId?: string;
     sunoInstrumental?: boolean;
     sunoLyrics?: string;
+    sunoTitle?: string;
+    sunoModelVersion?: string;
+    sunoNegativeTags?: string;
+    sunoVocalGender?: 'm' | 'f';
+    sunoAutoLyrics?: boolean;
+    sunoStyle?: string;
+    sunoStyleWeight?: number;
+    sunoWeirdnessConstraint?: number;
+    sunoAudioWeight?: number;
+    /** Apiframe follow-up action (MJ / Suno). */
+    apiframeAction?: import('@/common/config/apiframe.config').ApiframeAction;
+    /** Apiframe parent job UUID (providerJobId of parent). */
+    parentProviderJobId?: string;
+    /** Internal AiGenerationJob id of parent (for mini-app / bot). */
+    parentJobId?: string;
+    actionIndex?: 1 | 2 | 3 | 4;
+    actionDirection?: 'up' | 'down' | 'left' | 'right';
+    continueAt?: number;
+    trackId?: string;
     outpaintWidth?: number;
     outpaintHeight?: number;
     outpaintOffsetX?: number;

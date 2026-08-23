@@ -157,6 +157,16 @@ Select a tool below.`,
             '⏳ Generation started. The result will arrive in this chat when ready.',
         midjourneyFallback:
             '⚠️ Midjourney is currently unavailable (provider issue). Generating with Flux…',
+        midjourneyActionsHint:
+            '🖼 Choose an action: U1–U4 upscale, V1–V4 variations.',
+        sunoActionsHint:
+            '🎵 Choose a track and action: Extend, Cover, Vocals, or Stems.',
+        midjourneyInpaintPrompt:
+            '🎨 <b>Vary Region</b>: send a black-and-white mask (white = repaint) and optionally a caption with a new prompt.',
+        sunoExtendPrompt:
+            '⏭ <b>Extend</b>: describe the continuation (or send “.” to continue without new text).',
+        sunoCoverPrompt:
+            '🎤 <b>Cover</b>: describe the new style (genre/mood) for the cover.',
         generationTakingLonger:
             '⏳ Generation is taking longer than usual. Please wait…',
         videoToAudioPreparing:

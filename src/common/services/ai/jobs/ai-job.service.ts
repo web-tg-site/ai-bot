@@ -39,6 +39,7 @@ export class AiJobService {
             topazScale: params.input.topazScale,
             quality: params.input.quality,
             resolution: params.input.resolution,
+            apiframeAction: params.input.apiframeAction,
         });
 
         const balanceCheck = await this.tokenBillingService.checkBalance(
@@ -211,16 +212,42 @@ export class AiJobService {
         });
     }
 
+    async getCompletedJobForUser(jobId: string, userId: string) {
+        return this.prismaService.aiGenerationJob.findFirst({
+            where: {
+                id: jobId,
+                userId,
+                status: JobStatus.COMPLETED,
+            },
+            select: {
+                id: true,
+                toolId: true,
+                providerJobId: true,
+                resultUrl: true,
+                resultJson: true,
+                inputJson: true,
+                sessionId: true,
+            },
+        });
+    }
+
     async updateJobStatus(
         jobId: string,
         status: JobStatus,
-        data?: { resultUrl?: string; errorMessage?: string },
+        data?: {
+            resultUrl?: string;
+            resultJson?: unknown;
+            errorMessage?: string;
+        },
     ) {
         await this.prismaService.aiGenerationJob.update({
             where: { id: jobId },
             data: {
                 status,
                 resultUrl: data?.resultUrl,
+                ...(data?.resultJson !== undefined
+                    ? { resultJson: data.resultJson as object }
+                    : {}),
                 errorMessage: data?.errorMessage,
             },
         });

@@ -159,6 +159,8 @@ model AiGenerationJob {
   tokenCost     Int
   inputJson     Json
   resultUrl     String?
+  /// Multi-output payload (MJ grid / Suno tracks) for mini-app + follow-up actions.
+  resultJson    Json?
   errorMessage  String?
   pollAttempts  Int       @default(0)
   pollErrorCount Int      @default(0)

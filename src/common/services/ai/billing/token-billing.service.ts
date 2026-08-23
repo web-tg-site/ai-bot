@@ -21,6 +21,7 @@ export class TokenBillingService {
                   topazScale?: number;
                   quality?: string;
                   resolution?: string;
+                  apiframeAction?: import('@/common/config/apiframe.config').ApiframeAction;
               }
             | number,
     ): number {

@@ -127,5 +127,17 @@ export type BotSession = {
         awaitingSoraCharacterVideo?: boolean;
         awaitingSoraCharacterName?: boolean;
         pendingSoraCharacterVideo?: StoredVoiceSample;
+        /** Apiframe MJ inpaint: waiting for mask image */
+        awaitingMjInpaint?: {
+            parentJobId: string;
+            parentProviderJobId: string;
+        };
+        /** Apiframe Suno extend/cover: waiting for text */
+        awaitingSunoAction?: {
+            action: 'extend' | 'cover' | 'add_vocals';
+            parentJobId: string;
+            parentProviderJobId: string;
+            actionIndex: 1 | 2;
+        };
     };
 };

@@ -68,7 +68,6 @@ export const IMAGE_TOOLS_WITH_REFERENCES: AiToolId[] = [
     AiToolId.FLUX,
     AiToolId.NANO_BANANA,
     AiToolId.SEEDREAM,
-    AiToolId.MIDJOURNEY,
 ];
 
 export const IMAGE_TOOLS_WITH_ASPECT_SETTINGS: AiToolId[] = [

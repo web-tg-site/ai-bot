@@ -61,27 +61,21 @@ const RU: Partial<Record<AiToolId, string>> = {
 3. Выберите формат и качество.
 4. Запустите генерацию.`,
 
-    [AiToolId.MIDJOURNEY]: `Midjourney — AI для создания и редактирования изображений. Он особенно хорошо подходит для визуальных концепций, рекламы, fashion, предметной съёмки, персонажей и художественных изображений.
-Сейчас основной вариант — V8.1. Midjourney поддерживает Image Prompts, Style Reference, Omni Reference, Personalization, Raw Mode, изменение соотношения сторон и другие параметры.
+    [AiToolId.MIDJOURNEY]: `Midjourney — AI для создания изображений. Генерация возвращает сетку 4 картинок; дальше доступны U1–U4 (upsample), V1–V4 (вариации), pan, zoom out и Vary Region (inpaint).
 
 Что можно делать
-• создавать изображения с нуля
-• делать рекламные креативы
-• создавать fashion-съёмки
-• визуализировать продукты
-• создавать персонажей
-• создавать концепты интерьеров и архитектуры
-• переносить визуальный стиль референса
-• использовать изображение человека или объекта как референс
-• редактировать готовые изображения
-• создавать серии изображений в едином стиле
+• создавать изображения по текстовому описанию
+• выбирать соотношение сторон
+• увеличивать выбранный кадр (U1–U4)
+• делать вариации (V1–V4)
+• расширять кадр (pan / zoom out)
+• перерисовывать область по маске (Vary Region)
 
 Как пользоваться
 1. Опишите изображение, которое хотите получить.
-2. При необходимости загрузите референс.
-3. Выберите соотношение сторон.
-4. При необходимости настройте стиль, качество и степень стилизации.
-5. Запустите генерацию.`,
+2. Выберите соотношение сторон.
+3. Запустите генерацию — придёт сетка 4 изображений.
+4. Нажмите U1–U4 или V1–V4, затем при необходимости pan / zoom / inpaint.`,
 
     [AiToolId.NANO_BANANA]: `Nano Banana — семейство моделей Google для создания и редактирования изображений с помощью текста.
 Главная особенность — возможность не только создать изображение с нуля, но и работать с существующими изображениями и референсами.
@@ -469,27 +463,21 @@ How to use
 3. Choose format and quality.
 4. Run generation.`,
 
-    [AiToolId.MIDJOURNEY]: `Midjourney is an AI for creating and editing images. It excels at visual concepts, ads, fashion, product photography, characters and artistic images.
-The main version now is V8.1. Midjourney supports Image Prompts, Style Reference, Omni Reference, Personalization, Raw Mode, aspect ratio changes and other parameters.
+    [AiToolId.MIDJOURNEY]: `Midjourney generates images from text prompts. Each generation returns a 4-image grid; then you can upsample (U1–U4), vary (V1–V4), pan, zoom out, or Vary Region (inpaint).
 
 What you can do
-• create images from scratch
-• make ad creatives
-• create fashion shoots
-• visualize products
-• create characters
-• create interior and architecture concepts
-• transfer a reference's visual style
-• use a person or object image as a reference
-• edit finished images
-• create image series in a unified style
+• create images from a text prompt
+• choose aspect ratio
+• upsample a selected frame (U1–U4)
+• create variations (V1–V4)
+• expand the canvas (pan / zoom out)
+• repaint a masked region (Vary Region)
 
 How to use
 1. Describe the image you want.
-2. Upload a reference if needed.
-3. Choose aspect ratio.
-4. Adjust style, quality and stylization if needed.
-5. Run generation.`,
+2. Choose aspect ratio.
+3. Run generation — you get a 4-image grid.
+4. Tap U1–U4 or V1–V4, then pan / zoom / inpaint if needed.`,
 
     [AiToolId.NANO_BANANA]: `Nano Banana is a family of Google models for creating and editing images with text.
 The key feature is the ability not only to create an image from scratch, but also to work with existing images and references.

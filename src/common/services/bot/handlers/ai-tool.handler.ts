@@ -7,14 +7,18 @@ import {
 } from '@/common/services/ai';
 import { AiFileInput, AiGenerationInput } from '@/common/services/ai/types';
 import {
-    isSharpiiMidjourneyUpstreamError,
-    isSharpiiMidjourneyGenericFailure,
-} from '@/common/services/ai/providers/sharpii.provider';
+    isApiframeMidjourneyUpstreamError,
+    isApiframeMidjourneyGenericFailure,
+} from '@/common/services/ai/providers/apiframe.provider';
 import {
     getToolById,
     AI_TOOLS_REGISTRY,
     calculateToolTokenCost,
 } from '@/common/config/ai-tools.registry';
+import {
+    registerApiframeActionHandlers,
+    tryHandlePendingApiframeFollowUp,
+} from './apiframe-actions.handler';
 import {
     isImageToolWithAspectSettings,
     isImageToolWithReferences,
@@ -206,6 +210,8 @@ function getMessageId(ctx: Context): number | undefined {
 export type AiHandlerDeps = BotHandlerDeps;
 
 export const registerAiToolHandlers = (bot: Telegraf, deps: AiHandlerDeps) => {
+    registerApiframeActionHandlers(bot, deps);
+
     for (const tool of AI_TOOLS_REGISTRY) {
         registerLocalizedHears(
             bot,
@@ -2923,6 +2929,15 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
     const files = await extractFilesFromMessage(ctx);
 
     if (
+        await tryHandlePendingApiframeFollowUp(ctx, deps, {
+            text: text ?? undefined,
+            files,
+        })
+    ) {
+        return;
+    }
+
+    if (
         text &&
         isImageFlowTool(toolId) &&
         (await handleImageToolButtonPress(
@@ -3673,8 +3688,8 @@ async function runGeneration(
                 if (
                     toolId === AiToolId.MIDJOURNEY &&
                     (message === 'INSUFFICIENT_TOKENS' ||
-                        isSharpiiMidjourneyUpstreamError(message) ||
-                        isSharpiiMidjourneyGenericFailure(message))
+                        isApiframeMidjourneyUpstreamError(message) ||
+                        isApiframeMidjourneyGenericFailure(message))
                 ) {
                     if (message === 'INSUFFICIENT_TOKENS') {
                         throw error;

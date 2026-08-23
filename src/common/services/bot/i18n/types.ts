@@ -59,6 +59,11 @@ export type I18nBundle = {
         generating: string;
         asyncStarted: string;
         midjourneyFallback: string;
+        midjourneyActionsHint: string;
+        sunoActionsHint: string;
+        midjourneyInpaintPrompt: string;
+        sunoExtendPrompt: string;
+        sunoCoverPrompt: string;
         generationTakingLonger: string;
         videoToAudioPreparing: string;
         insufficientTokens: string;

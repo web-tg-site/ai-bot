@@ -14,9 +14,9 @@ import { AiService } from '../ai.service';
 import { AiJobService } from './ai-job.service';
 import { AiGenerationInput, AiGenerationResult, AiToolId } from '../types';
 import {
-    isSharpiiMidjourneyUpstreamError,
-    isSharpiiMidjourneyGenericFailure,
-} from '../providers/sharpii.provider';
+    isApiframeMidjourneyUpstreamError,
+    isApiframeMidjourneyGenericFailure,
+} from '../providers/apiframe.provider';
 import { buildOpenAiVideoResultUrl } from '../providers/openai.provider';
 import {
     AI_JOB_STALE_REMINDER_TEXT,
@@ -41,6 +41,8 @@ import {
     getAuthHeadersForUrl,
 } from '@/common/utils/download-remote-file';
 import { TempPublicMediaService } from '../temp-public-media.service';
+import { buildApiframeResultKeyboard } from '@/common/services/bot/keyboards/apiframe-actions.keyboard';
+import type { ApiframeResultJson } from '@/common/config/apiframe.config';
 
 type PendingJob = Awaited<ReturnType<AiJobService['getPendingJobs']>>[number];
 
@@ -188,8 +190,8 @@ export class AiJobCron {
 
                 if (
                     toolId === AiToolId.MIDJOURNEY &&
-                    (isSharpiiMidjourneyUpstreamError(errorMessage) ||
-                        isSharpiiMidjourneyGenericFailure(errorMessage))
+                    (isApiframeMidjourneyUpstreamError(errorMessage) ||
+                        isApiframeMidjourneyGenericFailure(errorMessage))
                 ) {
                     this.fallbackJobIds.add(job.id);
                     void this.handleMidjourneyFluxFallback(
@@ -290,6 +292,10 @@ export class AiJobCron {
                 resultUrl = buildOpenAiVideoResultUrl(job.providerJobId);
             }
 
+            const resultJson =
+                (resolved.resultJson as ApiframeResultJson | undefined) ??
+                (result.resultJson as ApiframeResultJson | undefined);
+
             await this.ensureJobMediaCached(job.id, resolved, resultUrl);
 
             // Persist URL first so mini-app polling is not blocked by Telegram delivery.
@@ -298,6 +304,7 @@ export class AiJobCron {
                 JobStatus.COMPLETED,
                 {
                     resultUrl,
+                    resultJson: resultJson ?? undefined,
                 },
             );
 
@@ -306,17 +313,11 @@ export class AiJobCron {
             }
 
             try {
-                await this.sendResult(
+                await this.sendApiframeOrDefaultResult(
                     botService,
-                    job.user.telegramId,
-                    job.toolId as AiToolId,
-                    resolved.type,
+                    job,
                     resolved,
-                    await this.resolveSendAsFile(
-                        job.userId,
-                        job.toolId as AiToolId,
-                    ),
-                    getToolLabel(job.toolId as AiToolId, job.user.language),
+                    resultJson,
                 );
 
                 if (
@@ -347,6 +348,26 @@ export class AiJobCron {
                     );
                 }
 
+                const actionKeyboard = buildApiframeResultKeyboard(
+                    job.id,
+                    resultJson,
+                );
+                if (actionKeyboard.length > 0) {
+                    const i18n = getI18n(job.user.language);
+                    const hint =
+                        job.toolId === AiToolId.MIDJOURNEY
+                            ? (i18n.aiResult.midjourneyActionsHint ??
+                              'Выберите действие:')
+                            : job.toolId === AiToolId.SUNO
+                              ? (i18n.aiResult.sunoActionsHint ??
+                                'Выберите действие:')
+                              : 'Выберите действие:';
+                    await botService.sendMessage(job.user.telegramId, hint, {
+                        parse_mode: 'HTML',
+                        reply_markup: { inline_keyboard: actionKeyboard },
+                    });
+                }
+
                 await botService.sendMessage(
                     job.user.telegramId,
                     getI18n(job.user.language).aiResult.jobCompleted(
@@ -366,6 +387,83 @@ export class AiJobCron {
             this.logJobError(job, 'delivery', error);
             await this.failJob(botService, job, message);
         }
+    }
+
+    private async sendApiframeOrDefaultResult(
+        botService: BotService,
+        job: PendingJob,
+        resolved: AiGenerationResult,
+        resultJson?: ApiframeResultJson,
+    ) {
+        const sendAsFile = await this.resolveSendAsFile(
+            job.userId,
+            job.toolId as AiToolId,
+        );
+        const caption = getToolLabel(
+            job.toolId as AiToolId,
+            job.user.language,
+        );
+
+        if (
+            resultJson?.kind === 'midjourney_grid' &&
+            resultJson.images?.length
+        ) {
+            if (resultJson.gridUrl) {
+                await this.sendResult(
+                    botService,
+                    job.user.telegramId,
+                    job.toolId as AiToolId,
+                    'image',
+                    { url: resultJson.gridUrl },
+                    sendAsFile,
+                    `${caption} (grid)`,
+                );
+            }
+            for (let i = 0; i < Math.min(resultJson.images.length, 4); i++) {
+                await this.sendResult(
+                    botService,
+                    job.user.telegramId,
+                    job.toolId as AiToolId,
+                    'image',
+                    { url: resultJson.images[i] },
+                    sendAsFile,
+                    `${caption} #${i + 1}`,
+                );
+            }
+            return;
+        }
+
+        if (
+            (resultJson?.kind === 'suno_tracks' ||
+                resultJson?.kind === 'suno_stems') &&
+            resultJson.tracks?.length
+        ) {
+            for (let i = 0; i < resultJson.tracks.length; i++) {
+                const track = resultJson.tracks[i];
+                await this.sendResult(
+                    botService,
+                    job.user.telegramId,
+                    job.toolId as AiToolId,
+                    'audio',
+                    { url: track.audioUrl, mimeType: 'audio/mpeg' },
+                    true,
+                    track.title
+                        ? `${caption}: ${track.title}`
+                        : `${caption} #${i + 1}`,
+                );
+            }
+            return;
+        }
+
+        await this.sendResult(
+            botService,
+            job.user.telegramId,
+            job.toolId as AiToolId,
+            resolved.type,
+            resolved,
+            sendAsFile,
+            caption,
+        );
     }
 
     private async failJob(

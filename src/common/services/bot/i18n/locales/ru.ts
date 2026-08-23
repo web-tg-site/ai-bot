@@ -157,6 +157,16 @@ export const ru: I18nBundle = {
             '⏳ Генерация запущена. Результат придёт в этот чат, когда будет готов.',
         midjourneyFallback:
             '⚠️ Midjourney сейчас недоступен (сбой на стороне провайдера). Генерирую через Flux…',
+        midjourneyActionsHint:
+            '🖼 Выберите действие: U1–U4 — увеличить, V1–V4 — вариации.',
+        sunoActionsHint:
+            '🎵 Выберите трек и действие: Extend, Cover, Vocals или Stems.',
+        midjourneyInpaintPrompt:
+            '🎨 <b>Vary Region</b>: отправьте чёрно-белую маску (белое = перерисовать) и при желании подпись с новым промптом.',
+        sunoExtendPrompt:
+            '⏭ <b>Extend</b>: опишите продолжение (или отправьте «.» чтобы продолжить без нового текста).',
+        sunoCoverPrompt:
+            '🎤 <b>Cover</b>: опишите новый стиль (жанр/настроение) для кавера.',
         generationTakingLonger:
             '⏳ Генерация занимает больше времени, чем обычно. Пожалуйста, подождите…',
         videoToAudioPreparing:

@@ -15,6 +15,7 @@ import {
     OpenAiProvider,
     OpenRouterProvider,
     SharpiiProvider,
+    ApiframeProvider,
     TopazProvider,
     BflProvider,
     LumaProvider,
@@ -28,6 +29,7 @@ export class AiService {
         private readonly openAiProvider: OpenAiProvider,
         private readonly openRouterProvider: OpenRouterProvider,
         private readonly sharpiiProvider: SharpiiProvider,
+        private readonly apiframeProvider: ApiframeProvider,
         private readonly heyGenProvider: HeyGenProvider,
         private readonly higgsfieldProvider: HiggsfieldProvider,
         private readonly topazProvider: TopazProvider,
@@ -69,6 +71,8 @@ export class AiService {
                 return this.openRouterProvider.generate(toolId, input);
             case AiProviderId.SHARPII:
                 return this.sharpiiProvider.generate(toolId, input);
+            case AiProviderId.APIFRAME:
+                return this.apiframeProvider.generate(toolId, input);
             case AiProviderId.ELEVENLABS:
                 return this.elevenLabsProvider.generate(toolId, input);
             case AiProviderId.BFL:
@@ -106,6 +110,8 @@ export class AiService {
                 return this.openAiProvider.createJob(toolId, input);
             case AiProviderId.SHARPII:
                 return this.sharpiiProvider.createJob(toolId, input);
+            case AiProviderId.APIFRAME:
+                return this.apiframeProvider.createJob(toolId, input);
             case AiProviderId.ELEVENLABS:
                 return this.elevenLabsProvider.createJob(toolId, input);
             case AiProviderId.HEYGEN:
@@ -143,6 +149,8 @@ export class AiService {
                 return this.openAiProvider.getJobStatus(providerJobId);
             case AiProviderId.SHARPII:
                 return this.sharpiiProvider.getJobStatus(providerJobId, toolId);
+            case AiProviderId.APIFRAME:
+                return this.apiframeProvider.getJobStatus(providerJobId, toolId);
             case AiProviderId.ELEVENLABS:
                 return this.elevenLabsProvider.getJobStatus(providerJobId);
             case AiProviderId.HEYGEN:

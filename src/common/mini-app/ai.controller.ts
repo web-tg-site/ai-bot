@@ -236,6 +236,69 @@ class GenerateBodyDto {
     sourceGenerationId?: string;
 
     @IsOptional()
+    @IsIn([
+        'upsample',
+        'variation',
+        'inpaint',
+        'outpaint',
+        'pan',
+        'extend',
+        'cover',
+        'add_vocals',
+        'stems',
+    ])
+    apiframeAction?:
+        | 'upsample'
+        | 'variation'
+        | 'inpaint'
+        | 'outpaint'
+        | 'pan'
+        | 'extend'
+        | 'cover'
+        | 'add_vocals'
+        | 'stems';
+
+    @IsOptional()
+    @IsNumberString()
+    actionIndex?: string;
+
+    @IsOptional()
+    @IsIn(['up', 'down', 'left', 'right'])
+    actionDirection?: 'up' | 'down' | 'left' | 'right';
+
+    @IsOptional()
+    @IsNumberString()
+    continueAt?: string;
+
+    @IsOptional()
+    @IsString()
+    trackId?: string;
+
+    @IsOptional()
+    @IsString()
+    sunoTitle?: string;
+
+    @IsOptional()
+    @IsString()
+    sunoModelVersion?: string;
+
+    @IsOptional()
+    @IsString()
+    sunoNegativeTags?: string;
+
+    @IsOptional()
+    @IsIn(['m', 'f'])
+    sunoVocalGender?: 'm' | 'f';
+
+    @IsOptional()
+    @IsString()
+    sunoAutoLyrics?: string;
+
+    @IsOptional()
+    @IsString()
+    sunoStyle?: string;
+
+    @IsOptional()
     @IsIn(['create', 'extend', 'edit'])
     soraVideoMode?: 'create' | 'extend' | 'edit';
 
@@ -579,6 +642,35 @@ export class AiController {
               )
             : undefined;
 
+        let parentProviderJobId: string | undefined;
+        if (body.apiframeAction && body.sourceGenerationId) {
+            const parent = await this.prismaService.aiGenerationJob.findFirst({
+                where: {
+                    id: body.sourceGenerationId,
+                    userId: current.id,
+                    status: JobStatus.COMPLETED,
+                },
+                select: {
+                    providerJobId: true,
+                    toolId: true,
+                    resultJson: true,
+                },
+            });
+            if (!parent?.providerJobId) {
+                throw new HttpException(
+                    { error: 'Родительская генерация не найдена' },
+                    HttpStatus.BAD_REQUEST,
+                );
+            }
+            if (parent.toolId !== body.toolId) {
+                throw new HttpException(
+                    { error: 'Инструмент не совпадает с родительской генерацией' },
+                    HttpStatus.BAD_REQUEST,
+                );
+            }
+            parentProviderJobId = parent.providerJobId;
+        }
+
         try {
             return await this.generationFacade.generate({
                 userId: current.id,
@@ -628,6 +720,14 @@ export class AiController {
                         body.sunoInstrumental === 'true' ||
                         body.sunoInstrumental === '1',
                     sunoLyrics: body.sunoLyrics,
+                    sunoTitle: body.sunoTitle,
+                    sunoModelVersion: body.sunoModelVersion,
+                    sunoNegativeTags: body.sunoNegativeTags,
+                    sunoVocalGender: body.sunoVocalGender,
+                    sunoAutoLyrics:
+                        body.sunoAutoLyrics === 'true' ||
+                        body.sunoAutoLyrics === '1',
+                    sunoStyle: body.sunoStyle,
                     outpaintWidth: body.outpaintWidth
                         ? Number(body.outpaintWidth)
                         : undefined,
@@ -648,6 +748,17 @@ export class AiController {
                         body.lumaWebSearch === '1',
                     lumaOutputFormat: body.lumaOutputFormat,
                     sourceGenerationId: body.sourceGenerationId,
+                    apiframeAction: body.apiframeAction,
+                    actionIndex: body.actionIndex
+                        ? (Number(body.actionIndex) as 1 | 2 | 3 | 4)
+                        : undefined,
+                    actionDirection: body.actionDirection,
+                    continueAt: body.continueAt
+                        ? Number(body.continueAt)
+                        : undefined,
+                    trackId: body.trackId,
+                    parentJobId: body.sourceGenerationId,
+                    parentProviderJobId,
                     soraVideoMode: body.soraVideoMode,
                     soraCharacterIds: (() => {
                         if (!body.soraCharacterIds) return undefined;
@@ -742,6 +853,7 @@ export class AiController {
                 toolId: true,
                 status: true,
                 resultUrl: true,
+                resultJson: true,
                 providerJobId: true,
                 errorMessage: true,
                 tokenCost: true,
@@ -760,6 +872,8 @@ export class AiController {
                     toolId: job.toolId,
                     status: job.status,
                     hasResult: Boolean(job.resultUrl),
+                    resultUrl: job.resultUrl,
+                    resultJson: job.resultJson ?? undefined,
                     providerJobId: job.providerJobId,
                     errorMessage: job.errorMessage
                         ? toUserFacingError(job.errorMessage, getI18n())
@@ -962,6 +1076,7 @@ export class AiController {
                 toolId: true,
                 status: true,
                 resultUrl: true,
+                resultJson: true,
                 providerJobId: true,
                 errorMessage: true,
                 tokenCost: true,
@@ -986,6 +1101,8 @@ export class AiController {
             toolId: job.toolId,
             status: job.status,
             hasResult: Boolean(job.resultUrl),
+            resultUrl: job.resultUrl,
+            resultJson: job.resultJson ?? undefined,
             providerJobId: job.providerJobId,
             errorMessage: job.errorMessage
                 ? toUserFacingError(job.errorMessage, getI18n())

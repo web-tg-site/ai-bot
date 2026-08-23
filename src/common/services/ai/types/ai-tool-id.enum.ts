@@ -25,6 +25,7 @@ export enum AiProviderId {
     OPENAI = 'openai',
     OPENROUTER = 'openrouter',
     SHARPII = 'sharpii',
+    APIFRAME = 'apiframe',
     BYTEPLUS = 'byteplus',
     ELEVENLABS = 'elevenlabs',
     HEYGEN = 'heygen',

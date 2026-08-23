@@ -9,6 +9,10 @@ import {
     applyImageCostMultipliers,
     applyVideoCostMultipliers,
 } from '@/common/config/token-cost-multipliers.config';
+import {
+    resolveApiframeActionTokenCost,
+    type ApiframeAction,
+} from '@/common/config/apiframe.config';
 import { ru } from '@/common/services/bot/i18n/locales/ru';
 import { en } from '@/common/services/bot/i18n/locales/en';
 
@@ -102,13 +106,13 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         id: AiToolId.MIDJOURNEY,
         label: 'Midjourney',
         category: 'image',
-        provider: AiProviderId.SHARPII,
-        model: 'mj-imagine',
+        provider: AiProviderId.APIFRAME,
+        model: 'midjourney',
         baseTokenCost: 30,
-        accepts: ['text', 'photo'],
+        accepts: ['text'],
         isAsync: true,
         instruction:
-            'Опишите задачу и при желании добавьте референсы (до 10 изображений).',
+            'Опишите изображение. После генерации можно выбрать U1–U4, вариации, pan, zoom и inpaint.',
     },
     {
         id: AiToolId.KLING,
@@ -270,15 +274,13 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         id: AiToolId.SUNO,
         label: 'Suno',
         category: 'audio',
-        provider: AiProviderId.SHARPII,
-        model: 'suno-v4.5plus',
-        baseTokenCost: 0,
-        perSecondCost: 20 / 60,
-        defaultDurationSeconds: 30,
+        provider: AiProviderId.APIFRAME,
+        model: 'suno',
+        baseTokenCost: 22,
         accepts: ['text'],
         isAsync: true,
         instruction:
-            'Отправьте текстом описание песни (или задайте жанр/настроение/текст в «⚙️ Параметры»). Параметры — там же.',
+            'Отправьте описание песни (или задайте жанр/настроение/текст в «⚙️ Параметры»). После генерации доступны Extend, Cover, Add vocals и Stems.',
     },
 ];
 
@@ -309,6 +311,7 @@ export type ToolCostOptions = {
     topazScale?: number;
     quality?: string;
     resolution?: string;
+    apiframeAction?: ApiframeAction;
 };
 
 export const calculateToolTokenCost = (
@@ -319,6 +322,13 @@ export const calculateToolTokenCost = (
         typeof options === 'number'
             ? { durationSeconds: options }
             : (options ?? {});
+
+    if (
+        (tool.id === AiToolId.MIDJOURNEY || tool.id === AiToolId.SUNO) &&
+        normalized.apiframeAction
+    ) {
+        return resolveApiframeActionTokenCost(normalized.apiframeAction);
+    }
 
     if (tool.id === AiToolId.TOPAZ) {
         const scale = normalized.topazScale ?? 2;

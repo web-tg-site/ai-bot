@@ -1292,12 +1292,14 @@ export const AiGenerationJobScalarFieldEnum = {
   tokenCost: 'tokenCost',
   inputJson: 'inputJson',
   resultUrl: 'resultUrl',
+  resultJson: 'resultJson',
   errorMessage: 'errorMessage',
   pollAttempts: 'pollAttempts',
   pollErrorCount: 'pollErrorCount',
   lastPolledAt: 'lastPolledAt',
   staleReminderSent: 'staleReminderSent',
   notifyTelegram: 'notifyTelegram',
+  sessionId: 'sessionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1352,6 +1354,14 @@ export const JsonNullValueInput = {
 } as const
 
 export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const QueryMode = {
