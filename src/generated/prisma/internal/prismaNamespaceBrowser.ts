@@ -191,6 +191,7 @@ export const AiGenerationJobScalarFieldEnum = {
   failoverNotice: 'failoverNotice',
   failoverFromToolId: 'failoverFromToolId',
   failoverTriedToolIds: 'failoverTriedToolIds',
+  prompt: 'prompt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

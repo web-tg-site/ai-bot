@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { PrismaService } from '@/common/services/prisma';
-import { Prisma } from '@/generated/prisma/client';
 import { JobStatus } from '@/generated/prisma/enums';
 import { AiService } from '../ai.service';
 import { AiGenerationInput, AiToolId } from '../types';
@@ -11,7 +10,7 @@ import {
     AI_JOB_MAX_AGE_MS,
     AI_JOB_POLL_BATCH_SIZE,
 } from '@/common/config/ai-job.config';
-import { toPersistedInputJson } from '../utils/persist-generation-input';
+import { jobPromptForDb, toPersistedInputJson } from '../utils/persist-generation-input';
 
 export type JobListItem = {
     id: string;
@@ -93,6 +92,7 @@ export class AiJobService {
                 inputJson: toPersistedInputJson(params.input, {
                     includeFiles: true,
                 }),
+                prompt: jobPromptForDb(params.input),
                 notifyTelegram: params.notifyTelegram ?? true,
                 sessionId: params.sessionId ?? null,
             },
@@ -131,6 +131,7 @@ export class AiJobService {
                 inputJson: toPersistedInputJson(params.input, {
                     includeFiles: true,
                 }),
+                prompt: jobPromptForDb(params.input),
                 notifyTelegram: params.notifyTelegram ?? true,
                 sessionId: params.sessionId ?? null,
                 failoverNotice: params.failoverNotice ?? null,
@@ -191,6 +192,7 @@ export class AiJobService {
                 inputJson: toPersistedInputJson(params.input, {
                     includeFiles: false,
                 }),
+                prompt: jobPromptForDb(params.input),
                 resultUrl: params.resultUrl ?? null,
                 notifyTelegram: params.notifyTelegram ?? true,
                 sessionId: params.sessionId ?? null,
@@ -201,8 +203,9 @@ export class AiJobService {
     }
 
     /**
-     * Lightweight history list: prompt via JSON path, skip data-URL bodies and
-     * never load reference-image buffers from inputJson.
+     * Lightweight history list: never read inputJson or resultUrl — those
+     * columns hold multi-MB data URLs / file buffers and detoasting them
+     * stalls the mini-app on open.
      */
     async listJobsForUser(params: {
         userId: string;
@@ -210,40 +213,50 @@ export class AiJobService {
         toolIds?: string[];
         take?: number;
     }): Promise<JobListItem[]> {
-        const take = params.take ?? 30;
-        const toolFilter = params.toolId
-            ? Prisma.sql`AND "toolId" = ${params.toolId}`
-            : params.toolIds?.length
-              ? Prisma.sql`AND "toolId" IN (${Prisma.join(params.toolIds)})`
-              : Prisma.empty;
+        const jobs = await this.prismaService.aiGenerationJob.findMany({
+            where: {
+                userId: params.userId,
+                ...(params.toolId ? { toolId: params.toolId } : {}),
+                ...(params.toolIds?.length && !params.toolId
+                    ? { toolId: { in: params.toolIds } }
+                    : {}),
+            },
+            orderBy: { createdAt: 'desc' },
+            take: params.take ?? 30,
+            select: {
+                id: true,
+                toolId: true,
+                status: true,
+                resultJson: true,
+                providerJobId: true,
+                errorMessage: true,
+                tokenCost: true,
+                prompt: true,
+                sessionId: true,
+                failoverNotice: true,
+                failoverFromToolId: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
 
-        return this.prismaService.$queryRaw<JobListItem[]>(Prisma.sql`
-            SELECT
-                id,
-                "toolId",
-                status,
-                CASE
-                    WHEN "resultUrl" IS NULL THEN NULL
-                    WHEN left("resultUrl", 5) = 'data:' THEN NULL
-                    ELSE "resultUrl"
-                END AS "resultUrl",
-                ("resultUrl" IS NOT NULL) AS "hasResult",
-                "resultJson",
-                "providerJobId",
-                "errorMessage",
-                "tokenCost",
-                COALESCE("inputJson"->>'prompt', '') AS prompt,
-                "sessionId",
-                "failoverNotice",
-                "failoverFromToolId",
-                "createdAt",
-                "updatedAt"
-            FROM ai_generation_jobs
-            WHERE "userId" = ${params.userId}
-            ${toolFilter}
-            ORDER BY "createdAt" DESC
-            LIMIT ${take}
-        `);
+        return jobs.map((job) => ({
+            id: job.id,
+            toolId: job.toolId,
+            status: job.status,
+            resultUrl: null,
+            hasResult: job.status === JobStatus.COMPLETED,
+            resultJson: job.resultJson,
+            providerJobId: job.providerJobId,
+            errorMessage: job.errorMessage,
+            tokenCost: job.tokenCost,
+            prompt: job.prompt ?? '',
+            sessionId: job.sessionId,
+            failoverNotice: job.failoverNotice,
+            failoverFromToolId: job.failoverFromToolId,
+            createdAt: job.createdAt,
+            updatedAt: job.updatedAt,
+        }));
     }
 
     /** Drop binary payloads once the job can no longer failover. */

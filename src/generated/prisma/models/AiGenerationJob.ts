@@ -55,6 +55,7 @@ export type AiGenerationJobMinAggregateOutputType = {
   sessionId: string | null
   failoverNotice: string | null
   failoverFromToolId: string | null
+  prompt: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -76,6 +77,7 @@ export type AiGenerationJobMaxAggregateOutputType = {
   sessionId: string | null
   failoverNotice: string | null
   failoverFromToolId: string | null
+  prompt: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -100,6 +102,7 @@ export type AiGenerationJobCountAggregateOutputType = {
   failoverNotice: number
   failoverFromToolId: number
   failoverTriedToolIds: number
+  prompt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -135,6 +138,7 @@ export type AiGenerationJobMinAggregateInputType = {
   sessionId?: true
   failoverNotice?: true
   failoverFromToolId?: true
+  prompt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -156,6 +160,7 @@ export type AiGenerationJobMaxAggregateInputType = {
   sessionId?: true
   failoverNotice?: true
   failoverFromToolId?: true
+  prompt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -180,6 +185,7 @@ export type AiGenerationJobCountAggregateInputType = {
   failoverNotice?: true
   failoverFromToolId?: true
   failoverTriedToolIds?: true
+  prompt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -291,6 +297,7 @@ export type AiGenerationJobGroupByOutputType = {
   failoverNotice: string | null
   failoverFromToolId: string | null
   failoverTriedToolIds: runtime.JsonValue | null
+  prompt: string | null
   createdAt: Date
   updatedAt: Date
   _count: AiGenerationJobCountAggregateOutputType | null
@@ -338,6 +345,7 @@ export type AiGenerationJobWhereInput = {
   failoverNotice?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
   failoverFromToolId?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
   failoverTriedToolIds?: Prisma.JsonNullableFilter<"AiGenerationJob">
+  prompt?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AiGenerationJob"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AiGenerationJob"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -363,6 +371,7 @@ export type AiGenerationJobOrderByWithRelationInput = {
   failoverNotice?: Prisma.SortOrderInput | Prisma.SortOrder
   failoverFromToolId?: Prisma.SortOrderInput | Prisma.SortOrder
   failoverTriedToolIds?: Prisma.SortOrderInput | Prisma.SortOrder
+  prompt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -391,6 +400,7 @@ export type AiGenerationJobWhereUniqueInput = Prisma.AtLeast<{
   failoverNotice?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
   failoverFromToolId?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
   failoverTriedToolIds?: Prisma.JsonNullableFilter<"AiGenerationJob">
+  prompt?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AiGenerationJob"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AiGenerationJob"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -416,6 +426,7 @@ export type AiGenerationJobOrderByWithAggregationInput = {
   failoverNotice?: Prisma.SortOrderInput | Prisma.SortOrder
   failoverFromToolId?: Prisma.SortOrderInput | Prisma.SortOrder
   failoverTriedToolIds?: Prisma.SortOrderInput | Prisma.SortOrder
+  prompt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.AiGenerationJobCountOrderByAggregateInput
@@ -448,6 +459,7 @@ export type AiGenerationJobScalarWhereWithAggregatesInput = {
   failoverNotice?: Prisma.StringNullableWithAggregatesFilter<"AiGenerationJob"> | string | null
   failoverFromToolId?: Prisma.StringNullableWithAggregatesFilter<"AiGenerationJob"> | string | null
   failoverTriedToolIds?: Prisma.JsonNullableWithAggregatesFilter<"AiGenerationJob">
+  prompt?: Prisma.StringNullableWithAggregatesFilter<"AiGenerationJob"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AiGenerationJob"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"AiGenerationJob"> | Date | string
 }
@@ -471,6 +483,7 @@ export type AiGenerationJobCreateInput = {
   failoverNotice?: string | null
   failoverFromToolId?: string | null
   failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  prompt?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutAiGenerationJobsInput
@@ -496,6 +509,7 @@ export type AiGenerationJobUncheckedCreateInput = {
   failoverNotice?: string | null
   failoverFromToolId?: string | null
   failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  prompt?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -519,6 +533,7 @@ export type AiGenerationJobUpdateInput = {
   failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutAiGenerationJobsNestedInput
@@ -544,6 +559,7 @@ export type AiGenerationJobUncheckedUpdateInput = {
   failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -568,6 +584,7 @@ export type AiGenerationJobCreateManyInput = {
   failoverNotice?: string | null
   failoverFromToolId?: string | null
   failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  prompt?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -591,6 +608,7 @@ export type AiGenerationJobUpdateManyMutationInput = {
   failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -615,6 +633,7 @@ export type AiGenerationJobUncheckedUpdateManyInput = {
   failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -649,6 +668,7 @@ export type AiGenerationJobCountOrderByAggregateInput = {
   failoverNotice?: Prisma.SortOrder
   failoverFromToolId?: Prisma.SortOrder
   failoverTriedToolIds?: Prisma.SortOrder
+  prompt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -676,6 +696,7 @@ export type AiGenerationJobMaxOrderByAggregateInput = {
   sessionId?: Prisma.SortOrder
   failoverNotice?: Prisma.SortOrder
   failoverFromToolId?: Prisma.SortOrder
+  prompt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -697,6 +718,7 @@ export type AiGenerationJobMinOrderByAggregateInput = {
   sessionId?: Prisma.SortOrder
   failoverNotice?: Prisma.SortOrder
   failoverFromToolId?: Prisma.SortOrder
+  prompt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -772,6 +794,7 @@ export type AiGenerationJobCreateWithoutUserInput = {
   failoverNotice?: string | null
   failoverFromToolId?: string | null
   failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  prompt?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -795,6 +818,7 @@ export type AiGenerationJobUncheckedCreateWithoutUserInput = {
   failoverNotice?: string | null
   failoverFromToolId?: string | null
   failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  prompt?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -848,6 +872,7 @@ export type AiGenerationJobScalarWhereInput = {
   failoverNotice?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
   failoverFromToolId?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
   failoverTriedToolIds?: Prisma.JsonNullableFilter<"AiGenerationJob">
+  prompt?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AiGenerationJob"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AiGenerationJob"> | Date | string
 }
@@ -871,6 +896,7 @@ export type AiGenerationJobCreateManyUserInput = {
   failoverNotice?: string | null
   failoverFromToolId?: string | null
   failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  prompt?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -894,6 +920,7 @@ export type AiGenerationJobUpdateWithoutUserInput = {
   failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -917,6 +944,7 @@ export type AiGenerationJobUncheckedUpdateWithoutUserInput = {
   failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -940,6 +968,7 @@ export type AiGenerationJobUncheckedUpdateManyWithoutUserInput = {
   failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -966,6 +995,7 @@ export type AiGenerationJobSelect<ExtArgs extends runtime.Types.Extensions.Inter
   failoverNotice?: boolean
   failoverFromToolId?: boolean
   failoverTriedToolIds?: boolean
+  prompt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -991,6 +1021,7 @@ export type AiGenerationJobSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   failoverNotice?: boolean
   failoverFromToolId?: boolean
   failoverTriedToolIds?: boolean
+  prompt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1016,6 +1047,7 @@ export type AiGenerationJobSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   failoverNotice?: boolean
   failoverFromToolId?: boolean
   failoverTriedToolIds?: boolean
+  prompt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1041,11 +1073,12 @@ export type AiGenerationJobSelectScalar = {
   failoverNotice?: boolean
   failoverFromToolId?: boolean
   failoverTriedToolIds?: boolean
+  prompt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type AiGenerationJobOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "toolId" | "providerJobId" | "status" | "tokenCost" | "inputJson" | "resultUrl" | "resultJson" | "errorMessage" | "pollAttempts" | "pollErrorCount" | "lastPolledAt" | "staleReminderSent" | "notifyTelegram" | "sessionId" | "failoverNotice" | "failoverFromToolId" | "failoverTriedToolIds" | "createdAt" | "updatedAt", ExtArgs["result"]["aiGenerationJob"]>
+export type AiGenerationJobOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "toolId" | "providerJobId" | "status" | "tokenCost" | "inputJson" | "resultUrl" | "resultJson" | "errorMessage" | "pollAttempts" | "pollErrorCount" | "lastPolledAt" | "staleReminderSent" | "notifyTelegram" | "sessionId" | "failoverNotice" | "failoverFromToolId" | "failoverTriedToolIds" | "prompt" | "createdAt" | "updatedAt", ExtArgs["result"]["aiGenerationJob"]>
 export type AiGenerationJobInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -1099,6 +1132,10 @@ export type $AiGenerationJobPayload<ExtArgs extends runtime.Types.Extensions.Int
      * Tool ids already tried in the failover chain (including the original).
      */
     failoverTriedToolIds: runtime.JsonValue | null
+    /**
+     * Denormalized prompt for history list — avoids reading huge inputJson.
+     */
+    prompt: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["aiGenerationJob"]>
@@ -1544,6 +1581,7 @@ export interface AiGenerationJobFieldRefs {
   readonly failoverNotice: Prisma.FieldRef<"AiGenerationJob", 'String'>
   readonly failoverFromToolId: Prisma.FieldRef<"AiGenerationJob", 'String'>
   readonly failoverTriedToolIds: Prisma.FieldRef<"AiGenerationJob", 'Json'>
+  readonly prompt: Prisma.FieldRef<"AiGenerationJob", 'String'>
   readonly createdAt: Prisma.FieldRef<"AiGenerationJob", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"AiGenerationJob", 'DateTime'>
 }

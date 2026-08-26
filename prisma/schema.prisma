@@ -178,6 +178,8 @@ model AiGenerationJob {
   failoverFromToolId String?
   /// Tool ids already tried in the failover chain (including the original).
   failoverTriedToolIds Json?
+  /// Denormalized prompt for history list — avoids reading huge inputJson.
+  prompt        String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

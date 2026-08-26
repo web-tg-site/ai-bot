@@ -1057,11 +1057,11 @@ export class AiController {
                 id: true,
                 toolId: true,
                 status: true,
-                resultUrl: true,
                 resultJson: true,
                 providerJobId: true,
                 errorMessage: true,
                 tokenCost: true,
+                prompt: true,
                 sessionId: true,
                 failoverNotice: true,
                 failoverFromToolId: true,
@@ -1077,24 +1077,19 @@ export class AiController {
             );
         }
 
-        const resultUrl =
-            job.resultUrl && !job.resultUrl.startsWith('data:')
-                ? job.resultUrl
-                : null;
-
         return {
             id: job.id,
             toolId: job.toolId,
             status: job.status,
-            hasResult: Boolean(job.resultUrl),
-            resultUrl,
+            hasResult: job.status === JobStatus.COMPLETED,
+            resultUrl: null,
             resultJson: job.resultJson ?? undefined,
             providerJobId: job.providerJobId,
             errorMessage: job.errorMessage
                 ? toUserFacingError(job.errorMessage, getI18n())
                 : job.errorMessage,
             tokenCost: job.tokenCost,
-            prompt: '',
+            prompt: job.prompt ?? '',
             sessionId: job.sessionId ?? undefined,
             failoverNotice: job.failoverNotice ?? undefined,
             failoverFromToolId: job.failoverFromToolId ?? undefined,

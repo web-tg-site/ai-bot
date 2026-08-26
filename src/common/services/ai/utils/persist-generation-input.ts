@@ -6,6 +6,12 @@ import type { Prisma } from '@/generated/prisma/client';
  * explode row size and make history list unbearably slow — store base64 while
  * the job can still failover, and drop binaries once the job is terminal.
  */
+export function jobPromptForDb(input: AiGenerationInput): string | null {
+    const prompt = input.prompt?.trim();
+    if (!prompt) return null;
+    return prompt.slice(0, 4000);
+}
+
 export function toPersistedInputJson(
     input: AiGenerationInput,
     options?: { includeFiles?: boolean },
