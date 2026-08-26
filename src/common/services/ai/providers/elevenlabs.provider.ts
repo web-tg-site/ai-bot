@@ -46,6 +46,7 @@ export class ElevenLabsProvider {
     private readonly apiKey: string;
     private readonly voiceId: string;
     private readonly modelId: string;
+    private readonly ttsLanguageCode: string;
     private readonly dubbingTargetLang: string;
     private readonly sfxModelId: string;
     private readonly sfxPromptInfluence: number;
@@ -71,6 +72,8 @@ export class ElevenLabsProvider {
         this.modelId =
             configService.get<string>('ELEVENLABS_MODEL_ID') ??
             'eleven_multilingual_v2';
+        this.ttsLanguageCode =
+            configService.get<string>('ELEVENLABS_TTS_LANGUAGE_CODE') ?? 'ru';
         this.dubbingTargetLang =
             configService.get<string>('ELEVENLABS_DUBBING_TARGET_LANG') ?? 'ru';
         this.sfxModelId =
@@ -361,6 +364,9 @@ export class ElevenLabsProvider {
             {
                 text: text.slice(0, MAX_TEXT_LENGTH),
                 model_id: this.modelId,
+                // Без language_code цифры/даты часто озвучиваются по-английски.
+                language_code: this.ttsLanguageCode,
+                apply_text_normalization: 'on',
             },
             {
                 headers: {
@@ -421,20 +427,7 @@ export class ElevenLabsProvider {
         }
 
         try {
-            const buffer = await this.postBinary(
-                `/text-to-speech/${voiceId}`,
-                {
-                    text: input.prompt.slice(0, MAX_TEXT_LENGTH),
-                    model_id: this.modelId,
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'audio/mpeg',
-                    },
-                    timeout: 120000,
-                },
-            );
+            const buffer = await this.synthesizeSpeech(voiceId, input.prompt);
 
             return {
                 type: 'audio',
