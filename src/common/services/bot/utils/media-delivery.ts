@@ -164,6 +164,23 @@ export async function deliverVideoBuffer(
     mimeType: string,
     sendAsFile: boolean,
 ) {
+    // Safety net: audio-only containers must not go through video remux/sendVideo
+    // (AAC/M4A has ftyp and was historically mislabeled as video/mp4).
+    if (
+        mimeType.toLowerCase().startsWith('audio/') ||
+        looksLikeMp3(buffer) ||
+        looksLikeAudioOnlyMp4(buffer)
+    ) {
+        const audioExt = mimeTypeToExtension(
+            mimeType.startsWith('audio/') ? mimeType : 'audio/mpeg',
+            'mp3',
+        );
+        await api.sendDocument(
+            bufferToInputFile(buffer, `audio.${audioExt}`),
+        );
+        return;
+    }
+
     let payload = buffer;
     try {
         payload = await remuxVideoForTelegram(buffer);
@@ -183,6 +200,23 @@ export async function deliverVideoBuffer(
     } catch {
         await api.sendDocument(inputFile);
     }
+}
+
+function looksLikeMp3(buffer: Buffer): boolean {
+    if (buffer.length < 3) return false;
+    if (buffer.subarray(0, 3).toString('ascii') === 'ID3') return true;
+    return buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0;
+}
+
+function looksLikeAudioOnlyMp4(buffer: Buffer): boolean {
+    if (buffer.length < 12) return false;
+    if (buffer.subarray(4, 8).toString('ascii') !== 'ftyp') return false;
+    const brand = buffer.subarray(8, 12).toString('ascii');
+    if (brand === 'M4A ' || brand === 'M4B ' || brand === 'mp4a') return true;
+    const head = buffer
+        .subarray(8, Math.min(buffer.length, 64))
+        .toString('ascii');
+    return head.includes('M4A ') || head.includes('M4B ');
 }
 
 export async function sendAudioBuffer(

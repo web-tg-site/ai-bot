@@ -282,8 +282,10 @@ export class ElevenLabsProvider {
                 targetLang ||
                 response.target_languages?.[0] ||
                 this.dubbingTargetLang;
+            // Не дефолтить в video/mp4: /audio/{lang} часто отдаёт audio/*,
+            // а ошибочный video ломает выдачу (silent remux / sendVideo).
             const contentType =
-                response.media_metadata?.content_type ?? 'video/mp4';
+                response.media_metadata?.content_type ?? 'audio/mpeg';
             const isVideo = contentType.startsWith('video/');
 
             return {
@@ -313,26 +315,21 @@ export class ElevenLabsProvider {
             dubbingId,
             lang,
         );
-        const resolvedMime =
-            mimeType || result.mimeType || 'application/octet-stream';
-        const isVideo =
-            resolvedMime.startsWith('video/') || this.looksLikeMp4(buffer);
+        const classified = this.classifyDubbingMedia(
+            buffer,
+            mimeType,
+            result.mimeType,
+        );
 
         return {
-            type: isVideo ? 'video' : 'audio',
+            type: classified.type,
             buffer,
-            mimeType: isVideo
-                ? resolvedMime.startsWith('video/')
-                    ? resolvedMime
-                    : 'video/mp4'
-                : resolvedMime.startsWith('audio/')
-                  ? resolvedMime
-                  : 'audio/mpeg',
+            mimeType: classified.mimeType,
             // Keep a resolvable URL so mini-app / media proxy can fetch again.
             url: buildElevenLabsDubbingResultUrl(
                 dubbingId,
                 lang,
-                isVideo ? 'video/mp4' : 'audio/mpeg',
+                classified.mimeType,
             ),
         };
     }
@@ -506,6 +503,61 @@ export class ElevenLabsProvider {
             buffer.subarray(4, 8).toString('ascii') === 'ftyp' ||
             buffer.subarray(0, 3).toString('ascii') === 'F4V'
         );
+    }
+
+    /**
+     * Content-Type audio/* must win over ftyp sniffing: AAC/M4A also has ftyp
+     * and was previously forced to video/mp4 → silent Telegram/video playback.
+     */
+    private classifyDubbingMedia(
+        buffer: Buffer,
+        headerMime: string,
+        hintMime?: string | null,
+    ): { type: 'video' | 'audio'; mimeType: string } {
+        const mime = (headerMime || hintMime || '')
+            .split(';')[0]
+            .trim()
+            .toLowerCase();
+
+        if (mime.startsWith('audio/')) {
+            return { type: 'audio', mimeType: mime };
+        }
+
+        if (mime.startsWith('video/')) {
+            return { type: 'video', mimeType: mime };
+        }
+
+        if (this.looksLikeMp3(buffer)) {
+            return { type: 'audio', mimeType: 'audio/mpeg' };
+        }
+
+        if (this.looksLikeAudioOnlyMp4(buffer)) {
+            return { type: 'audio', mimeType: 'audio/mp4' };
+        }
+
+        if (this.looksLikeMp4(buffer)) {
+            return { type: 'video', mimeType: 'video/mp4' };
+        }
+
+        return { type: 'audio', mimeType: 'audio/mpeg' };
+    }
+
+    private looksLikeMp3(buffer: Buffer): boolean {
+        if (buffer.length < 3) return false;
+        if (buffer.subarray(0, 3).toString('ascii') === 'ID3') return true;
+        return buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0;
+    }
+
+    private looksLikeAudioOnlyMp4(buffer: Buffer): boolean {
+        if (!this.looksLikeMp4(buffer) || buffer.length < 12) return false;
+        const brand = buffer.subarray(8, 12).toString('ascii');
+        if (brand === 'M4A ' || brand === 'M4B ' || brand === 'mp4a') {
+            return true;
+        }
+        const head = buffer
+            .subarray(8, Math.min(buffer.length, 64))
+            .toString('ascii');
+        return head.includes('M4A ') || head.includes('M4B ');
     }
 
     private async postBinary(
