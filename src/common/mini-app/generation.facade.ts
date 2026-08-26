@@ -14,8 +14,12 @@ import {
     AiToolId,
     TokenBillingService,
 } from '@/common/services/ai';
+import { ModelFailoverService } from '@/common/services/ai';
 import { AiJobService } from '@/common/services/ai/jobs/ai-job.service';
+import { TempPublicMediaService } from '@/common/services/ai/temp-public-media.service';
 import { VideoCapabilitiesService } from '@/common/services/ai/video-capabilities.service';
+import { isFailoverEligibleTool } from '@/common/services/ai/failover';
+import { parseDataUrl } from '@/common/utils/parse-data-url';
 
 export type GenerationRequest = {
     userId: string;
@@ -41,6 +45,8 @@ export type GenerationSyncResult = {
     tokenLeft: number;
     conversationId?: string;
     jobId?: string;
+    toolId?: string;
+    failoverNotice?: string;
 };
 
 export type GenerationAsyncResult = {
@@ -48,6 +54,8 @@ export type GenerationAsyncResult = {
     jobId: string;
     tokenCost: number;
     tokenLeft: number;
+    toolId?: string;
+    failoverNotice?: string;
 };
 
 export type GenerationFacadeResult =
@@ -63,6 +71,8 @@ export class GenerationFacade {
         private readonly tokenBillingService: TokenBillingService,
         private readonly gptConversationModelService: GptConversationModelService,
         private readonly videoCapabilitiesService: VideoCapabilitiesService,
+        private readonly modelFailoverService: ModelFailoverService,
+        private readonly tempPublicMedia: TempPublicMediaService,
     ) {}
 
     async generate(params: GenerationRequest): Promise<GenerationFacadeResult> {
@@ -153,107 +163,340 @@ export class GenerationFacade {
         }
 
         if (toolForBilling.isAsync) {
-            const created = await this.aiJobService.createJob({
-                userId: params.userId,
-                telegramId: params.telegramId,
-                toolId: effectiveToolId,
-                input,
-                // Mini-app shows results in-app; do not mirror to Telegram chat.
-                notifyTelegram: false,
-                sessionId: params.sessionId,
-            });
-
-            return {
-                mode: 'async',
-                jobId: created.job.id,
-                tokenCost: created.tokenCost,
-                tokenLeft: created.balance ?? 0,
-            };
-        }
-
-        const generationResult = await this.aiService.generate(
-            effectiveToolId,
-            input,
-        );
-        const actualCost = generationResult.actualTokenCost ?? tokenCost;
-
-        const deduct = await this.tokenBillingService.commit(
-            params.telegramId,
-            actualCost,
-        );
-
-        if (!deduct.success) {
-            throw new HttpException(
-                { error: 'INSUFFICIENT_TOKENS' },
-                HttpStatus.PAYMENT_REQUIRED,
-            );
-        }
-
-        if (
-            isChatAssistantTool(effectiveToolId) &&
-            conversationId &&
-            (generationResult.text || generationResult.images?.length)
-        ) {
-            const storedFiles = input.files
-                ? await Promise.all(
-                      input.files.map((file) => compressGptHistoryImage(file)),
-                  )
-                : undefined;
-            const userContent = serializeGptUserMessage(
-                params.promptText ?? input.prompt,
-                storedFiles,
-            );
-            await this.gptConversationModelService.appendMessages(
-                conversationId,
-                userContent,
-                generationResult.text || '[image]',
-            );
-
-            const prompt = params.promptText ?? input.prompt;
-            if (prompt?.trim()) {
-                await this.gptConversationModelService.setTitleIfDefault(
-                    conversationId,
-                    this.gptConversationModelService.buildTitleFromPrompt(
-                        prompt,
-                    ),
-                );
-            }
-
-            await this.gptConversationModelService.trimOldConversations(
-                params.userId,
-                effectiveToolId,
-            );
-        }
-
-        const serialized = this.serializeResult(generationResult);
-        let jobId: string | undefined;
-
-        // Media/audio sync tools previously left no DB trail — history only
-        // existed for GPT chats and async jobs.
-        if (!isChatAssistantTool(effectiveToolId)) {
-            const resultUrl = serialized.url ?? serialized.dataUrl ?? null;
-            if (resultUrl) {
-                const recorded = await this.aiJobService.recordCompletedJob({
+            try {
+                const created = await this.aiJobService.createJob({
                     userId: params.userId,
+                    telegramId: params.telegramId,
                     toolId: effectiveToolId,
                     input,
-                    resultUrl,
-                    tokenCost: actualCost,
+                    // Mini-app shows results in-app; do not mirror to Telegram chat.
                     notifyTelegram: false,
                     sessionId: params.sessionId,
                 });
-                jobId = recorded.id;
+
+                return {
+                    mode: 'async',
+                    jobId: created.job.id,
+                    tokenCost: created.tokenCost,
+                    tokenLeft: created.balance ?? 0,
+                    toolId: effectiveToolId,
+                };
+            } catch (error) {
+                const message =
+                    error instanceof Error ? error.message : String(error);
+                if (message === 'INSUFFICIENT_TOKENS') {
+                    throw new HttpException(
+                        { error: 'INSUFFICIENT_TOKENS' },
+                        HttpStatus.PAYMENT_REQUIRED,
+                    );
+                }
+
+                if (
+                    isFailoverEligibleTool(effectiveToolId) &&
+                    user.autoModelFailover !== false
+                ) {
+                    const failover =
+                        await this.modelFailoverService.trySyncOrInlineFailover(
+                            {
+                                telegramId: params.telegramId,
+                                userId: params.userId,
+                                failedToolId: effectiveToolId,
+                                input,
+                                language: user.language,
+                                autoModelFailover: true,
+                                errorMessage: message,
+                                alreadyCharged: 0,
+                                preferAsyncJob: true,
+                                notifyTelegram: false,
+                                sessionId: params.sessionId,
+                            },
+                        );
+
+                    if (failover.ok && failover.mode === 'async-job') {
+                        return {
+                            mode: 'async',
+                            jobId: failover.jobId,
+                            tokenCost: failover.tokenCost,
+                            tokenLeft: failover.tokenLeft,
+                            toolId: failover.toolId,
+                            failoverNotice: failover.notice,
+                        };
+                    }
+
+                    if (failover.ok && failover.mode === 'sync') {
+                        const serialized = this.serializeResult(
+                            failover.result,
+                        );
+                        let jobId: string | undefined;
+                        const resultUrl =
+                            serialized.url ?? serialized.dataUrl ?? null;
+                        if (resultUrl) {
+                            const recorded =
+                                await this.aiJobService.recordCompletedJob({
+                                    userId: params.userId,
+                                    toolId: failover.toolId,
+                                    input,
+                                    resultUrl,
+                                    tokenCost: failover.tokenCost,
+                                    notifyTelegram: false,
+                                    sessionId: params.sessionId,
+                                    failoverNotice: failover.notice,
+                                    failoverFromToolId: effectiveToolId,
+                                });
+                            jobId = recorded.id;
+                            this.cacheRecordedJobMedia(
+                                recorded.id,
+                                failover.result,
+                                resultUrl,
+                            );
+                        }
+                        return {
+                            mode: 'sync',
+                            result: serialized,
+                            tokenCost: failover.tokenCost,
+                            tokenLeft:
+                                (
+                                    await this.tokenBillingService.checkBalance(
+                                        params.telegramId,
+                                        0,
+                                    )
+                                ).balance ?? 0,
+                            toolId: failover.toolId,
+                            failoverNotice: failover.notice,
+                            jobId,
+                        };
+                    }
+
+                    if (
+                        failover.ok &&
+                        failover.mode === 'async-inline'
+                    ) {
+                        const serialized = this.serializeResult(
+                            failover.result,
+                        );
+                        let jobId: string | undefined;
+                        const resultUrl =
+                            serialized.url ?? serialized.dataUrl ?? null;
+                        if (resultUrl) {
+                            const recorded =
+                                await this.aiJobService.recordCompletedJob({
+                                    userId: params.userId,
+                                    toolId: failover.toolId,
+                                    input,
+                                    resultUrl,
+                                    tokenCost: failover.tokenCost,
+                                    notifyTelegram: false,
+                                    sessionId: params.sessionId,
+                                    failoverNotice: failover.notice,
+                                    failoverFromToolId: effectiveToolId,
+                                });
+                            jobId = recorded.id;
+                            this.cacheRecordedJobMedia(
+                                recorded.id,
+                                failover.result,
+                                resultUrl,
+                            );
+                        }
+                        return {
+                            mode: 'sync',
+                            result: serialized,
+                            tokenCost: failover.tokenCost,
+                            tokenLeft:
+                                (
+                                    await this.tokenBillingService.checkBalance(
+                                        params.telegramId,
+                                        0,
+                                    )
+                                ).balance ?? 0,
+                            toolId: failover.toolId,
+                            failoverNotice: failover.notice,
+                            jobId,
+                        };
+                    }
+                }
+
+                throw error;
             }
         }
 
-        return {
-            mode: 'sync',
-            result: serialized,
-            tokenCost: actualCost,
-            tokenLeft: deduct.balance ?? 0,
-            conversationId,
-            jobId,
-        };
+        try {
+            const generationResult = await this.aiService.generate(
+                effectiveToolId,
+                input,
+            );
+            const actualCost = generationResult.actualTokenCost ?? tokenCost;
+
+            const deduct = await this.tokenBillingService.commit(
+                params.telegramId,
+                actualCost,
+            );
+
+            if (!deduct.success) {
+                throw new HttpException(
+                    { error: 'INSUFFICIENT_TOKENS' },
+                    HttpStatus.PAYMENT_REQUIRED,
+                );
+            }
+
+            if (
+                isChatAssistantTool(effectiveToolId) &&
+                conversationId &&
+                (generationResult.text || generationResult.images?.length)
+            ) {
+                const storedFiles = input.files
+                    ? await Promise.all(
+                          input.files.map((file) =>
+                              compressGptHistoryImage(file),
+                          ),
+                      )
+                    : undefined;
+                const userContent = serializeGptUserMessage(
+                    params.promptText ?? input.prompt,
+                    storedFiles,
+                );
+                await this.gptConversationModelService.appendMessages(
+                    conversationId,
+                    userContent,
+                    generationResult.text || '[image]',
+                );
+
+                const prompt = params.promptText ?? input.prompt;
+                if (prompt?.trim()) {
+                    await this.gptConversationModelService.setTitleIfDefault(
+                        conversationId,
+                        this.gptConversationModelService.buildTitleFromPrompt(
+                            prompt,
+                        ),
+                    );
+                }
+
+                await this.gptConversationModelService.trimOldConversations(
+                    params.userId,
+                    effectiveToolId,
+                );
+            }
+
+            const serialized = this.serializeResult(generationResult);
+            let jobId: string | undefined;
+
+            // Media/audio sync tools previously left no DB trail — history only
+            // existed for GPT chats and async jobs.
+            if (!isChatAssistantTool(effectiveToolId)) {
+                const resultUrl = serialized.url ?? serialized.dataUrl ?? null;
+                if (resultUrl) {
+                    const recorded = await this.aiJobService.recordCompletedJob({
+                        userId: params.userId,
+                        toolId: effectiveToolId,
+                        input,
+                        resultUrl,
+                        tokenCost: actualCost,
+                        notifyTelegram: false,
+                        sessionId: params.sessionId,
+                    });
+                    jobId = recorded.id;
+                    this.cacheRecordedJobMedia(
+                        recorded.id,
+                        generationResult,
+                        resultUrl,
+                    );
+                }
+            }
+
+            return {
+                mode: 'sync',
+                result: serialized,
+                tokenCost: actualCost,
+                tokenLeft: deduct.balance ?? 0,
+                conversationId,
+                jobId,
+                toolId: effectiveToolId,
+            };
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            const message =
+                error instanceof Error ? error.message : String(error);
+
+            if (
+                isFailoverEligibleTool(effectiveToolId) &&
+                user.autoModelFailover !== false
+            ) {
+                const failover =
+                    await this.modelFailoverService.trySyncOrInlineFailover({
+                        telegramId: params.telegramId,
+                        userId: params.userId,
+                        failedToolId: effectiveToolId,
+                        input,
+                        language: user.language,
+                        autoModelFailover: true,
+                        errorMessage: message,
+                        alreadyCharged: 0,
+                        preferAsyncJob: true,
+                        notifyTelegram: false,
+                        sessionId: params.sessionId,
+                    });
+
+                if (failover.ok && failover.mode === 'async-job') {
+                    return {
+                        mode: 'async',
+                        jobId: failover.jobId,
+                        tokenCost: failover.tokenCost,
+                        tokenLeft: failover.tokenLeft,
+                        toolId: failover.toolId,
+                        failoverNotice: failover.notice,
+                    };
+                }
+
+                if (
+                    failover.ok &&
+                    (failover.mode === 'sync' ||
+                        failover.mode === 'async-inline')
+                ) {
+                    const serialized = this.serializeResult(failover.result);
+                    let jobId: string | undefined;
+                    const resultUrl =
+                        serialized.url ?? serialized.dataUrl ?? null;
+                    if (resultUrl) {
+                        const recorded =
+                            await this.aiJobService.recordCompletedJob({
+                                userId: params.userId,
+                                toolId: failover.toolId,
+                                input,
+                                resultUrl,
+                                tokenCost: failover.tokenCost,
+                                notifyTelegram: false,
+                                sessionId: params.sessionId,
+                                failoverNotice: failover.notice,
+                                failoverFromToolId: effectiveToolId,
+                            });
+                        jobId = recorded.id;
+                        this.cacheRecordedJobMedia(
+                            recorded.id,
+                            failover.result,
+                            resultUrl,
+                        );
+                    }
+                    return {
+                        mode: 'sync',
+                        result: serialized,
+                        tokenCost: failover.tokenCost,
+                        tokenLeft:
+                            (
+                                await this.tokenBillingService.checkBalance(
+                                    params.telegramId,
+                                    0,
+                                )
+                            ).balance ?? 0,
+                        toolId: failover.toolId,
+                        failoverNotice: failover.notice,
+                        jobId,
+                    };
+                }
+            }
+
+            throw error;
+        }
     }
 
     private applyVideoStyle(
@@ -301,5 +544,42 @@ export class GenerationFacade {
             dataUrl,
             images,
         };
+    }
+
+    /** Warm /jobs/:id/media so history thumbnails do not re-decode data URLs. */
+    private cacheRecordedJobMedia(
+        jobId: string,
+        result: AiGenerationResult,
+        resultUrl: string | null,
+    ) {
+        if (result.buffer?.length) {
+            this.tempPublicMedia.put({
+                buffer: result.buffer,
+                mimeType: result.mimeType ?? 'application/octet-stream',
+                fileName: `job-${jobId.slice(0, 8)}`,
+                jobId,
+            });
+            return;
+        }
+        if (result.voiceBuffer?.length) {
+            this.tempPublicMedia.put({
+                buffer: result.voiceBuffer,
+                mimeType: result.voiceMimeType ?? 'audio/mpeg',
+                fileName: `job-${jobId.slice(0, 8)}`,
+                jobId,
+            });
+            return;
+        }
+        if (resultUrl?.startsWith('data:')) {
+            const parsed = parseDataUrl(resultUrl);
+            if (parsed) {
+                this.tempPublicMedia.put({
+                    buffer: parsed.buffer,
+                    mimeType: parsed.mimeType,
+                    fileName: `job-${jobId.slice(0, 8)}`,
+                    jobId,
+                });
+            }
+        }
     }
 }

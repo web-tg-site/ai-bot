@@ -8,9 +8,10 @@ export const getLanguagePickerKeyboard = (i18n: I18nBundle) =>
         [Markup.button.callback(i18n.languagePicker.en, 'lang:EN')],
     ]);
 
-export const getSettingsLanguageKeyboard = (
+export const getSettingsKeyboard = (
     i18n: I18nBundle,
     current: UserLanguage,
+    autoModelFailover: boolean,
 ) =>
     Markup.inlineKeyboard([
         [
@@ -25,4 +26,15 @@ export const getSettingsLanguageKeyboard = (
                 'settings:lang:EN',
             ),
         ],
+        [
+            Markup.button.callback(
+                autoModelFailover
+                    ? i18n.settings.autoFailoverOn
+                    : i18n.settings.autoFailoverOff,
+                'settings:failover:toggle',
+            ),
+        ],
     ]);
+
+/** @deprecated use getSettingsKeyboard */
+export const getSettingsLanguageKeyboard = getSettingsKeyboard;

@@ -5,4 +5,5 @@ export * from './image-capabilities.service';
 export * from './video-capabilities.service';
 export * from '../elevenlabs-voice-preview';
 export * from './jobs';
+export * from './failover';
 export * from './types';

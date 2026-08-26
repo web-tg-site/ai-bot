@@ -21,6 +21,7 @@ import {
     TokenBillingService,
     BotSession,
     ElevenLabsVoicePreviewService,
+    ModelFailoverService,
 } from '@/common/services/ai';
 import { SoraCharactersService } from '@/common/services/ai/sora-characters.service';
 import { RedisService } from '@/common/services/redis';
@@ -54,6 +55,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         private readonly aiService: AiService,
         private readonly tokenBillingService: TokenBillingService,
         private readonly aiJobService: AiJobService,
+        private readonly modelFailoverService: ModelFailoverService,
         private readonly redisService: RedisService,
         private readonly cryptoPayService: CryptoPayService,
         private readonly antilopayService: AntilopayService,
@@ -276,6 +278,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
             aiService: this.aiService,
             tokenBillingService: this.tokenBillingService,
             aiJobService: this.aiJobService,
+            modelFailoverService: this.modelFailoverService,
             cryptoPayService: this.cryptoPayService,
             antilopayService: this.antilopayService,
             elevenLabsVoicePreviewService: this.elevenLabsVoicePreviewService,

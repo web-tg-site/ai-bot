@@ -22,6 +22,7 @@ import {
 } from './providers';
 import { AiJobService } from './jobs/ai-job.service';
 import { AiJobCron } from './jobs/ai-job.cron';
+import { ModelFailoverService } from './failover/model-failover.service';
 import { SoraCharactersService } from './sora-characters.service';
 import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/elevenlabs-voice-preview.service';
 import { TempPublicMediaService } from './temp-public-media.service';
@@ -48,6 +49,7 @@ import { PublicTmpController } from '@/common/controllers/public-tmp.controller'
         BytePlusProvider,
         ElevenLabsVoicePreviewService,
         AiJobService,
+        ModelFailoverService,
         AiJobCron,
         SoraCharactersService,
         TempPublicMediaService,
@@ -56,6 +58,7 @@ import { PublicTmpController } from '@/common/controllers/public-tmp.controller'
         AiService,
         TokenBillingService,
         AiJobService,
+        ModelFailoverService,
         SoraCharactersService,
         ImageCapabilitiesService,
         VideoCapabilitiesService,

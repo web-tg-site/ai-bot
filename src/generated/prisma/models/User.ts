@@ -51,6 +51,7 @@ export type UserMinAggregateOutputType = {
   email: string | null
   language: $Enums.UserLanguage | null
   hasCompletedOnboarding: boolean | null
+  autoModelFailover: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -72,6 +73,7 @@ export type UserMaxAggregateOutputType = {
   email: string | null
   language: $Enums.UserLanguage | null
   hasCompletedOnboarding: boolean | null
+  autoModelFailover: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -93,6 +95,7 @@ export type UserCountAggregateOutputType = {
   email: number
   language: number
   hasCompletedOnboarding: number
+  autoModelFailover: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -124,6 +127,7 @@ export type UserMinAggregateInputType = {
   email?: true
   language?: true
   hasCompletedOnboarding?: true
+  autoModelFailover?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -145,6 +149,7 @@ export type UserMaxAggregateInputType = {
   email?: true
   language?: true
   hasCompletedOnboarding?: true
+  autoModelFailover?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -166,6 +171,7 @@ export type UserCountAggregateInputType = {
   email?: true
   language?: true
   hasCompletedOnboarding?: true
+  autoModelFailover?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -274,6 +280,7 @@ export type UserGroupByOutputType = {
   email: string | null
   language: $Enums.UserLanguage
   hasCompletedOnboarding: boolean
+  autoModelFailover: boolean
   createdAt: Date
   updatedAt: Date
   _count: UserCountAggregateOutputType | null
@@ -318,6 +325,7 @@ export type UserWhereInput = {
   email?: Prisma.StringNullableFilter<"User"> | string | null
   language?: Prisma.EnumUserLanguageFilter<"User"> | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFilter<"User"> | boolean
+  autoModelFailover?: Prisma.BoolFilter<"User"> | boolean
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   nextSubscription?: Prisma.XOR<Prisma.NextSubscriptionOfUserNullableScalarRelationFilter, Prisma.NextSubscriptionOfUserWhereInput> | null
@@ -345,6 +353,7 @@ export type UserOrderByWithRelationInput = {
   email?: Prisma.SortOrderInput | Prisma.SortOrder
   language?: Prisma.SortOrder
   hasCompletedOnboarding?: Prisma.SortOrder
+  autoModelFailover?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   nextSubscription?: Prisma.NextSubscriptionOfUserOrderByWithRelationInput
@@ -375,6 +384,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   email?: Prisma.StringNullableFilter<"User"> | string | null
   language?: Prisma.EnumUserLanguageFilter<"User"> | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFilter<"User"> | boolean
+  autoModelFailover?: Prisma.BoolFilter<"User"> | boolean
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   nextSubscription?: Prisma.XOR<Prisma.NextSubscriptionOfUserNullableScalarRelationFilter, Prisma.NextSubscriptionOfUserWhereInput> | null
@@ -402,6 +412,7 @@ export type UserOrderByWithAggregationInput = {
   email?: Prisma.SortOrderInput | Prisma.SortOrder
   language?: Prisma.SortOrder
   hasCompletedOnboarding?: Prisma.SortOrder
+  autoModelFailover?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
@@ -431,6 +442,7 @@ export type UserScalarWhereWithAggregatesInput = {
   email?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   language?: Prisma.EnumUserLanguageWithAggregatesFilter<"User"> | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
+  autoModelFailover?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
@@ -452,6 +464,7 @@ export type UserCreateInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserCreateNestedOneWithoutUserInput
@@ -479,6 +492,7 @@ export type UserUncheckedCreateInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUncheckedCreateNestedOneWithoutUserInput
@@ -506,6 +520,7 @@ export type UserUpdateInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUpdateOneWithoutUserNestedInput
@@ -533,6 +548,7 @@ export type UserUncheckedUpdateInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUncheckedUpdateOneWithoutUserNestedInput
@@ -560,6 +576,7 @@ export type UserCreateManyInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -581,6 +598,7 @@ export type UserUpdateManyMutationInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -602,6 +620,7 @@ export type UserUncheckedUpdateManyInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -623,6 +642,7 @@ export type UserCountOrderByAggregateInput = {
   email?: Prisma.SortOrder
   language?: Prisma.SortOrder
   hasCompletedOnboarding?: Prisma.SortOrder
+  autoModelFailover?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -648,6 +668,7 @@ export type UserMaxOrderByAggregateInput = {
   email?: Prisma.SortOrder
   language?: Prisma.SortOrder
   hasCompletedOnboarding?: Prisma.SortOrder
+  autoModelFailover?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -669,6 +690,7 @@ export type UserMinOrderByAggregateInput = {
   email?: Prisma.SortOrder
   language?: Prisma.SortOrder
   hasCompletedOnboarding?: Prisma.SortOrder
+  autoModelFailover?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -819,6 +841,7 @@ export type UserCreateWithoutAiToolSettingsInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserCreateNestedOneWithoutUserInput
@@ -845,6 +868,7 @@ export type UserUncheckedCreateWithoutAiToolSettingsInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUncheckedCreateNestedOneWithoutUserInput
@@ -887,6 +911,7 @@ export type UserUpdateWithoutAiToolSettingsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUpdateOneWithoutUserNestedInput
@@ -913,6 +938,7 @@ export type UserUncheckedUpdateWithoutAiToolSettingsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUncheckedUpdateOneWithoutUserNestedInput
@@ -939,6 +965,7 @@ export type UserCreateWithoutPaymentsInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserCreateNestedOneWithoutUserInput
@@ -965,6 +992,7 @@ export type UserUncheckedCreateWithoutPaymentsInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUncheckedCreateNestedOneWithoutUserInput
@@ -1007,6 +1035,7 @@ export type UserUpdateWithoutPaymentsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUpdateOneWithoutUserNestedInput
@@ -1033,6 +1062,7 @@ export type UserUncheckedUpdateWithoutPaymentsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUncheckedUpdateOneWithoutUserNestedInput
@@ -1059,6 +1089,7 @@ export type UserCreateWithoutNextSubscriptionInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   aiGenerationJobs?: Prisma.AiGenerationJobCreateNestedManyWithoutUserInput
@@ -1085,6 +1116,7 @@ export type UserUncheckedCreateWithoutNextSubscriptionInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   aiGenerationJobs?: Prisma.AiGenerationJobUncheckedCreateNestedManyWithoutUserInput
@@ -1127,6 +1159,7 @@ export type UserUpdateWithoutNextSubscriptionInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aiGenerationJobs?: Prisma.AiGenerationJobUpdateManyWithoutUserNestedInput
@@ -1153,6 +1186,7 @@ export type UserUncheckedUpdateWithoutNextSubscriptionInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aiGenerationJobs?: Prisma.AiGenerationJobUncheckedUpdateManyWithoutUserNestedInput
@@ -1179,6 +1213,7 @@ export type UserCreateWithoutAiGenerationJobsInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserCreateNestedOneWithoutUserInput
@@ -1205,6 +1240,7 @@ export type UserUncheckedCreateWithoutAiGenerationJobsInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUncheckedCreateNestedOneWithoutUserInput
@@ -1247,6 +1283,7 @@ export type UserUpdateWithoutAiGenerationJobsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUpdateOneWithoutUserNestedInput
@@ -1273,6 +1310,7 @@ export type UserUncheckedUpdateWithoutAiGenerationJobsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUncheckedUpdateOneWithoutUserNestedInput
@@ -1299,6 +1337,7 @@ export type UserCreateWithoutGptConversationsInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserCreateNestedOneWithoutUserInput
@@ -1325,6 +1364,7 @@ export type UserUncheckedCreateWithoutGptConversationsInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUncheckedCreateNestedOneWithoutUserInput
@@ -1367,6 +1407,7 @@ export type UserUpdateWithoutGptConversationsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUpdateOneWithoutUserNestedInput
@@ -1393,6 +1434,7 @@ export type UserUncheckedUpdateWithoutGptConversationsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUncheckedUpdateOneWithoutUserNestedInput
@@ -1419,6 +1461,7 @@ export type UserCreateWithoutSavedPromptsInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserCreateNestedOneWithoutUserInput
@@ -1445,6 +1488,7 @@ export type UserUncheckedCreateWithoutSavedPromptsInput = {
   email?: string | null
   language?: $Enums.UserLanguage
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUncheckedCreateNestedOneWithoutUserInput
@@ -1487,6 +1531,7 @@ export type UserUpdateWithoutSavedPromptsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUpdateOneWithoutUserNestedInput
@@ -1513,6 +1558,7 @@ export type UserUncheckedUpdateWithoutSavedPromptsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.EnumUserLanguageFieldUpdateOperationsInput | $Enums.UserLanguage
   hasCompletedOnboarding?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoModelFailover?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nextSubscription?: Prisma.NextSubscriptionOfUserUncheckedUpdateOneWithoutUserNestedInput
@@ -1606,6 +1652,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   email?: boolean
   language?: boolean
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   nextSubscription?: boolean | Prisma.User$nextSubscriptionArgs<ExtArgs>
@@ -1634,6 +1681,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   email?: boolean
   language?: boolean
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -1655,6 +1703,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   email?: boolean
   language?: boolean
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -1676,11 +1725,12 @@ export type UserSelectScalar = {
   email?: boolean
   language?: boolean
   hasCompletedOnboarding?: boolean
+  autoModelFailover?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "telegramId" | "telegramUsername" | "lastActivityAt" | "subscribeType" | "lastSubscriptionType" | "subscribePlan" | "subscriptionStartsAt" | "subscriptionEndsAt" | "lastTokenIssueAt" | "useFreeSub" | "isSubscriptionActive" | "tokenLeft" | "email" | "language" | "hasCompletedOnboarding" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "telegramId" | "telegramUsername" | "lastActivityAt" | "subscribeType" | "lastSubscriptionType" | "subscribePlan" | "subscriptionStartsAt" | "subscriptionEndsAt" | "lastTokenIssueAt" | "useFreeSub" | "isSubscriptionActive" | "tokenLeft" | "email" | "language" | "hasCompletedOnboarding" | "autoModelFailover" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   nextSubscription?: boolean | Prisma.User$nextSubscriptionArgs<ExtArgs>
   aiGenerationJobs?: boolean | Prisma.User$aiGenerationJobsArgs<ExtArgs>
@@ -1720,6 +1770,10 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     email: string | null
     language: $Enums.UserLanguage
     hasCompletedOnboarding: boolean
+    /**
+     * Auto-redirect to a similar-priced model on provider failure (image/video).
+     */
+    autoModelFailover: boolean
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["user"]>
@@ -2167,6 +2221,7 @@ export interface UserFieldRefs {
   readonly email: Prisma.FieldRef<"User", 'String'>
   readonly language: Prisma.FieldRef<"User", 'UserLanguage'>
   readonly hasCompletedOnboarding: Prisma.FieldRef<"User", 'Boolean'>
+  readonly autoModelFailover: Prisma.FieldRef<"User", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
 }

@@ -8,6 +8,7 @@ import {
     VideoCapabilitiesService,
     TokenBillingService,
     ElevenLabsVoicePreviewService,
+    ModelFailoverService,
 } from '@/common/services/ai';
 import { SoraCharactersService } from '@/common/services/ai/sora-characters.service';
 import { CryptoPayService } from '@/common/services/crypto-pay';
@@ -23,6 +24,7 @@ export type BotHandlerDeps = {
     aiService: AiService;
     tokenBillingService: TokenBillingService;
     aiJobService: AiJobService;
+    modelFailoverService: ModelFailoverService;
     cryptoPayService: CryptoPayService;
     antilopayService: AntilopayService;
     elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService;

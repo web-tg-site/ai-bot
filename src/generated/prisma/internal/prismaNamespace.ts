@@ -1219,6 +1219,7 @@ export const UserScalarFieldEnum = {
   email: 'email',
   language: 'language',
   hasCompletedOnboarding: 'hasCompletedOnboarding',
+  autoModelFailover: 'autoModelFailover',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1300,6 +1301,9 @@ export const AiGenerationJobScalarFieldEnum = {
   staleReminderSent: 'staleReminderSent',
   notifyTelegram: 'notifyTelegram',
   sessionId: 'sessionId',
+  failoverNotice: 'failoverNotice',
+  failoverFromToolId: 'failoverFromToolId',
+  failoverTriedToolIds: 'failoverTriedToolIds',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

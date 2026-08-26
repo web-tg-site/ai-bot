@@ -4,11 +4,45 @@ import { BotSession } from '@/common/services/ai';
 import { Context, Telegraf } from 'telegraf';
 import { getI18n, getI18nForUser } from '../i18n';
 import { registerLocalizedHears } from '../i18n/register-localized-hears';
-import { getSettingsLanguageKeyboard } from '../keyboards/language.keyboard';
+import { getSettingsKeyboard } from '../keyboards/language.keyboard';
 import { showHome } from '../utils/show-home';
 import { resetAiSessionPreservingGpt } from '../utils/gpt-session';
 
 type BotContext = Context & { session: BotSession };
+
+async function replySettings(
+    ctx: Context,
+    userModelService: UserModelService,
+    telegramId: string,
+) {
+    const user = await userModelService.getUserByTelegramId(telegramId);
+    if (!user) return;
+
+    const i18n = getI18nForUser(user);
+    const text = i18n.settings.title;
+    const keyboard = getSettingsKeyboard(
+        i18n,
+        user.language,
+        user.autoModelFailover !== false,
+    );
+
+    if (ctx.callbackQuery) {
+        try {
+            await ctx.editMessageText(text, {
+                ...keyboard,
+                parse_mode: 'HTML',
+            });
+            return;
+        } catch {
+            // fall through to reply
+        }
+    }
+
+    await ctx.reply(text, {
+        ...keyboard,
+        parse_mode: 'HTML',
+    });
+}
 
 export const registerSettingsHandler = (
     bot: Telegraf,
@@ -20,22 +54,37 @@ export const registerSettingsHandler = (
         async (ctx) => {
             if (!ctx.from) return;
 
-            const user = await userModelService.getUserByTelegramId(
-                ctx.from.id.toString(),
-            );
-            if (!user) return;
-
-            const i18n = getI18nForUser(user);
             await userModelService.updateUserLastActivityAt(
                 ctx.from.id.toString(),
             );
-
-            await ctx.reply(i18n.settings.title, {
-                ...getSettingsLanguageKeyboard(i18n, user.language),
-                parse_mode: 'HTML',
-            });
+            await replySettings(ctx, userModelService, ctx.from.id.toString());
         },
     );
+
+    bot.action('settings:open', async (ctx) => {
+        if (!ctx.from) return;
+        await ctx.answerCbQuery();
+        await replySettings(ctx, userModelService, ctx.from.id.toString());
+    });
+
+    bot.action('settings:failover:toggle', async (ctx) => {
+        if (!ctx.from) return;
+
+        const user = await userModelService.getUserByTelegramId(
+            ctx.from.id.toString(),
+        );
+        if (!user) return;
+
+        const next = user.autoModelFailover === false;
+        await userModelService.updateAutoModelFailover(
+            ctx.from.id.toString(),
+            next,
+        );
+
+        const i18n = getI18n(user.language);
+        await ctx.answerCbQuery(i18n.settings.autoFailoverToggled(next));
+        await replySettings(ctx, userModelService, ctx.from.id.toString());
+    });
 
     bot.action(/^settings:lang:(RU|EN)$/, async (ctx) => {
         if (!ctx.from) return;
@@ -58,12 +107,19 @@ export const registerSettingsHandler = (
             }
         }
 
+        const refreshed = await userModelService.getUserByTelegramId(
+            ctx.from.id.toString(),
+        );
         const i18n = getI18n(language);
         await ctx.answerCbQuery(i18n.settings.languageChanged);
 
         try {
             await ctx.editMessageText(i18n.settings.title, {
-                ...getSettingsLanguageKeyboard(i18n, language),
+                ...getSettingsKeyboard(
+                    i18n,
+                    language,
+                    refreshed?.autoModelFailover !== false,
+                ),
                 parse_mode: 'HTML',
             });
         } catch {

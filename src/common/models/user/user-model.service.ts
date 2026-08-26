@@ -335,6 +335,16 @@ export class UserModelService {
         });
     }
 
+    public async updateAutoModelFailover(
+        telegramId: string,
+        autoModelFailover: boolean,
+    ) {
+        await this.prismaService.user.update({
+            where: { telegramId },
+            data: { autoModelFailover },
+        });
+    }
+
     public async updateUserToken(telegramId: string, token: number) {
         await this.prismaService.user.update({
             where: {

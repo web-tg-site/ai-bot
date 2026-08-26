@@ -71,6 +71,7 @@ import { GenerationFacade } from './generation.facade';
 import { ModuleRef } from '@nestjs/core';
 import { BotService } from '@/common/services/bot';
 import { SoraCharactersService } from '@/common/services/ai/sora-characters.service';
+import { AiJobService } from '@/common/services/ai/jobs/ai-job.service';
 import { compressReferenceImage } from '@/common/utils/compress-reference-image';
 import { normalizeUploadMime } from '@/common/utils/normalize-upload-mime';
 import { getI18n, getToolLabel } from '@/common/services/bot/i18n';
@@ -355,6 +356,7 @@ export class AiController {
         private readonly openAiProvider: OpenAiProvider,
         private readonly bytePlusProvider: BytePlusProvider,
         private readonly tempPublicMedia: TempPublicMediaService,
+        private readonly aiJobService: AiJobService,
         private readonly moduleRef: ModuleRef,
     ) {}
 
@@ -838,53 +840,33 @@ export class AiController {
                   ).map((tool) => tool.id)
                 : undefined;
 
-        const jobs = await this.prismaService.aiGenerationJob.findMany({
-            where: {
-                userId: current.id,
-                ...(toolId ? { toolId } : {}),
-                ...(categoryToolIds && !toolId
-                    ? { toolId: { in: categoryToolIds } }
-                    : {}),
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 30,
-            select: {
-                id: true,
-                toolId: true,
-                status: true,
-                resultUrl: true,
-                resultJson: true,
-                providerJobId: true,
-                errorMessage: true,
-                tokenCost: true,
-                inputJson: true,
-                sessionId: true,
-                createdAt: true,
-                updatedAt: true,
-            },
+        const jobs = await this.aiJobService.listJobsForUser({
+            userId: current.id,
+            toolId,
+            toolIds: !toolId ? categoryToolIds : undefined,
         });
 
         return {
-            items: jobs.map((job) => {
-                const input = job.inputJson as { prompt?: string } | null;
-                return {
-                    id: job.id,
-                    toolId: job.toolId,
-                    status: job.status,
-                    hasResult: Boolean(job.resultUrl),
-                    resultUrl: job.resultUrl,
-                    resultJson: job.resultJson ?? undefined,
-                    providerJobId: job.providerJobId,
-                    errorMessage: job.errorMessage
-                        ? toUserFacingError(job.errorMessage, getI18n())
-                        : job.errorMessage,
-                    tokenCost: job.tokenCost,
-                    prompt: input?.prompt ?? '',
-                    sessionId: job.sessionId ?? undefined,
-                    createdAt: job.createdAt,
-                    updatedAt: job.updatedAt,
-                };
-            }),
+            items: jobs.map((job) => ({
+                id: job.id,
+                toolId: job.toolId,
+                status: job.status,
+                hasResult: Boolean(job.hasResult),
+                // Never return data: URLs here — client uses /jobs/:id/media.
+                resultUrl: job.resultUrl,
+                resultJson: job.resultJson ?? undefined,
+                providerJobId: job.providerJobId,
+                errorMessage: job.errorMessage
+                    ? toUserFacingError(job.errorMessage, getI18n())
+                    : job.errorMessage,
+                tokenCost: job.tokenCost,
+                prompt: job.prompt ?? '',
+                sessionId: job.sessionId ?? undefined,
+                failoverNotice: job.failoverNotice ?? undefined,
+                failoverFromToolId: job.failoverFromToolId ?? undefined,
+                createdAt: job.createdAt,
+                updatedAt: job.updatedAt,
+            })),
         };
     }
 
@@ -1080,8 +1062,9 @@ export class AiController {
                 providerJobId: true,
                 errorMessage: true,
                 tokenCost: true,
-                inputJson: true,
                 sessionId: true,
+                failoverNotice: true,
+                failoverFromToolId: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -1094,22 +1077,27 @@ export class AiController {
             );
         }
 
-        const input = job.inputJson as { prompt?: string } | null;
+        const resultUrl =
+            job.resultUrl && !job.resultUrl.startsWith('data:')
+                ? job.resultUrl
+                : null;
 
         return {
             id: job.id,
             toolId: job.toolId,
             status: job.status,
             hasResult: Boolean(job.resultUrl),
-            resultUrl: job.resultUrl,
+            resultUrl,
             resultJson: job.resultJson ?? undefined,
             providerJobId: job.providerJobId,
             errorMessage: job.errorMessage
                 ? toUserFacingError(job.errorMessage, getI18n())
                 : job.errorMessage,
             tokenCost: job.tokenCost,
-            prompt: input?.prompt ?? '',
+            prompt: '',
             sessionId: job.sessionId ?? undefined,
+            failoverNotice: job.failoverNotice ?? undefined,
+            failoverFromToolId: job.failoverFromToolId ?? undefined,
             createdAt: job.createdAt,
             updatedAt: job.updatedAt,
         };

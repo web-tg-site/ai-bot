@@ -33,6 +33,11 @@ export type I18nBundle = {
     settings: {
         title: string;
         languageChanged: string;
+        autoFailover: string;
+        autoFailoverOn: string;
+        autoFailoverOff: string;
+        autoFailoverToggled: (enabled: boolean) => string;
+        openButton: string;
     };
     languagePicker: {
         prompt: string;
@@ -59,6 +64,11 @@ export type I18nBundle = {
         generating: string;
         asyncStarted: string;
         midjourneyFallback: string;
+        failoverRedirect: (
+            fromName: string,
+            toName: string,
+            settingsUrl: string | null,
+        ) => string;
         midjourneyActionsHint: string;
         sunoActionsHint: string;
         midjourneyInpaintPrompt: string;

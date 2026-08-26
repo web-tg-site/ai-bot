@@ -8,7 +8,7 @@ import {
     Post,
     UseGuards,
 } from '@nestjs/common';
-import { IsEmail, IsIn, IsOptional } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsOptional } from 'class-validator';
 import { CurrentUser, TelegramJwtGuard } from '@/common/auth';
 import type { CurrentUserPayload } from '@/common/auth';
 import { UserModelService } from '@/common/models/user';
@@ -22,6 +22,10 @@ class UpdateMeDto {
     @IsOptional()
     @IsIn(['RU', 'EN'])
     language?: 'RU' | 'EN';
+
+    @IsOptional()
+    @IsBoolean()
+    autoModelFailover?: boolean;
 }
 
 @Controller('api/me')
@@ -56,6 +60,7 @@ export class MeController {
             email: user.email,
             language: user.language,
             hasCompletedOnboarding: user.hasCompletedOnboarding,
+            autoModelFailover: user.autoModelFailover,
         };
     }
 
@@ -78,6 +83,13 @@ export class MeController {
             );
         }
 
+        if (typeof body.autoModelFailover === 'boolean') {
+            await this.userModelService.updateUserByTelegramId(
+                current.telegramId,
+                { autoModelFailover: body.autoModelFailover },
+            );
+        }
+
         const user = await this.userModelService.getUserByTelegramId(
             current.telegramId,
         );
@@ -85,6 +97,7 @@ export class MeController {
         return {
             email: user?.email,
             language: user?.language,
+            autoModelFailover: user?.autoModelFailover,
         };
     }
 

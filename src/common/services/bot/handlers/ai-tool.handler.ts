@@ -7,10 +7,6 @@ import {
 } from '@/common/services/ai';
 import { AiFileInput, AiGenerationInput } from '@/common/services/ai/types';
 import {
-    isApiframeMidjourneyUpstreamError,
-    isApiframeMidjourneyGenericFailure,
-} from '@/common/services/ai/providers/apiframe.provider';
-import {
     getToolById,
     AI_TOOLS_REGISTRY,
     calculateToolTokenCost,
@@ -3684,50 +3680,85 @@ async function runGeneration(
                 await ctx.reply(i18n.aiResult.asyncStarted);
                 return;
             } catch (error) {
-                const message = error instanceof Error ? error.message : '';
+                const message =
+                    error instanceof Error ? error.message : String(error);
+                if (message === 'INSUFFICIENT_TOKENS') {
+                    throw error;
+                }
+
                 if (
-                    toolId === AiToolId.MIDJOURNEY &&
-                    (message === 'INSUFFICIENT_TOKENS' ||
-                        isApiframeMidjourneyUpstreamError(message) ||
-                        isApiframeMidjourneyGenericFailure(message))
+                    deps.modelFailoverService.canAttemptFailover({
+                        toolId,
+                        autoModelFailover: user.autoModelFailover !== false,
+                        errorMessage: message,
+                    })
                 ) {
-                    if (message === 'INSUFFICIENT_TOKENS') {
-                        throw error;
-                    }
-
-                    await ctx.reply(i18n.aiResult.midjourneyFallback);
-                    await ctx.reply(i18n.aiResult.generating);
-
-                    const generationResult =
-                        await deps.aiService.generateViaAsyncJob(
-                            AiToolId.FLUX,
-                            input,
+                    const failover =
+                        await deps.modelFailoverService.trySyncOrInlineFailover(
+                            {
+                                telegramId: ctx.from.id.toString(),
+                                userId: user.id,
+                                failedToolId: toolId,
+                                input,
+                                language: user.language,
+                                autoModelFailover:
+                                    user.autoModelFailover !== false,
+                                errorMessage: message,
+                                alreadyCharged: 0,
+                                preferAsyncJob: true,
+                                notifyTelegram: true,
+                                botUsername: undefined,
+                            },
                         );
-                    const deduct = await deps.tokenBillingService.commit(
-                        ctx.from.id.toString(),
-                        tokenCost,
-                    );
-                    if (!deduct.success) {
-                        await ctx.reply(i18n.aiResult.insufficientTokens, {
+
+                    if (failover.ok && failover.mode === 'async-job') {
+                        await ctx.reply(failover.notice, {
                             parse_mode: 'HTML',
+                            ...Markup.inlineKeyboard([
+                                [
+                                    Markup.button.callback(
+                                        i18n.settings.openButton,
+                                        'settings:open',
+                                    ),
+                                ],
+                            ]),
                         });
+                        resetSoraSessionMode(session);
+                        await ctx.reply(i18n.aiResult.asyncStarted);
                         return;
                     }
 
-                    const sendAsFile = await resolveSendAsFileForTool(
-                        deps,
-                        user.id,
-                        AiToolId.FLUX,
-                        session,
-                    );
-                    await sendGenerationResult(
-                        ctx,
-                        generationResult,
-                        AiToolId.FLUX,
-                        sendAsFile,
-                        getToolLabel(AiToolId.FLUX, user.language),
-                    );
-                    return;
+                    if (
+                        failover.ok &&
+                        (failover.mode === 'sync' ||
+                            failover.mode === 'async-inline')
+                    ) {
+                        await ctx.reply(failover.notice, {
+                            parse_mode: 'HTML',
+                            ...Markup.inlineKeyboard([
+                                [
+                                    Markup.button.callback(
+                                        i18n.settings.openButton,
+                                        'settings:open',
+                                    ),
+                                ],
+                            ]),
+                        });
+                        const sendAsFile = await resolveSendAsFileForTool(
+                            deps,
+                            user.id,
+                            failover.toolId,
+                            session,
+                        );
+                        await sendGenerationResult(
+                            ctx,
+                            failover.result,
+                            failover.toolId,
+                            sendAsFile,
+                            getToolLabel(failover.toolId, user.language),
+                        );
+                        return;
+                    }
                 }
 
                 throw error;
@@ -3736,41 +3767,126 @@ async function runGeneration(
 
         await ctx.reply(i18n.aiResult.generating);
 
-        const generationResult = await deps.aiService.generate(toolId, input);
-        const actualCost = generationResult.actualTokenCost ?? tokenCost;
+        let generationResult;
+        let actualToolId = toolId;
+        let actualCost = tokenCost;
+        let failoverNotice: string | undefined;
+        let tokensAlreadySettled = false;
 
-        const finalBalanceCheck = await deps.tokenBillingService.checkBalance(
-            ctx.from.id.toString(),
-            actualCost,
-        );
-        if (!finalBalanceCheck.allowed) {
-            await ctx.reply(i18n.aiResult.insufficientTokens, {
-                parse_mode: 'HTML',
-            });
-            return;
+        try {
+            generationResult = await deps.aiService.generate(toolId, input);
+            actualCost = generationResult.actualTokenCost ?? tokenCost;
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : String(error);
+            if (
+                !deps.modelFailoverService.canAttemptFailover({
+                    toolId,
+                    autoModelFailover: user.autoModelFailover !== false,
+                    errorMessage: message,
+                })
+            ) {
+                throw error;
+            }
+
+            const failover =
+                await deps.modelFailoverService.trySyncOrInlineFailover({
+                    telegramId: ctx.from.id.toString(),
+                    userId: user.id,
+                    failedToolId: toolId,
+                    input,
+                    language: user.language,
+                    autoModelFailover: user.autoModelFailover !== false,
+                    errorMessage: message,
+                    alreadyCharged: 0,
+                    preferAsyncJob: false,
+                    notifyTelegram: true,
+                });
+
+            if (!failover.ok) {
+                throw error;
+            }
+
+            failoverNotice = failover.notice;
+            actualToolId = failover.toolId;
+            actualCost = failover.tokenCost;
+            tokensAlreadySettled = true;
+
+            if (failover.mode === 'async-job') {
+                await ctx.reply(failover.notice, {
+                    parse_mode: 'HTML',
+                    ...Markup.inlineKeyboard([
+                        [
+                            Markup.button.callback(
+                                i18n.settings.openButton,
+                                'settings:open',
+                            ),
+                        ],
+                    ]),
+                });
+                resetSoraSessionMode(session);
+                await ctx.reply(i18n.aiResult.asyncStarted);
+                return;
+            }
+
+            generationResult = failover.result;
         }
 
-        const deduct = await deps.tokenBillingService.commit(
-            ctx.from.id.toString(),
-            actualCost,
-        );
-        if (!deduct.success) {
-            await ctx.reply(i18n.aiResult.insufficientTokens, {
+        if (failoverNotice) {
+            await ctx.reply(failoverNotice, {
                 parse_mode: 'HTML',
+                ...Markup.inlineKeyboard([
+                    [
+                        Markup.button.callback(
+                            i18n.settings.openButton,
+                            'settings:open',
+                        ),
+                    ],
+                ]),
             });
-            return;
+        }
+
+        if (!tokensAlreadySettled) {
+            const finalBalanceCheck =
+                await deps.tokenBillingService.checkBalance(
+                    ctx.from.id.toString(),
+                    actualCost,
+                );
+            if (!finalBalanceCheck.allowed) {
+                await ctx.reply(i18n.aiResult.insufficientTokens, {
+                    parse_mode: 'HTML',
+                });
+                return;
+            }
+
+            const deduct = await deps.tokenBillingService.commit(
+                ctx.from.id.toString(),
+                actualCost,
+            );
+            if (!deduct.success) {
+                await ctx.reply(i18n.aiResult.insufficientTokens, {
+                    parse_mode: 'HTML',
+                });
+                return;
+            }
         }
 
         const sendAsFile = await resolveSendAsFileForTool(
             deps,
             user.id,
-            toolId,
+            actualToolId,
             session,
         );
-        await sendGenerationResult(ctx, generationResult, toolId, sendAsFile, getToolLabel(toolId, user.language));
+        await sendGenerationResult(
+            ctx,
+            generationResult,
+            actualToolId,
+            sendAsFile,
+            getToolLabel(actualToolId, user.language),
+        );
 
         if (
-            isChatAssistantTool(toolId) &&
+            isChatAssistantTool(actualToolId) &&
             session.ai?.activeConversationId &&
             (generationResult.text || generationResult.images?.length)
         ) {
@@ -3795,7 +3911,7 @@ async function runGeneration(
 
             await deps.gptConversationModelService.trimOldConversations(
                 user.id,
-                toolId,
+                actualToolId,
             );
         }
     } catch (error) {

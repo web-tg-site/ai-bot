@@ -53,6 +53,8 @@ export type AiGenerationJobMinAggregateOutputType = {
   staleReminderSent: boolean | null
   notifyTelegram: boolean | null
   sessionId: string | null
+  failoverNotice: string | null
+  failoverFromToolId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -72,6 +74,8 @@ export type AiGenerationJobMaxAggregateOutputType = {
   staleReminderSent: boolean | null
   notifyTelegram: boolean | null
   sessionId: string | null
+  failoverNotice: string | null
+  failoverFromToolId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -93,6 +97,9 @@ export type AiGenerationJobCountAggregateOutputType = {
   staleReminderSent: number
   notifyTelegram: number
   sessionId: number
+  failoverNotice: number
+  failoverFromToolId: number
+  failoverTriedToolIds: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -126,6 +133,8 @@ export type AiGenerationJobMinAggregateInputType = {
   staleReminderSent?: true
   notifyTelegram?: true
   sessionId?: true
+  failoverNotice?: true
+  failoverFromToolId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -145,6 +154,8 @@ export type AiGenerationJobMaxAggregateInputType = {
   staleReminderSent?: true
   notifyTelegram?: true
   sessionId?: true
+  failoverNotice?: true
+  failoverFromToolId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -166,6 +177,9 @@ export type AiGenerationJobCountAggregateInputType = {
   staleReminderSent?: true
   notifyTelegram?: true
   sessionId?: true
+  failoverNotice?: true
+  failoverFromToolId?: true
+  failoverTriedToolIds?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -274,6 +288,9 @@ export type AiGenerationJobGroupByOutputType = {
   staleReminderSent: boolean
   notifyTelegram: boolean
   sessionId: string | null
+  failoverNotice: string | null
+  failoverFromToolId: string | null
+  failoverTriedToolIds: runtime.JsonValue | null
   createdAt: Date
   updatedAt: Date
   _count: AiGenerationJobCountAggregateOutputType | null
@@ -318,6 +335,9 @@ export type AiGenerationJobWhereInput = {
   staleReminderSent?: Prisma.BoolFilter<"AiGenerationJob"> | boolean
   notifyTelegram?: Prisma.BoolFilter<"AiGenerationJob"> | boolean
   sessionId?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
+  failoverNotice?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
+  failoverFromToolId?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
+  failoverTriedToolIds?: Prisma.JsonNullableFilter<"AiGenerationJob">
   createdAt?: Prisma.DateTimeFilter<"AiGenerationJob"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AiGenerationJob"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -340,6 +360,9 @@ export type AiGenerationJobOrderByWithRelationInput = {
   staleReminderSent?: Prisma.SortOrder
   notifyTelegram?: Prisma.SortOrder
   sessionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  failoverNotice?: Prisma.SortOrderInput | Prisma.SortOrder
+  failoverFromToolId?: Prisma.SortOrderInput | Prisma.SortOrder
+  failoverTriedToolIds?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -365,6 +388,9 @@ export type AiGenerationJobWhereUniqueInput = Prisma.AtLeast<{
   staleReminderSent?: Prisma.BoolFilter<"AiGenerationJob"> | boolean
   notifyTelegram?: Prisma.BoolFilter<"AiGenerationJob"> | boolean
   sessionId?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
+  failoverNotice?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
+  failoverFromToolId?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
+  failoverTriedToolIds?: Prisma.JsonNullableFilter<"AiGenerationJob">
   createdAt?: Prisma.DateTimeFilter<"AiGenerationJob"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AiGenerationJob"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -387,6 +413,9 @@ export type AiGenerationJobOrderByWithAggregationInput = {
   staleReminderSent?: Prisma.SortOrder
   notifyTelegram?: Prisma.SortOrder
   sessionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  failoverNotice?: Prisma.SortOrderInput | Prisma.SortOrder
+  failoverFromToolId?: Prisma.SortOrderInput | Prisma.SortOrder
+  failoverTriedToolIds?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.AiGenerationJobCountOrderByAggregateInput
@@ -416,6 +445,9 @@ export type AiGenerationJobScalarWhereWithAggregatesInput = {
   staleReminderSent?: Prisma.BoolWithAggregatesFilter<"AiGenerationJob"> | boolean
   notifyTelegram?: Prisma.BoolWithAggregatesFilter<"AiGenerationJob"> | boolean
   sessionId?: Prisma.StringNullableWithAggregatesFilter<"AiGenerationJob"> | string | null
+  failoverNotice?: Prisma.StringNullableWithAggregatesFilter<"AiGenerationJob"> | string | null
+  failoverFromToolId?: Prisma.StringNullableWithAggregatesFilter<"AiGenerationJob"> | string | null
+  failoverTriedToolIds?: Prisma.JsonNullableWithAggregatesFilter<"AiGenerationJob">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AiGenerationJob"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"AiGenerationJob"> | Date | string
 }
@@ -436,6 +468,9 @@ export type AiGenerationJobCreateInput = {
   staleReminderSent?: boolean
   notifyTelegram?: boolean
   sessionId?: string | null
+  failoverNotice?: string | null
+  failoverFromToolId?: string | null
+  failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutAiGenerationJobsInput
@@ -458,6 +493,9 @@ export type AiGenerationJobUncheckedCreateInput = {
   staleReminderSent?: boolean
   notifyTelegram?: boolean
   sessionId?: string | null
+  failoverNotice?: string | null
+  failoverFromToolId?: string | null
+  failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -478,6 +516,9 @@ export type AiGenerationJobUpdateInput = {
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutAiGenerationJobsNestedInput
@@ -500,6 +541,9 @@ export type AiGenerationJobUncheckedUpdateInput = {
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -521,6 +565,9 @@ export type AiGenerationJobCreateManyInput = {
   staleReminderSent?: boolean
   notifyTelegram?: boolean
   sessionId?: string | null
+  failoverNotice?: string | null
+  failoverFromToolId?: string | null
+  failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -541,6 +588,9 @@ export type AiGenerationJobUpdateManyMutationInput = {
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -562,6 +612,9 @@ export type AiGenerationJobUncheckedUpdateManyInput = {
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -593,6 +646,9 @@ export type AiGenerationJobCountOrderByAggregateInput = {
   staleReminderSent?: Prisma.SortOrder
   notifyTelegram?: Prisma.SortOrder
   sessionId?: Prisma.SortOrder
+  failoverNotice?: Prisma.SortOrder
+  failoverFromToolId?: Prisma.SortOrder
+  failoverTriedToolIds?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -618,6 +674,8 @@ export type AiGenerationJobMaxOrderByAggregateInput = {
   staleReminderSent?: Prisma.SortOrder
   notifyTelegram?: Prisma.SortOrder
   sessionId?: Prisma.SortOrder
+  failoverNotice?: Prisma.SortOrder
+  failoverFromToolId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -637,6 +695,8 @@ export type AiGenerationJobMinOrderByAggregateInput = {
   staleReminderSent?: Prisma.SortOrder
   notifyTelegram?: Prisma.SortOrder
   sessionId?: Prisma.SortOrder
+  failoverNotice?: Prisma.SortOrder
+  failoverFromToolId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -709,6 +769,9 @@ export type AiGenerationJobCreateWithoutUserInput = {
   staleReminderSent?: boolean
   notifyTelegram?: boolean
   sessionId?: string | null
+  failoverNotice?: string | null
+  failoverFromToolId?: string | null
+  failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -729,6 +792,9 @@ export type AiGenerationJobUncheckedCreateWithoutUserInput = {
   staleReminderSent?: boolean
   notifyTelegram?: boolean
   sessionId?: string | null
+  failoverNotice?: string | null
+  failoverFromToolId?: string | null
+  failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -779,6 +845,9 @@ export type AiGenerationJobScalarWhereInput = {
   staleReminderSent?: Prisma.BoolFilter<"AiGenerationJob"> | boolean
   notifyTelegram?: Prisma.BoolFilter<"AiGenerationJob"> | boolean
   sessionId?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
+  failoverNotice?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
+  failoverFromToolId?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
+  failoverTriedToolIds?: Prisma.JsonNullableFilter<"AiGenerationJob">
   createdAt?: Prisma.DateTimeFilter<"AiGenerationJob"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AiGenerationJob"> | Date | string
 }
@@ -799,6 +868,9 @@ export type AiGenerationJobCreateManyUserInput = {
   staleReminderSent?: boolean
   notifyTelegram?: boolean
   sessionId?: string | null
+  failoverNotice?: string | null
+  failoverFromToolId?: string | null
+  failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -819,6 +891,9 @@ export type AiGenerationJobUpdateWithoutUserInput = {
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -839,6 +914,9 @@ export type AiGenerationJobUncheckedUpdateWithoutUserInput = {
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -859,6 +937,9 @@ export type AiGenerationJobUncheckedUpdateManyWithoutUserInput = {
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverNotice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverFromToolId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failoverTriedToolIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -882,6 +963,9 @@ export type AiGenerationJobSelect<ExtArgs extends runtime.Types.Extensions.Inter
   staleReminderSent?: boolean
   notifyTelegram?: boolean
   sessionId?: boolean
+  failoverNotice?: boolean
+  failoverFromToolId?: boolean
+  failoverTriedToolIds?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -904,6 +988,9 @@ export type AiGenerationJobSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   staleReminderSent?: boolean
   notifyTelegram?: boolean
   sessionId?: boolean
+  failoverNotice?: boolean
+  failoverFromToolId?: boolean
+  failoverTriedToolIds?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -926,6 +1013,9 @@ export type AiGenerationJobSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   staleReminderSent?: boolean
   notifyTelegram?: boolean
   sessionId?: boolean
+  failoverNotice?: boolean
+  failoverFromToolId?: boolean
+  failoverTriedToolIds?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -948,11 +1038,14 @@ export type AiGenerationJobSelectScalar = {
   staleReminderSent?: boolean
   notifyTelegram?: boolean
   sessionId?: boolean
+  failoverNotice?: boolean
+  failoverFromToolId?: boolean
+  failoverTriedToolIds?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type AiGenerationJobOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "toolId" | "providerJobId" | "status" | "tokenCost" | "inputJson" | "resultUrl" | "resultJson" | "errorMessage" | "pollAttempts" | "pollErrorCount" | "lastPolledAt" | "staleReminderSent" | "notifyTelegram" | "sessionId" | "createdAt" | "updatedAt", ExtArgs["result"]["aiGenerationJob"]>
+export type AiGenerationJobOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "toolId" | "providerJobId" | "status" | "tokenCost" | "inputJson" | "resultUrl" | "resultJson" | "errorMessage" | "pollAttempts" | "pollErrorCount" | "lastPolledAt" | "staleReminderSent" | "notifyTelegram" | "sessionId" | "failoverNotice" | "failoverFromToolId" | "failoverTriedToolIds" | "createdAt" | "updatedAt", ExtArgs["result"]["aiGenerationJob"]>
 export type AiGenerationJobInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -994,6 +1087,18 @@ export type $AiGenerationJobPayload<ExtArgs extends runtime.Types.Extensions.Int
      * Client-side chat session id (mini-app); groups generations into separate chats.
      */
     sessionId: string | null
+    /**
+     * User-facing notice when the job was redirected to another model.
+     */
+    failoverNotice: string | null
+    /**
+     * Original tool before auto-failover chain started.
+     */
+    failoverFromToolId: string | null
+    /**
+     * Tool ids already tried in the failover chain (including the original).
+     */
+    failoverTriedToolIds: runtime.JsonValue | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["aiGenerationJob"]>
@@ -1436,6 +1541,9 @@ export interface AiGenerationJobFieldRefs {
   readonly staleReminderSent: Prisma.FieldRef<"AiGenerationJob", 'Boolean'>
   readonly notifyTelegram: Prisma.FieldRef<"AiGenerationJob", 'Boolean'>
   readonly sessionId: Prisma.FieldRef<"AiGenerationJob", 'String'>
+  readonly failoverNotice: Prisma.FieldRef<"AiGenerationJob", 'String'>
+  readonly failoverFromToolId: Prisma.FieldRef<"AiGenerationJob", 'String'>
+  readonly failoverTriedToolIds: Prisma.FieldRef<"AiGenerationJob", 'Json'>
   readonly createdAt: Prisma.FieldRef<"AiGenerationJob", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"AiGenerationJob", 'DateTime'>
 }

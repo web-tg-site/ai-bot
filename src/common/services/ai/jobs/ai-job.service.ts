@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { PrismaService } from '@/common/services/prisma';
+import { Prisma } from '@/generated/prisma/client';
 import { JobStatus } from '@/generated/prisma/enums';
 import { AiService } from '../ai.service';
 import { AiGenerationInput, AiToolId } from '../types';
@@ -10,6 +11,25 @@ import {
     AI_JOB_MAX_AGE_MS,
     AI_JOB_POLL_BATCH_SIZE,
 } from '@/common/config/ai-job.config';
+import { toPersistedInputJson } from '../utils/persist-generation-input';
+
+export type JobListItem = {
+    id: string;
+    toolId: string;
+    status: JobStatus;
+    resultUrl: string | null;
+    hasResult: boolean;
+    resultJson: unknown;
+    providerJobId: string | null;
+    errorMessage: string | null;
+    tokenCost: number;
+    prompt: string;
+    sessionId: string | null;
+    failoverNotice: string | null;
+    failoverFromToolId: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+};
 
 @Injectable()
 export class AiJobService {
@@ -70,13 +90,84 @@ export class AiJobService {
                 providerJobId: providerJob.providerJobId,
                 status: JobStatus.PENDING,
                 tokenCost,
-                inputJson: params.input,
+                inputJson: toPersistedInputJson(params.input, {
+                    includeFiles: true,
+                }),
                 notifyTelegram: params.notifyTelegram ?? true,
                 sessionId: params.sessionId ?? null,
             },
         });
 
         return { job, tokenCost, balance: deductResult.balance };
+    }
+
+    /**
+     * Create a pending job after tokens were already settled by failover logic.
+     */
+    async createJobWithoutCharge(params: {
+        userId: string;
+        telegramId: string;
+        toolId: AiToolId;
+        input: AiGenerationInput;
+        tokenCost: number;
+        notifyTelegram?: boolean;
+        sessionId?: string;
+        failoverNotice?: string | null;
+        failoverFromToolId?: string | null;
+        failoverTriedToolIds?: string[];
+    }) {
+        const providerJob = await this.aiService.createJob(
+            params.toolId,
+            params.input,
+        );
+
+        const job = await this.prismaService.aiGenerationJob.create({
+            data: {
+                userId: params.userId,
+                toolId: params.toolId,
+                providerJobId: providerJob.providerJobId,
+                status: JobStatus.PENDING,
+                tokenCost: params.tokenCost,
+                inputJson: toPersistedInputJson(params.input, {
+                    includeFiles: true,
+                }),
+                notifyTelegram: params.notifyTelegram ?? true,
+                sessionId: params.sessionId ?? null,
+                failoverNotice: params.failoverNotice ?? null,
+                failoverFromToolId: params.failoverFromToolId ?? null,
+                failoverTriedToolIds: params.failoverTriedToolIds ?? undefined,
+            },
+        });
+
+        return { job, tokenCost: params.tokenCost };
+    }
+
+    async reassignJobForFailover(params: {
+        jobId: string;
+        toolId: AiToolId;
+        providerJobId: string;
+        tokenCost: number;
+        failoverNotice: string;
+        failoverFromToolId: string;
+        failoverTriedToolIds: string[];
+    }) {
+        await this.prismaService.aiGenerationJob.update({
+            where: { id: params.jobId },
+            data: {
+                toolId: params.toolId,
+                providerJobId: params.providerJobId,
+                tokenCost: params.tokenCost,
+                status: JobStatus.PENDING,
+                errorMessage: null,
+                pollAttempts: 0,
+                pollErrorCount: 0,
+                lastPolledAt: null,
+                staleReminderSent: false,
+                failoverNotice: params.failoverNotice,
+                failoverFromToolId: params.failoverFromToolId,
+                failoverTriedToolIds: params.failoverTriedToolIds,
+            },
+        });
     }
 
     /** Persist a finished sync generation so mini-app history works for all tools. */
@@ -88,6 +179,8 @@ export class AiJobService {
         tokenCost: number;
         notifyTelegram?: boolean;
         sessionId?: string;
+        failoverNotice?: string | null;
+        failoverFromToolId?: string | null;
     }) {
         return this.prismaService.aiGenerationJob.create({
             data: {
@@ -95,12 +188,72 @@ export class AiJobService {
                 toolId: params.toolId,
                 status: JobStatus.COMPLETED,
                 tokenCost: params.tokenCost,
-                inputJson: params.input,
+                inputJson: toPersistedInputJson(params.input, {
+                    includeFiles: false,
+                }),
                 resultUrl: params.resultUrl ?? null,
                 notifyTelegram: params.notifyTelegram ?? true,
                 sessionId: params.sessionId ?? null,
+                failoverNotice: params.failoverNotice ?? null,
+                failoverFromToolId: params.failoverFromToolId ?? null,
             },
         });
+    }
+
+    /**
+     * Lightweight history list: prompt via JSON path, skip data-URL bodies and
+     * never load reference-image buffers from inputJson.
+     */
+    async listJobsForUser(params: {
+        userId: string;
+        toolId?: string;
+        toolIds?: string[];
+        take?: number;
+    }): Promise<JobListItem[]> {
+        const take = params.take ?? 30;
+        const toolFilter = params.toolId
+            ? Prisma.sql`AND "toolId" = ${params.toolId}`
+            : params.toolIds?.length
+              ? Prisma.sql`AND "toolId" IN (${Prisma.join(params.toolIds)})`
+              : Prisma.empty;
+
+        return this.prismaService.$queryRaw<JobListItem[]>(Prisma.sql`
+            SELECT
+                id,
+                "toolId",
+                status,
+                CASE
+                    WHEN "resultUrl" IS NULL THEN NULL
+                    WHEN left("resultUrl", 5) = 'data:' THEN NULL
+                    ELSE "resultUrl"
+                END AS "resultUrl",
+                ("resultUrl" IS NOT NULL) AS "hasResult",
+                "resultJson",
+                "providerJobId",
+                "errorMessage",
+                "tokenCost",
+                COALESCE("inputJson"->>'prompt', '') AS prompt,
+                "sessionId",
+                "failoverNotice",
+                "failoverFromToolId",
+                "createdAt",
+                "updatedAt"
+            FROM ai_generation_jobs
+            WHERE "userId" = ${params.userId}
+            ${toolFilter}
+            ORDER BY "createdAt" DESC
+            LIMIT ${take}
+        `);
+    }
+
+    /** Drop binary payloads once the job can no longer failover. */
+    private async stripInputFiles(jobId: string) {
+        await this.prismaService.$executeRaw`
+            UPDATE ai_generation_jobs
+            SET "inputJson" = ("inputJson" - 'files')
+            WHERE id = ${jobId}
+              AND "inputJson" ? 'files'
+        `;
     }
 
     async getPendingJobs() {
@@ -109,7 +262,13 @@ export class AiJobService {
                 status: { in: [JobStatus.PENDING, JobStatus.PROCESSING] },
             },
             include: {
-                user: { select: { telegramId: true, language: true } },
+                user: {
+                    select: {
+                        telegramId: true,
+                        language: true,
+                        autoModelFailover: true,
+                    },
+                },
             },
             orderBy: { createdAt: 'asc' },
             take: AI_JOB_POLL_BATCH_SIZE,
@@ -160,7 +319,13 @@ export class AiJobService {
                 createdAt: { lt: cutoff },
             },
             include: {
-                user: { select: { telegramId: true, language: true } },
+                user: {
+                    select: {
+                        telegramId: true,
+                        language: true,
+                        autoModelFailover: true,
+                    },
+                },
             },
         });
 
@@ -175,6 +340,10 @@ export class AiJobService {
                 errorMessage: params.errorMessage,
             },
         });
+
+        for (const job of stuck) {
+            await this.stripInputFiles(job.id);
+        }
 
         this.logger.warn(
             {
@@ -199,7 +368,13 @@ export class AiJobService {
                 notifyTelegram: true,
             },
             include: {
-                user: { select: { telegramId: true, language: true } },
+                user: {
+                    select: {
+                        telegramId: true,
+                        language: true,
+                        autoModelFailover: true,
+                    },
+                },
             },
             take: 20,
         });
@@ -251,6 +426,10 @@ export class AiJobService {
                 errorMessage: data?.errorMessage,
             },
         });
+
+        if (status === JobStatus.COMPLETED || status === JobStatus.FAILED) {
+            await this.stripInputFiles(jobId);
+        }
     }
 
     async failJobWithRefund(params: {

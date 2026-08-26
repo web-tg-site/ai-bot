@@ -61,8 +61,16 @@ export const en: I18nBundle = {
         usdt: (amount) => `USDT ${amount} ₮`,
     },
     settings: {
-        title: '⚙️ <b>Settings</b>\n\nChoose interface language:',
+        title: '⚙️ <b>Settings</b>\n\nChoose interface language and generation options:',
         languageChanged: '✅ Language changed',
+        autoFailover: 'Auto-redirect on failure',
+        autoFailoverOn: '✅ Auto-redirect: on',
+        autoFailoverOff: '⬜️ Auto-redirect: off',
+        autoFailoverToggled: (enabled) =>
+            enabled
+                ? '✅ Auto-redirect enabled'
+                : '⬜️ Auto-redirect disabled',
+        openButton: '⚙️ Settings',
     },
     languagePicker: {
         prompt: '🌐 <b>Choose your language / Выберите язык</b>',
@@ -157,6 +165,16 @@ Select a tool below.`,
             '⏳ Generation started. The result will arrive in this chat when ready.',
         midjourneyFallback:
             '⚠️ Midjourney is currently unavailable (provider issue). Generating with Flux…',
+        failoverRedirect: (fromName, toName, settingsUrl) => {
+            const settingsLabel = settingsUrl
+                ? `<a href="${settingsUrl}">settings</a>`
+                : 'settings';
+            return (
+                `Unfortunately there is a long queue on <b>${fromName}</b>, ` +
+                `so for a faster generation we are redirecting your request to <b>${toName}</b>. ` +
+                `To disable auto-redirect, open ${settingsLabel}.`
+            );
+        },
         midjourneyActionsHint:
             '🖼 Choose an action: U1–U4 upscale, V1–V4 variations.',
         sunoActionsHint:

@@ -13,15 +13,8 @@ import {
 import { AiService } from '../ai.service';
 import { AiJobService } from './ai-job.service';
 import { AiGenerationInput, AiGenerationResult, AiToolId } from '../types';
-import {
-    isApiframeMidjourneyUpstreamError,
-    isApiframeMidjourneyGenericFailure,
-} from '../providers/apiframe.provider';
 import { buildOpenAiVideoResultUrl } from '../providers/openai.provider';
-import {
-    AI_JOB_STALE_REMINDER_TEXT,
-    AI_MIDJOURNEY_FALLBACK_TEXT,
-} from '@/common/services/bot/texts';
+import { AI_JOB_STALE_REMINDER_TEXT } from '@/common/services/bot/texts';
 import { getI18n, getToolLabel } from '@/common/services/bot/i18n';
 import {
     formatUserBotErrorMessage,
@@ -43,7 +36,9 @@ import {
 import { TempPublicMediaService } from '../temp-public-media.service';
 import { buildApiframeResultKeyboard } from '@/common/services/bot/keyboards/apiframe-actions.keyboard';
 import type { ApiframeResultJson } from '@/common/config/apiframe.config';
-
+import { ModelFailoverService } from '../failover/model-failover.service';
+import { Markup } from 'telegraf';
+import { isFailoverEligibleTool } from '../failover/model-failover.helpers';
 type PendingJob = Awaited<ReturnType<AiJobService['getPendingJobs']>>[number];
 
 @Injectable()
@@ -57,6 +52,7 @@ export class AiJobCron {
         private readonly logger: PinoLogger,
         private readonly aiJobService: AiJobService,
         private readonly aiService: AiService,
+        private readonly modelFailoverService: ModelFailoverService,
         private readonly userAiToolSettingsModelService: UserAiToolSettingsModelService,
         private readonly tempPublicMedia: TempPublicMediaService,
         private readonly moduleRef: ModuleRef,
@@ -189,14 +185,14 @@ export class AiJobCron {
                 const toolId = job.toolId as AiToolId;
 
                 if (
-                    toolId === AiToolId.MIDJOURNEY &&
-                    (isApiframeMidjourneyUpstreamError(errorMessage) ||
-                        isApiframeMidjourneyGenericFailure(errorMessage))
+                    isFailoverEligibleTool(toolId) &&
+                    job.user.autoModelFailover !== false
                 ) {
                     this.fallbackJobIds.add(job.id);
-                    void this.handleMidjourneyFluxFallback(
+                    void this.handleModelFailover(
                         botService,
                         job,
+                        errorMessage,
                     ).finally(() => {
                         this.fallbackJobIds.delete(job.id);
                     });
@@ -555,56 +551,43 @@ export class AiJobCron {
         );
     }
 
-    private async handleMidjourneyFluxFallback(
+    private async handleModelFailover(
         botService: BotService,
         job: PendingJob,
+        errorMessage: string,
     ) {
-        const input = job.inputJson as AiGenerationInput;
+        const result = await this.modelFailoverService.reassignPendingJob({
+            jobId: job.id,
+            telegramId: job.user.telegramId,
+            currentToolId: job.toolId as AiToolId,
+            input: job.inputJson,
+            tokenCost: job.tokenCost,
+            language: job.user.language,
+            autoModelFailover: job.user.autoModelFailover !== false,
+            errorMessage,
+            failoverFromToolId: job.failoverFromToolId,
+            failoverTriedToolIds: job.failoverTriedToolIds,
+            botUsername: botService.getUsername() ?? null,
+        });
 
-        try {
-            const result = await this.aiService.generateViaAsyncJob(
-                AiToolId.FLUX,
-                input,
-            );
+        if (!result.ok) {
+            await this.failJob(botService, job, errorMessage);
+            return;
+        }
 
-            await this.aiJobService.updateJobStatus(
-                job.id,
-                JobStatus.COMPLETED,
-                {
-                    resultUrl: result.url,
-                },
-            );
-
-            if (job.notifyTelegram !== false) {
-                await botService.sendMessage(
-                    job.user.telegramId,
-                    AI_MIDJOURNEY_FALLBACK_TEXT,
-                    { parse_mode: 'HTML' },
-                );
-                await this.sendResult(
-                    botService,
-                    job.user.telegramId,
-                    AiToolId.FLUX,
-                    result.type,
-                    result,
-                    await this.resolveSendAsFile(job.userId, AiToolId.FLUX),
-                    getToolLabel(AiToolId.FLUX, job.user.language),
-                );
-                await botService.sendMessage(
-                    job.user.telegramId,
-                    getI18n(job.user.language).aiResult.jobCompleted(
-                        getToolLabel(job.toolId as AiToolId, job.user.language),
-                    ),
-                    { parse_mode: 'HTML' },
-                );
-            }
-        } catch (error) {
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : 'Не удалось выполнить fallback на Flux';
-            this.logJobError(job, 'delivery', error);
-            await this.failJob(botService, job, message);
+        if (job.notifyTelegram !== false) {
+            const i18n = getI18n(job.user.language);
+            await botService.sendMessage(job.user.telegramId, result.notice, {
+                parse_mode: 'HTML',
+                ...Markup.inlineKeyboard([
+                    [
+                        Markup.button.callback(
+                            i18n.settings.openButton,
+                            'settings:open',
+                        ),
+                    ],
+                ]),
+            });
         }
     }
 

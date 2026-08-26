@@ -61,8 +61,16 @@ export const ru: I18nBundle = {
         usdt: (amount) => `USDT ${amount} ₮`,
     },
     settings: {
-        title: '⚙️ <b>Настройки</b>\n\nВыберите язык интерфейса:',
+        title: '⚙️ <b>Настройки</b>\n\nВыберите язык интерфейса и параметры генерации:',
         languageChanged: '✅ Язык изменён',
+        autoFailover: 'Автопереадресация при сбое',
+        autoFailoverOn: '✅ Автопереадресация: вкл',
+        autoFailoverOff: '⬜️ Автопереадресация: выкл',
+        autoFailoverToggled: (enabled) =>
+            enabled
+                ? '✅ Автопереадресация включена'
+                : '⬜️ Автопереадресация выключена',
+        openButton: '⚙️ Настройки',
     },
     languagePicker: {
         prompt: '🌐 <b>Выберите язык / Choose your language</b>',
@@ -157,6 +165,16 @@ export const ru: I18nBundle = {
             '⏳ Генерация запущена. Результат придёт в этот чат, когда будет готов.',
         midjourneyFallback:
             '⚠️ Midjourney сейчас недоступен (сбой на стороне провайдера). Генерирую через Flux…',
+        failoverRedirect: (fromName, toName, settingsUrl) => {
+            const settingsLabel = settingsUrl
+                ? `<a href="${settingsUrl}">настройки</a>`
+                : 'настройки';
+            return (
+                `К сожалению сейчас сильная очередь в <b>${fromName}</b>, ` +
+                `для более быстрой генерации мы переадресуем запрос в <b>${toName}</b>, ` +
+                `чтобы убрать функцию переадресации — перейдите в ${settingsLabel} для отключения.`
+            );
+        },
         midjourneyActionsHint:
             '🖼 Выберите действие: U1–U4 — увеличить, V1–V4 — вариации.',
         sunoActionsHint:

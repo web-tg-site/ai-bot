@@ -75,6 +75,8 @@ model User {
   email String?
   language UserLanguage @default(RU)
   hasCompletedOnboarding Boolean @default(false)
+  /// Auto-redirect to a similar-priced model on provider failure (image/video).
+  autoModelFailover Boolean @default(true)
 
   nextSubscription NextSubscriptionOfUser?
   aiGenerationJobs AiGenerationJob[]
@@ -170,6 +172,12 @@ model AiGenerationJob {
   notifyTelegram Boolean  @default(true)
   /// Client-side chat session id (mini-app); groups generations into separate chats.
   sessionId     String?
+  /// User-facing notice when the job was redirected to another model.
+  failoverNotice String?
+  /// Original tool before auto-failover chain started.
+  failoverFromToolId String?
+  /// Tool ids already tried in the failover chain (including the original).
+  failoverTriedToolIds Json?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
