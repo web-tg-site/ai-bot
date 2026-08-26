@@ -282,10 +282,11 @@ export class ElevenLabsProvider {
                 targetLang ||
                 response.target_languages?.[0] ||
                 this.dubbingTargetLang;
-            // Не дефолтить в video/mp4: /audio/{lang} часто отдаёт audio/*,
-            // а ошибочный video ломает выдачу (silent remux / sendVideo).
+            // Тип медиа определяем при скачивании по содержимому файла.
+            // Не угадываем audio/mpeg — иначе video mp4 ошибочно уходит в audio.
             const contentType =
-                response.media_metadata?.content_type ?? 'audio/mpeg';
+                response.media_metadata?.content_type ??
+                'application/octet-stream';
             const isVideo = contentType.startsWith('video/');
 
             return {
@@ -506,29 +507,20 @@ export class ElevenLabsProvider {
     }
 
     /**
-     * Content-Type audio/* must win over ftyp sniffing: AAC/M4A also has ftyp
-     * and was previously forced to video/mp4 → silent Telegram/video playback.
+     * Сначала смотрим байты файла. Content-Type/hint часто врут
+     * (audio/mpeg по умолчанию, audio/mp4 для контейнера с картинкой).
      */
     private classifyDubbingMedia(
         buffer: Buffer,
         headerMime: string,
         hintMime?: string | null,
     ): { type: 'video' | 'audio'; mimeType: string } {
-        const mime = (headerMime || hintMime || '')
-            .split(';')[0]
-            .trim()
-            .toLowerCase();
-
-        if (mime.startsWith('audio/')) {
-            return { type: 'audio', mimeType: mime };
-        }
-
-        if (mime.startsWith('video/')) {
-            return { type: 'video', mimeType: mime };
-        }
-
         if (this.looksLikeMp3(buffer)) {
             return { type: 'audio', mimeType: 'audio/mpeg' };
+        }
+
+        if (this.hasMp4VideoTrack(buffer)) {
+            return { type: 'video', mimeType: 'video/mp4' };
         }
 
         if (this.looksLikeAudioOnlyMp4(buffer)) {
@@ -536,7 +528,21 @@ export class ElevenLabsProvider {
         }
 
         if (this.looksLikeMp4(buffer)) {
+            // ftyp есть, vide-хендлер не нашли в превью — всё равно video,
+            // если это не явный M4A (уже отфильтрован выше).
             return { type: 'video', mimeType: 'video/mp4' };
+        }
+
+        const mime = (headerMime || hintMime || '')
+            .split(';')[0]
+            .trim()
+            .toLowerCase();
+
+        if (mime.startsWith('video/')) {
+            return { type: 'video', mimeType: mime };
+        }
+        if (mime.startsWith('audio/')) {
+            return { type: 'audio', mimeType: mime };
         }
 
         return { type: 'audio', mimeType: 'audio/mpeg' };
@@ -550,6 +556,7 @@ export class ElevenLabsProvider {
 
     private looksLikeAudioOnlyMp4(buffer: Buffer): boolean {
         if (!this.looksLikeMp4(buffer) || buffer.length < 12) return false;
+        if (this.hasMp4VideoTrack(buffer)) return false;
         const brand = buffer.subarray(8, 12).toString('ascii');
         if (brand === 'M4A ' || brand === 'M4B ' || brand === 'mp4a') {
             return true;
@@ -558,6 +565,25 @@ export class ElevenLabsProvider {
             .subarray(8, Math.min(buffer.length, 64))
             .toString('ascii');
         return head.includes('M4A ') || head.includes('M4B ');
+    }
+
+    /** ISO-BMFF: ищем hdlr с handler_type = 'vide' в начале файла. */
+    private hasMp4VideoTrack(buffer: Buffer): boolean {
+        if (!this.looksLikeMp4(buffer)) return false;
+        const limit = Math.min(buffer.length - 20, 4 * 1024 * 1024);
+        for (let i = 0; i < limit; i++) {
+            if (
+                buffer[i] === 0x68 && // h
+                buffer[i + 1] === 0x64 && // d
+                buffer[i + 2] === 0x6c && // l
+                buffer[i + 3] === 0x72 // r
+            ) {
+                // hdlr: version(1)+flags(3)+pre_defined(4)+handler_type(4) → +16
+                const handler = buffer.subarray(i + 16, i + 20).toString('ascii');
+                if (handler === 'vide') return true;
+            }
+        }
+        return false;
     }
 
     private async postBinary(
@@ -726,9 +752,100 @@ export class ElevenLabsProvider {
 
     private resolveTargetLang(prompt?: string): string {
         const trimmed = prompt?.trim().toLowerCase();
-        if (trimmed && /^[a-z]{2,3}$/.test(trimmed)) {
+        if (!trimmed) {
+            return this.dubbingTargetLang;
+        }
+
+        if (/^[a-z]{2,3}$/.test(trimmed)) {
             return trimmed;
         }
+
+        const aliases: Array<{ code: string; patterns: RegExp[] }> = [
+            {
+                code: 'en',
+                patterns: [/англ/, /\benglish\b/, /\beng\b/],
+            },
+            {
+                code: 'ru',
+                patterns: [/русск/, /\brussian\b/],
+            },
+            {
+                code: 'es',
+                patterns: [/испан/, /\bspanish\b/, /\bespa[nñ]ol\b/],
+            },
+            {
+                code: 'de',
+                patterns: [/немец/, /\bgerman\b/, /\bdeutsch\b/],
+            },
+            {
+                code: 'fr',
+                patterns: [/франц/, /\bfrench\b/, /\bfran[cç]ais\b/],
+            },
+            {
+                code: 'it',
+                patterns: [/итал/, /\bitalian\b/, /\bitaliano\b/],
+            },
+            {
+                code: 'pt',
+                patterns: [/португ/, /\bportuguese\b/, /\bportugu[eê]s\b/],
+            },
+            {
+                code: 'zh',
+                patterns: [/китай/, /\bchinese\b/, /\bmandarin\b/],
+            },
+            {
+                code: 'ja',
+                patterns: [/япон/, /\bjapanese\b/],
+            },
+            {
+                code: 'ko',
+                patterns: [/корей/, /\bkorean\b/],
+            },
+            {
+                code: 'tr',
+                patterns: [/турец/, /\bturkish\b/],
+            },
+            {
+                code: 'pl',
+                patterns: [/польск/, /\bpolish\b/],
+            },
+            {
+                code: 'uk',
+                patterns: [/украин/, /\bukrainian\b/],
+            },
+            {
+                code: 'ar',
+                patterns: [/араб/, /\barabic\b/],
+            },
+            {
+                code: 'hi',
+                patterns: [/хинди/, /\bhindi\b/],
+            },
+        ];
+
+        for (const { code, patterns } of aliases) {
+            if (patterns.some((pattern) => pattern.test(trimmed))) {
+                return code;
+            }
+        }
+
+        const isoInText = trimmed.match(/(?:^|[^\p{L}])([a-z]{2})(?:$|[^\p{L}])/u);
+        if (isoInText) {
+            const code = isoInText[1];
+            const known = new Set(aliases.map((item) => item.code));
+            // Also allow common ISO codes not in alias list
+            known.add('nl');
+            known.add('sv');
+            known.add('cs');
+            known.add('ro');
+            known.add('id');
+            known.add('vi');
+            known.add('th');
+            if (known.has(code)) {
+                return code;
+            }
+        }
+
         return this.dubbingTargetLang;
     }
 

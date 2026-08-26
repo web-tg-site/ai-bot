@@ -461,7 +461,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
                 '<b>Step 1:</b> send a voice message or audio file (voice sample).\n' +
                 '<b>Step 2:</b> send text — the bot will speak it in that voice.',
             [AiToolId.VIDEO_TO_AUDIO]:
-                'Send a video or audio file. The bot will dub it into Russian (or specify a language in the caption: en, es, de…).',
+                'Send a video or audio file. The bot will dub it into Russian (or specify a language: en, “in English”, es, de…).',
             [AiToolId.SOUND_GENERATOR]:
                 'Describe the sound itself, not a scene (e.g. «heels on metal floor», not «a girl walks»). Duration is under “⚙️ Settings”.',
             [AiToolId.SUNO]:

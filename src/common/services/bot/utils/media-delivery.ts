@@ -164,15 +164,18 @@ export async function deliverVideoBuffer(
     mimeType: string,
     sendAsFile: boolean,
 ) {
-    // Safety net: audio-only containers must not go through video remux/sendVideo
-    // (AAC/M4A has ftyp and was historically mislabeled as video/mp4).
-    if (
-        mimeType.toLowerCase().startsWith('audio/') ||
+    // Safety net: pure audio containers must not go through video remux/sendVideo.
+    // Do not treat every audio/* label as audio — some CDNs mark MP4 with picture as audio/mp4.
+    const lowerMime = mimeType.toLowerCase();
+    const audioOnly =
         looksLikeMp3(buffer) ||
-        looksLikeAudioOnlyMp4(buffer)
-    ) {
+        looksLikeAudioOnlyMp4(buffer) ||
+        (lowerMime.startsWith('audio/') &&
+            !looksLikeMp4(buffer) &&
+            !lowerMime.includes('mp4'));
+    if (audioOnly) {
         const audioExt = mimeTypeToExtension(
-            mimeType.startsWith('audio/') ? mimeType : 'audio/mpeg',
+            lowerMime.startsWith('audio/') ? mimeType : 'audio/mpeg',
             'mp3',
         );
         await api.sendDocument(
@@ -202,6 +205,11 @@ export async function deliverVideoBuffer(
     }
 }
 
+function looksLikeMp4(buffer: Buffer): boolean {
+    if (buffer.length < 12) return false;
+    return buffer.subarray(4, 8).toString('ascii') === 'ftyp';
+}
+
 function looksLikeMp3(buffer: Buffer): boolean {
     if (buffer.length < 3) return false;
     if (buffer.subarray(0, 3).toString('ascii') === 'ID3') return true;
@@ -209,14 +217,31 @@ function looksLikeMp3(buffer: Buffer): boolean {
 }
 
 function looksLikeAudioOnlyMp4(buffer: Buffer): boolean {
-    if (buffer.length < 12) return false;
-    if (buffer.subarray(4, 8).toString('ascii') !== 'ftyp') return false;
+    if (!looksLikeMp4(buffer) || buffer.length < 12) return false;
+    if (hasMp4VideoTrack(buffer)) return false;
     const brand = buffer.subarray(8, 12).toString('ascii');
     if (brand === 'M4A ' || brand === 'M4B ' || brand === 'mp4a') return true;
     const head = buffer
         .subarray(8, Math.min(buffer.length, 64))
         .toString('ascii');
     return head.includes('M4A ') || head.includes('M4B ');
+}
+
+function hasMp4VideoTrack(buffer: Buffer): boolean {
+    if (!looksLikeMp4(buffer)) return false;
+    const limit = Math.min(buffer.length - 20, 4 * 1024 * 1024);
+    for (let i = 0; i < limit; i++) {
+        if (
+            buffer[i] === 0x68 &&
+            buffer[i + 1] === 0x64 &&
+            buffer[i + 2] === 0x6c &&
+            buffer[i + 3] === 0x72
+        ) {
+            const handler = buffer.subarray(i + 16, i + 20).toString('ascii');
+            if (handler === 'vide') return true;
+        }
+    }
+    return false;
 }
 
 export async function sendAudioBuffer(

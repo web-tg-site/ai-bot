@@ -256,7 +256,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         accepts: ['video', 'audio'],
         isAsync: true,
         instruction:
-            'Отправьте видео или аудиофайл. Бот сделает дубляж на русский (или укажите язык в подписи: en, es, de…).',
+            'Отправьте видео или аудиофайл. Бот сделает дубляж на русский (или укажите язык: en, «на английском», es, de…).',
     },
     {
         id: AiToolId.SOUND_GENERATOR,
