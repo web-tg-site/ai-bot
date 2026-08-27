@@ -231,10 +231,6 @@ export class OpenRouterProvider {
             );
         }
 
-        if (toolId === AiToolId.KLING) {
-            return Math.min(15, Math.max(3, durationSeconds));
-        }
-
         return durationSeconds;
     }
 

@@ -432,6 +432,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             [AiToolId.SEEDREAM]: 'Seedream',
             [AiToolId.MIDJOURNEY]: 'Midjourney',
             [AiToolId.KLING]: 'Kling',
+            [AiToolId.KLING_MOTION]: 'Kling Motion',
             [AiToolId.VEO]: 'Veo',
             [AiToolId.SORA]: 'Sora',
             [AiToolId.SEEDANCE]: 'Seedance',
@@ -459,7 +460,9 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             [AiToolId.MIDJOURNEY]:
                 'Describe the task and optionally add references (up to 10 images).',
             [AiToolId.KLING]:
-                'Attach photo or video references (optional), adjust settings, then describe the scene.',
+                'Attach up to 4 photos (optional), set STD/PRO and sound, then describe the scene.',
+            [AiToolId.KLING_MOTION]:
+                'Upload a character photo and motion video, choose orientation, then describe the scene (prompt optional).',
             [AiToolId.VEO]:
                 'Attach photo or video references (optional), adjust settings, then describe the scene.',
             [AiToolId.SORA]:

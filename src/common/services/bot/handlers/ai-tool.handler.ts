@@ -1377,9 +1377,31 @@ async function processVideoPromptStep(
         return;
     }
 
-    if (!text?.trim()) {
+    const isMotion = toolId === AiToolId.KLING_MOTION;
+    if (!text?.trim() && !isMotion) {
         await ctx.reply(i18n.videoTool.needPrompt, { parse_mode: 'HTML' });
         return;
+    }
+
+    if (isMotion) {
+        const refs = session.ai?.referenceFiles ?? [];
+        const images = refs.filter(
+            (ref) =>
+                isVisualMedia(ref.mimeType, ref.fileName) &&
+                !isVideoMedia(ref.mimeType, ref.fileName),
+        );
+        const videos = refs.filter((ref) =>
+            isVideoMedia(ref.mimeType, ref.fileName),
+        );
+        if (images.length < 1 || videos.length < 1) {
+            await ctx.reply(
+                i18n.localeTag === 'en-US'
+                    ? 'Kling Motion needs one character photo and one motion video.'
+                    : 'Kling Motion: загрузите фото персонажа и видео движения.',
+                { parse_mode: 'HTML' },
+            );
+            return;
+        }
     }
 
     const referenceFiles = deserializeReferences(session.ai?.referenceFiles);
@@ -1451,6 +1473,58 @@ async function appendVideoReferences(
         if (existingVideos + incomingVideos > maxVideos) {
             await ctx.reply(
                 `Seedance принимает до ${maxVideos} видео-референсов. Можно добавить ещё фото и аудио.`,
+                { parse_mode: 'HTML' },
+            );
+            return;
+        }
+    }
+
+    if (toolId === AiToolId.KLING) {
+        const hasVideo = mediaFiles.some((file) =>
+            isVideoMedia(file.mimeType, file.fileName),
+        );
+        if (hasVideo) {
+            await ctx.reply(
+                i18n.localeTag === 'en-US'
+                    ? 'Kling accepts photos only (up to 4). For motion transfer use Kling Motion.'
+                    : 'Kling принимает только фото (до 4). Для переноса движения используйте Kling Motion.',
+                { parse_mode: 'HTML' },
+            );
+            return;
+        }
+    }
+
+    if (toolId === AiToolId.KLING_MOTION) {
+        const existingImages = session.ai.referenceFiles.filter(
+            (ref) =>
+                isVisualMedia(ref.mimeType, ref.fileName) &&
+                !isVideoMedia(ref.mimeType, ref.fileName),
+        ).length;
+        const existingVideos = session.ai.referenceFiles.filter((ref) =>
+            isVideoMedia(ref.mimeType, ref.fileName),
+        ).length;
+        const incomingImages = mediaFiles.filter(
+            (file) =>
+                isVisualMedia(file.mimeType, file.fileName) &&
+                !isVideoMedia(file.mimeType, file.fileName),
+        ).length;
+        const incomingVideos = mediaFiles.filter((file) =>
+            isVideoMedia(file.mimeType, file.fileName),
+        ).length;
+        if (existingImages + incomingImages > 1) {
+            await ctx.reply(
+                i18n.localeTag === 'en-US'
+                    ? 'Kling Motion needs exactly one character photo.'
+                    : 'Kling Motion: нужно ровно одно фото персонажа.',
+                { parse_mode: 'HTML' },
+            );
+            return;
+        }
+        if (existingVideos + incomingVideos > 1) {
+            await ctx.reply(
+                i18n.localeTag === 'en-US'
+                    ? 'Kling Motion needs exactly one motion video.'
+                    : 'Kling Motion: нужно ровно одно видео движения.',
                 { parse_mode: 'HTML' },
             );
             return;
@@ -2368,6 +2442,26 @@ async function handleVideoToolButtonPress(
     }
 
     if (action.type === 'continue_prompt') {
+        if (toolId === AiToolId.KLING_MOTION) {
+            const refs = session.ai?.referenceFiles ?? [];
+            const images = refs.filter(
+                (ref) =>
+                    isVisualMedia(ref.mimeType, ref.fileName) &&
+                    !isVideoMedia(ref.mimeType, ref.fileName),
+            );
+            const videos = refs.filter((ref) =>
+                isVideoMedia(ref.mimeType, ref.fileName),
+            );
+            if (images.length < 1 || videos.length < 1) {
+                await ctx.reply(
+                    i18n.localeTag === 'en-US'
+                        ? 'Kling Motion needs one character photo and one motion video.'
+                        : 'Kling Motion: загрузите фото персонажа и видео движения.',
+                    { parse_mode: 'HTML' },
+                );
+                return true;
+            }
+        }
         await goToVideoPromptStep(
             ctx,
             session,
@@ -2381,6 +2475,15 @@ async function handleVideoToolButtonPress(
     }
 
     if (action.type === 'skip_refs') {
+        if (toolId === AiToolId.KLING_MOTION) {
+            await ctx.reply(
+                i18n.localeTag === 'en-US'
+                    ? 'Kling Motion requires a character photo and motion video.'
+                    : 'Kling Motion требует фото персонажа и видео движения.',
+                { parse_mode: 'HTML' },
+            );
+            return true;
+        }
         session.ai.referenceFiles = [];
         await goToVideoPromptStep(
             ctx,
@@ -3497,6 +3600,19 @@ async function buildAiGenerationInput(
         heygenVoicePitch:
             toolId === AiToolId.HEYGEN
                 ? videoSettings?.heygenVoicePitch
+                : undefined,
+        negativePrompt: undefined,
+        klingSound:
+            toolId === AiToolId.KLING
+                ? Boolean(videoSettings?.klingSound)
+                : undefined,
+        klingCharacterOrientation:
+            toolId === AiToolId.KLING_MOTION
+                ? (videoSettings?.klingCharacterOrientation ?? 'image')
+                : undefined,
+        klingKeepOriginalSound:
+            toolId === AiToolId.KLING_MOTION
+                ? videoSettings?.klingKeepOriginalSound !== false
                 : undefined,
         sunoGenreId:
             toolId === AiToolId.SUNO ? voiceSettings?.sunoGenreId : undefined,

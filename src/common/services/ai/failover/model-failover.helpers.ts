@@ -20,6 +20,7 @@ import {
 export const FAILOVER_EXCLUDED_TOOL_IDS = new Set<AiToolId>([
     AiToolId.TOPAZ,
     AiToolId.HEYGEN,
+    AiToolId.KLING_MOTION,
 ]);
 
 export function isFailoverEligibleTool(toolId: AiToolId): boolean {

@@ -79,7 +79,7 @@ import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
-const uploadInterceptor = FilesInterceptor('files', 10, {
+const uploadInterceptor = FilesInterceptor('files', 50, {
     storage: memoryStorage(),
     limits: { fileSize: MAX_UPLOAD_BYTES },
 });
@@ -310,6 +310,22 @@ class GenerateBodyDto {
     @IsOptional()
     @IsString()
     attachmentRoles?: string;
+
+    @IsOptional()
+    @IsString()
+    negativePrompt?: string;
+
+    @IsOptional()
+    @IsString()
+    klingSound?: string;
+
+    @IsOptional()
+    @IsIn(['image', 'video'])
+    klingCharacterOrientation?: 'image' | 'video';
+
+    @IsOptional()
+    @IsString()
+    klingKeepOriginalSound?: string;
 }
 
 class CreateSoraCharacterBodyDto {
@@ -794,6 +810,23 @@ export class AiController {
                                 ) as AiGenerationInput['attachmentRoles'];
                         }
                     })(),
+                    negativePrompt: body.negativePrompt,
+                    klingSound:
+                        body.klingSound === 'true' || body.klingSound === '1'
+                            ? true
+                            : body.klingSound === 'false' ||
+                                body.klingSound === '0'
+                              ? false
+                              : undefined,
+                    klingCharacterOrientation: body.klingCharacterOrientation,
+                    klingKeepOriginalSound:
+                        body.klingKeepOriginalSound === 'true' ||
+                        body.klingKeepOriginalSound === '1'
+                            ? true
+                            : body.klingKeepOriginalSound === 'false' ||
+                                body.klingKeepOriginalSound === '0'
+                              ? false
+                              : undefined,
                 },
             });
         } catch (error) {

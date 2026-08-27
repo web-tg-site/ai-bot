@@ -42,9 +42,15 @@ const VIDEO_TOOLS_WITH_RESOLUTION_COST: AiToolId[] = [
     AiToolId.SORA,
     AiToolId.SEEDANCE,
     AiToolId.HEYGEN,
+    AiToolId.KLING,
+    AiToolId.KLING_MOTION,
 ];
 
-const VIDEO_TOOLS_WITH_QUALITY_COST: AiToolId[] = [AiToolId.SORA];
+const VIDEO_TOOLS_WITH_QUALITY_COST: AiToolId[] = [
+    AiToolId.SORA,
+    AiToolId.KLING,
+    AiToolId.KLING_MOTION,
+];
 
 export function getImageResolutionMultiplier(
     toolId: AiToolId,

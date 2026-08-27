@@ -36,11 +36,18 @@ export type VideoToolSettings = {
     heygenVoicePitch?: number;
     /** Sora characters stored in UserAiToolSettings for toolId sora */
     characters?: SoraCharacterSettingsRecord[];
+    /** Kling native sound generation */
+    klingSound?: boolean;
+    /** Kling Motion character orientation */
+    klingCharacterOrientation?: 'image' | 'video';
+    /** Kling Motion keep reference video audio */
+    klingKeepOriginalSound?: boolean;
 };
 
 export const DEFAULT_VIDEO_TOOL_SETTINGS: VideoToolSettings = {
     aspectRatio: '16:9',
     resolution: '720p',
+    quality: 'standard',
     durationSeconds: 5,
     styleId: 'none',
     higgsfieldMotionId: 'none',
@@ -51,4 +58,7 @@ export const DEFAULT_VIDEO_TOOL_SETTINGS: VideoToolSettings = {
     heygenExpressiveness: DEFAULT_HEYGEN_EXPRESSIVENESS,
     heygenVoiceSpeed: DEFAULT_HEYGEN_VOICE_SPEED,
     heygenVoicePitch: DEFAULT_HEYGEN_VOICE_PITCH,
+    klingSound: false,
+    klingCharacterOrientation: 'image',
+    klingKeepOriginalSound: true,
 };

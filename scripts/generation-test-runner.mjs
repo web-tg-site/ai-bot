@@ -7,7 +7,8 @@
  *
  * Нужны env-переменные (из .env):
  *   OPENAI_API_KEY, BFL_API_KEY, LUMA_API_KEY, OPENROUTER_API_KEY,
- *   SHARPII_API_KEY, HEYGEN_API_KEY, HIGGSFIELD_API_KEY, HIGGSFIELD_API_SECRET
+ *   SHARPII_API_KEY, HEYGEN_API_KEY, HIGGSFIELD_API_KEY, HIGGSFIELD_API_SECRET,
+ *   KLING_API_KEY, BYTEPLUS_API_KEY
  */
 
 import { readFileSync, writeFileSync } from 'fs';
@@ -99,7 +100,7 @@ async function testOpenRouterImage(model) {
     return { url: res.data[0].url ?? '(base64)' };
 }
 
-// OpenRouter video (Kling, Veo — async)
+// OpenRouter video (Veo — async)
 async function testOpenRouterVideo(model, timeoutMs) {
     const key = process.env.OPENROUTER_API_KEY;
     if (!key) throw new Error('OPENROUTER_API_KEY not configured');
@@ -117,6 +118,48 @@ async function testOpenRouterVideo(model, timeoutMs) {
         (data) => {
             if (data.status === 'completed' || data.status === 'complete') return { done: true, url: data.unsigned_urls?.[0] ?? data.url };
             if (data.status === 'failed' || data.status === 'error') throw new Error(data.error ?? data.failure_reason ?? 'generation failed');
+            return { done: false };
+        },
+    );
+}
+
+// Kling direct API (text2video — async)
+async function testKling(timeoutMs) {
+    const key = process.env.KLING_API_KEY;
+    const baseUrl = (process.env.KLING_API_URL || 'https://api-singapore.klingai.com').replace(/\/$/, '');
+    if (!key) throw new Error('KLING_API_KEY not configured');
+    const createRes = await fetchJson(`${baseUrl}/v1/videos/text2video`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model_name: 'kling-v3',
+            prompt: TEST_PROMPT,
+            aspect_ratio: '16:9',
+            duration: '5',
+            mode: 'std',
+            watermark_info: { enabled: false },
+        }),
+    });
+    if (createRes.code != null && createRes.code !== 0) {
+        throw new Error(createRes.message ?? `Kling error ${createRes.code}`);
+    }
+    const taskId = createRes.data?.task_id;
+    if (!taskId) throw new Error('No task_id: ' + JSON.stringify(createRes).slice(0, 200));
+    return pollUntilDone(
+        `${baseUrl}/v1/videos/text2video/${taskId}`,
+        { 'Authorization': `Bearer ${key}` },
+        timeoutMs,
+        (data) => {
+            if (data.code != null && data.code !== 0) {
+                throw new Error(data.message ?? `Kling status error ${data.code}`);
+            }
+            const status = data.data?.task_status;
+            if (status === 'succeed') {
+                return { done: true, url: data.data?.task_result?.videos?.[0]?.url };
+            }
+            if (status === 'failed') {
+                throw new Error(data.data?.task_status_msg ?? 'generation failed');
+            }
             return { done: false };
         },
     );
@@ -318,7 +361,7 @@ const TOOL_MAP = {
     nano_banana: { name: 'Nano Banana', fn: (t) => testOpenRouterImage('google/gemini-3.1-flash-image') },
     seedream:    { name: 'Seedream', fn: (t) => testOpenRouterImage('bytedance-seed/seedream-4.5') },
     midjourney:  { name: 'Midjourney', fn: (t) => testSharpiiImage(t) },
-    kling:       { name: 'Kling', fn: (t) => testOpenRouterVideo('kwaivgi/kling-v3.0-std', t) },
+    kling:       { name: 'Kling', fn: (t) => testKling(t) },
     veo:         { name: 'Veo', fn: (t) => testOpenRouterVideo('google/veo-3.1-lite', t) },
     sora:        { name: 'Sora', fn: (t) => testSora(t) },
     seedance:    { name: 'Seedance 2.5', fn: (t) => testBytePlusSeedance(t) },

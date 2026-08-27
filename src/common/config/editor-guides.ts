@@ -170,24 +170,39 @@ Seedream 5.0 также поддерживает вывод в 4K через Mod
 
 Продлить видео: под готовым роликом нажмите «Продлить видео», опишите продолжение сцены и запустите генерацию. Стоимость продления — от 600 кредитов (4 сек).`,
 
-    [AiToolId.KLING]: `Kling 3.0 — AI для генерации видео.
-Он подходит для создания рекламных роликов, cinematic-видео, product videos, персонажей, сцен с движением камеры и анимации изображений.
+    [AiToolId.KLING]: `Kling 3.0 — прямое API Kling для генерации видео.
+Подходит для рекламных роликов, cinematic-сцен, product videos и анимации изображений.
 
 Что можно делать
 • текст → видео
-• изображение → видео
-• создавать рекламные ролики
-• оживлять изображения
-• создавать кинемотографичные сцены
-• генерировать движения камеры
-• создавать рекламные кампании для fashion-брендов и видеокампании
-• создавать ролики для TikTok, Reels и Shorts
+• изображение → видео (первый / последний кадр)
+• multi-image → видео (до 4 фото)
+• режим STD / PRO
+• звук on/off
+• negative prompt
 
 Как пользоваться
-1. При необходимости загрузите изображение.
-2. Опишите действие и движение.
-3. Выберите разрешение/длительность/качество/стиль генерации.
+1. При необходимости загрузите до 4 фото (1–2 = start/end, 3–4 = multi-image).
+2. Опишите сцену; при желании добавьте negative prompt.
+3. Выберите формат, длительность, STD/PRO и звук.
 4. Запустите генерацию.`,
+
+    [AiToolId.KLING_MOTION]: `Kling Motion — перенос движения с референсного видео на персонажа с фото.
+
+Что нужно
+• фото персонажа
+• видео с движением (3–10 с для ориентации «как на фото», до 30 с для «как в видео»)
+• опционально промпт
+
+Параметры
+• ориентация персонажа: как на фото / как в видео
+• сохранить звук с motion-видео
+• режим STD / PRO
+
+Как пользоваться
+1. Загрузите фото персонажа и видео движения.
+2. Выберите ориентацию и качество.
+3. При желании опишите сцену и запустите генерацию.`,
 
     [AiToolId.VEO]: `Veo — AI-модель Google для генерации видео.
 Она особенно полезна для cinematic-сцен, рекламы, storytelling и коротких реалистичных видеороликов.
@@ -572,24 +587,39 @@ How to use
 
 Extend video: tap "Extend video" under a finished clip, describe how the scene should continue, and generate again. Extension costs from 600 credits (4 sec).`,
 
-    [AiToolId.KLING]: `Kling 3.0 is an AI for video generation.
-It suits ad clips, cinematic video, product videos, characters, camera movement scenes and image animation.
+    [AiToolId.KLING]: `Kling 3.0 — direct Kling API for video generation.
+Suits ads, cinematic scenes, product videos, and image animation.
 
 What you can do
 • text → video
-• image → video
-• create ad clips
-• animate images
-• create cinematic scenes
-• generate camera movements
-• create ad campaigns for fashion brands and video campaigns
-• create clips for TikTok, Reels and Shorts
+• image → video (first / last frame)
+• multi-image → video (up to 4 photos)
+• STD / PRO mode
+• sound on/off
+• negative prompt
 
 How to use
-1. Upload an image if needed.
-2. Describe the action and movement.
-3. Choose resolution/duration/quality/generation style.
+1. Optionally upload up to 4 photos (1–2 = start/end, 3–4 = multi-image).
+2. Describe the scene; optionally add a negative prompt.
+3. Choose aspect, duration, STD/PRO, and sound.
 4. Run generation.`,
+
+    [AiToolId.KLING_MOTION]: `Kling Motion — transfer motion from a reference video onto a character photo.
+
+Required
+• character photo
+• motion video (3–10s for image orientation, up to 30s for video orientation)
+• optional prompt
+
+Parameters
+• character orientation: match image / match video
+• keep sound from the motion video
+• STD / PRO mode
+
+How to use
+1. Upload a character photo and a motion video.
+2. Choose orientation and quality.
+3. Optionally describe the scene and run generation.`,
 
     [AiToolId.VEO]: `Veo is Google's AI model for video generation.
 It is especially useful for cinematic scenes, ads, storytelling and short realistic clips.

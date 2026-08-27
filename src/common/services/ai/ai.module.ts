@@ -19,6 +19,7 @@ import {
     BflProvider,
     LumaProvider,
     BytePlusProvider,
+    KlingProvider,
 } from './providers';
 import { AiJobService } from './jobs/ai-job.service';
 import { AiJobCron } from './jobs/ai-job.cron';
@@ -47,6 +48,7 @@ import { PublicTmpController } from '@/common/controllers/public-tmp.controller'
         BflProvider,
         LumaProvider,
         BytePlusProvider,
+        KlingProvider,
         ElevenLabsVoicePreviewService,
         AiJobService,
         ModelFailoverService,
@@ -69,6 +71,7 @@ import { PublicTmpController } from '@/common/controllers/public-tmp.controller'
         OpenAiProvider,
         TempPublicMediaService,
         BytePlusProvider,
+        KlingProvider,
     ],
 })
 export class AiModule {}

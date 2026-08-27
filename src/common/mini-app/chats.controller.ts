@@ -24,7 +24,7 @@ import { parseGptUserMessage } from '@/common/utils/gpt-message-content';
 import { PrismaService } from '@/common/services/prisma';
 import { GenerationFacade } from './generation.facade';
 
-const uploadInterceptor = FilesInterceptor('files', 10, {
+const uploadInterceptor = FilesInterceptor('files', 50, {
     storage: memoryStorage(),
     limits: { fileSize: 25 * 1024 * 1024 },
 });

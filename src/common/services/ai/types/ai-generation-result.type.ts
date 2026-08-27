@@ -94,6 +94,14 @@ export type AiGenerationInput = {
     soraVideoMode?: 'create' | 'extend' | 'edit';
     soraCharacterIds?: string[];
     soraCharacterName?: string;
+    /** Kling negative prompt (text2video / image2video / multi-image). */
+    negativePrompt?: string;
+    /** Kling native audio generation (sound on/off). */
+    klingSound?: boolean;
+    /** Kling Motion: character orientation from image or reference video. */
+    klingCharacterOrientation?: 'image' | 'video';
+    /** Kling Motion: keep audio from motion reference video. */
+    klingKeepOriginalSound?: boolean;
 };
 
 export type AiFileInput = {

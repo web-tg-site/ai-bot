@@ -7,6 +7,7 @@ export enum AiToolId {
     SEEDREAM = 'seedream',
     MIDJOURNEY = 'midjourney',
     KLING = 'kling',
+    KLING_MOTION = 'kling_motion',
     VEO = 'veo',
     SORA = 'sora',
     SEEDANCE = 'seedance',
@@ -33,6 +34,7 @@ export enum AiProviderId {
     TOPAZ = 'topaz',
     BFL = 'bfl',
     LUMA = 'luma',
+    KLING = 'kling',
 }
 
 export type AiInputType =

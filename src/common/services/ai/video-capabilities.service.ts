@@ -18,6 +18,7 @@ import {
     buildModelNativeStyleOptions,
     getOpenRouterVideoModelForTool,
     isVideoFlowTool,
+    isVideoToolWithAspectSettings,
 } from '@/common/config/video-editor-capabilities.config';
 import {
     normalizeAspectRatioFromList,
@@ -64,6 +65,13 @@ export class VideoCapabilitiesService implements OnModuleInit {
 
     getAspectRatios(toolId: AiToolId): string[] {
         if (!isVideoFlowTool(toolId)) {
+            return [];
+        }
+
+        if (
+            toolId === AiToolId.KLING_MOTION ||
+            !isVideoToolWithAspectSettings(toolId)
+        ) {
             return [];
         }
 
@@ -264,7 +272,11 @@ export class VideoCapabilitiesService implements OnModuleInit {
         }
 
         if (toolId === AiToolId.KLING) {
-            return Math.min(15, Math.max(3, durationSeconds));
+            return Math.min(15, Math.max(5, durationSeconds));
+        }
+
+        if (toolId === AiToolId.KLING_MOTION) {
+            return Math.min(30, Math.max(3, durationSeconds));
         }
 
         if (toolId === AiToolId.SORA) {
@@ -291,6 +303,10 @@ export class VideoCapabilitiesService implements OnModuleInit {
     ): number {
         if (toolId === AiToolId.KLING) {
             return 15;
+        }
+
+        if (toolId === AiToolId.KLING_MOTION) {
+            return 30;
         }
 
         if (toolId === AiToolId.SEEDANCE) {
@@ -336,7 +352,11 @@ export class VideoCapabilitiesService implements OnModuleInit {
         }
 
         if (toolId === AiToolId.KLING) {
-            return tier >= 3 && tier <= 15;
+            return tier === 5 || tier === 10 || tier === 15;
+        }
+
+        if (toolId === AiToolId.KLING_MOTION) {
+            return tier >= 3 && tier <= 30;
         }
 
         if (toolId === AiToolId.VEO && modelDurations.length) {
