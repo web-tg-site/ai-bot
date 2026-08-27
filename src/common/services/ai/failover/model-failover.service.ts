@@ -17,7 +17,7 @@ import {
     isFailoverEligibleError,
     isFailoverEligibleTool,
     parseTriedToolIds,
-    prepareFailoverInput,
+    reviveGenerationInput,
 } from './model-failover.helpers';
 
 export type FailoverAttemptResult =
@@ -135,17 +135,14 @@ export class ModelFailoverService {
             return { ok: false, reason: 'disabled' };
         }
 
-        const input = prepareFailoverInput(
-            params.failedToolId,
-            params.input,
-        );
+        const input = reviveGenerationInput(params.input);
         const tried = [
             ...(params.triedToolIds ?? []),
             params.failedToolId,
         ];
         const chain = this.getNextCandidates({
             failedToolId: params.failedToolId,
-            input: params.input,
+            input,
             triedToolIds: tried,
         });
 
@@ -303,10 +300,7 @@ export class ModelFailoverService {
             return { ok: false, reason: 'disabled' };
         }
 
-        const input = prepareFailoverInput(
-            params.currentToolId,
-            params.input,
-        );
+        const input = reviveGenerationInput(params.input);
         const tried = parseTriedToolIds(params.failoverTriedToolIds);
         if (!tried.includes(params.currentToolId)) {
             tried.push(params.currentToolId);
