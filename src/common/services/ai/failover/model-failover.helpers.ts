@@ -16,8 +16,17 @@ import {
     AiToolId,
 } from '../types';
 
-/** Tools that must never participate in auto-failover (source or target). */
+/** Tools that must never be a failover source (or target). */
 export const FAILOVER_EXCLUDED_TOOL_IDS = new Set<AiToolId>([
+    AiToolId.TOPAZ,
+    AiToolId.HEYGEN,
+]);
+
+/**
+ * Tools that can fail over FROM, but must never be chosen as a failover target
+ * (specialized flows other models can't replace as a destination).
+ */
+export const FAILOVER_EXCLUDED_TARGET_IDS = new Set<AiToolId>([
     AiToolId.TOPAZ,
     AiToolId.HEYGEN,
     AiToolId.KLING_MOTION,
@@ -31,14 +40,60 @@ export function isFailoverEligibleTool(toolId: AiToolId): boolean {
     return true;
 }
 
+export function isFailoverEligibleTarget(toolId: AiToolId): boolean {
+    if (!isFailoverEligibleTool(toolId)) return false;
+    if (FAILOVER_EXCLUDED_TARGET_IDS.has(toolId)) return false;
+    return true;
+}
+
 export function isFailoverEligibleError(rawMessage: string): boolean {
     const code = classifyBotError(rawMessage);
-    return (
-        code !== BotErrorCode.CONTENT_POLICY &&
-        code !== BotErrorCode.INSUFFICIENT_TOKENS &&
-        code !== BotErrorCode.CONFIG &&
-        code !== BotErrorCode.DELIVERY
-    );
+    if (
+        code === BotErrorCode.CONTENT_POLICY ||
+        code === BotErrorCode.INSUFFICIENT_TOKENS ||
+        code === BotErrorCode.CONFIG ||
+        code === BotErrorCode.DELIVERY
+    ) {
+        return false;
+    }
+
+    // User-fixable input validation — show the message, don't burn another model.
+    if (
+        /Video duration|длительность видео|короче \d|не должна превышать \d|must be at least|должна быть не меньше|Поза с фото|Pose from photo/i.test(
+            rawMessage,
+        )
+    ) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Adapt input when leaving a specialized tool so the next model can use it.
+ * Kling Motion → keep character photo + prompt; drop motion video / motion flags.
+ */
+export function prepareFailoverInput(
+    failedToolId: AiToolId,
+    input: unknown,
+): AiGenerationInput {
+    const revived = reviveGenerationInput(input);
+
+    if (failedToolId !== AiToolId.KLING_MOTION) {
+        return revived;
+    }
+
+    const files = (revived.files ?? []).filter((file) => {
+        const mime = file.mimeType?.toLowerCase() ?? '';
+        return !mime.startsWith('video/');
+    });
+
+    return {
+        ...revived,
+        files,
+        klingCharacterOrientation: undefined,
+        klingKeepOriginalSound: undefined,
+    };
 }
 
 export function reviveGenerationInput(raw: unknown): AiGenerationInput {
@@ -129,13 +184,17 @@ export function buildFailoverChain(params: {
         params.failedToolId,
         ...(params.triedToolIds ?? []),
     ]);
-    const required = getRequiredInputTypes(params.input);
+    const failoverInput = prepareFailoverInput(
+        params.failedToolId,
+        params.input,
+    );
+    const required = getRequiredInputTypes(failoverInput);
     const failedPrice = getFailoverSortPrice(failed);
 
     return AI_TOOLS_REGISTRY.filter((tool) => {
         if (tried.has(tool.id)) return false;
         if (tool.category !== failed.category) return false;
-        if (!isFailoverEligibleTool(tool.id)) return false;
+        if (!isFailoverEligibleTarget(tool.id)) return false;
         return toolAcceptsInput(tool, required);
     })
         .map((tool) => ({
