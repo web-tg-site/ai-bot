@@ -189,6 +189,16 @@ describe('bot-error.mapper', () => {
             expect(result).not.toBe(ru.aiResult.errorByCode[BotErrorCode.PROVIDER]);
         });
 
+        it('explains 10s limit for image orientation', () => {
+            const result = toUserFacingError(
+                'Kling: Video duration can not longer than 10.0s',
+                ru,
+            );
+            expect(result).not.toContain('Kling');
+            expect(result).toMatch(/10/);
+            expect(result).toMatch(/как на фото|как в видео/i);
+        });
+
         it('shows actionable duration detail for English locale', () => {
             const result = toUserFacingError(
                 'Kling: Video duration can not longer than 30.0s',

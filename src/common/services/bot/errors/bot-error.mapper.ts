@@ -148,6 +148,11 @@ function localizeActionableProviderDetail(
         /duration|longer|exceed|max|video/i.test(detail)
     ) {
         const sec = maxMatch[1].replace(/\.0$/, '');
+        if (sec === '10') {
+            return ru
+                ? `При ориентации «как на фото» видео должно быть короче 10 с (часто ровно 10 с не проходит). Переключите на «как в видео» (до 30 с) или обрежьте клип.`
+                : `With “match photo” orientation the video must be under 10s (exactly 10s often fails). Switch to “match video” (up to 30s) or trim the clip.`;
+        }
         return ru
             ? `Длительность видео не должна превышать ${sec} с. Сократите клип и попробуйте снова.`
             : `Video duration must not exceed ${sec}s. Shorten the clip and try again.`;
