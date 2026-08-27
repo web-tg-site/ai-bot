@@ -110,6 +110,11 @@ export class KlingProvider {
                     mode: body.mode,
                     duration: body.duration,
                     hasImageUrl: Boolean(body.image_url || body.image),
+                    imageUrlHost:
+                        typeof (body.image_url ?? body.image) === 'string' &&
+                        String(body.image_url ?? body.image).startsWith('http')
+                            ? new URL(String(body.image_url ?? body.image)).host
+                            : undefined,
                     hasVideoUrl: Boolean(body.video_url),
                     videoUrlHost:
                         typeof body.video_url === 'string' &&
@@ -203,13 +208,24 @@ export class KlingProvider {
         }
 
         if (status === 'failed') {
+            const errorMessage = `Kling: ${
+                response.data?.task_status_msg ??
+                response.message ??
+                'generation failed'
+            }`;
+            this.logger.error(
+                {
+                    providerJobId,
+                    taskStatus: response.data?.task_status,
+                    taskStatusMsg: response.data?.task_status_msg,
+                    code: response.code,
+                    message: response.message,
+                },
+                `Kling task failed: ${errorMessage}`,
+            );
             return {
                 status,
-                errorMessage: `Kling: ${
-                    response.data?.task_status_msg ??
-                    response.message ??
-                    'generation failed'
-                }`,
+                errorMessage,
             };
         }
 
@@ -314,9 +330,10 @@ export class KlingProvider {
         const keepSound =
             input.klingKeepOriginalSound === false ? 'no' : 'yes';
 
-        // Official Kling Motion requires a publicly reachable video URL (not base64).
-        const imageUrl = await this.toImagePayload(images[0]);
-        const videoUrl = await this.uploadTempPublicUrl(videos[0]);
+        // Motion requires publicly reachable http(s) URLs for both image and video.
+        // Base64 / ephemeral self-host often fails after Railway restart.
+        const imageUrl = await this.uploadTempPublicUrl(images[0], 'image');
+        const videoUrl = await this.uploadTempPublicUrl(videos[0], 'video');
 
         const body: Record<string, unknown> = {
             model_name: model,
@@ -388,33 +405,23 @@ export class KlingProvider {
     }
 
     /**
-     * Motion reference video must be a public http(s) URL.
-     * Prefer PUBLIC_BASE_URL, then catbox / 0x0.st (same as Seedance).
+     * Motion media must be public http(s) URLs that Kling can fetch.
+     * Prefer durable public hosts (catbox / 0x0) over in-memory PUBLIC_BASE_URL —
+     * Railway restarts wipe TempPublicMediaService and Kling then gets 404.
      */
-    private async uploadTempPublicUrl(file: AiFileInput): Promise<string> {
-        const fileName = this.resolveUploadFileName(file);
+    private async uploadTempPublicUrl(
+        file: AiFileInput,
+        kind: 'image' | 'video' = 'video',
+    ): Promise<string> {
+        const fileName = this.resolveUploadFileName(file, kind);
         const errors: string[] = [];
-
-        if (this.publicBaseUrl) {
-            try {
-                const url = this.publishTempUrl(file);
-                this.logger.info(
-                    { fileName, bytes: file.buffer.length, host: 'self' },
-                    'Kling motion video published via PUBLIC_BASE_URL',
-                );
-                return url;
-            } catch (error) {
-                errors.push(`self: ${this.formatError(error)}`);
-            }
-        } else {
-            errors.push('self: PUBLIC_BASE_URL is not configured');
-        }
+        const label = kind === 'image' ? 'image' : 'video';
 
         try {
             const url = await this.uploadToCatbox(file, fileName);
             this.logger.info(
-                { fileName, bytes: file.buffer.length, host: 'catbox' },
-                'Kling motion video uploaded to catbox',
+                { kind, fileName, bytes: file.buffer.length, host: 'catbox', url },
+                `Kling motion ${label} uploaded to catbox`,
             );
             return url;
         } catch (error) {
@@ -424,17 +431,34 @@ export class KlingProvider {
         try {
             const url = await this.uploadTo0x0(file, fileName);
             this.logger.info(
-                { fileName, bytes: file.buffer.length, host: '0x0' },
-                'Kling motion video uploaded to 0x0.st',
+                { kind, fileName, bytes: file.buffer.length, host: '0x0', url },
+                `Kling motion ${label} uploaded to 0x0.st`,
             );
             return url;
         } catch (error) {
             errors.push(`0x0: ${this.formatError(error)}`);
         }
 
-        this.logger.error({ errors }, 'Kling motion video upload failed');
+        if (this.publicBaseUrl) {
+            try {
+                const url = this.publishTempUrl(file);
+                this.logger.warn(
+                    { kind, fileName, bytes: file.buffer.length, host: 'self', url },
+                    `Kling motion ${label} fallback to PUBLIC_BASE_URL (ephemeral)`,
+                );
+                return url;
+            } catch (error) {
+                errors.push(`self: ${this.formatError(error)}`);
+            }
+        } else {
+            errors.push('self: PUBLIC_BASE_URL is not configured');
+        }
+
+        this.logger.error({ kind, errors }, `Kling motion ${label} upload failed`);
         throw new Error(
-            'Kling Motion: не удалось опубликовать видео-референс. Попробуйте другое видео или позже.',
+            kind === 'image'
+                ? 'Kling Motion: не удалось опубликовать фото персонажа. Попробуйте другое фото или позже.'
+                : 'Kling Motion: не удалось опубликовать видео-референс. Попробуйте другое видео или позже.',
         );
     }
 
@@ -509,10 +533,22 @@ export class KlingProvider {
         return url;
     }
 
-    private resolveUploadFileName(file: AiFileInput): string {
+    private resolveUploadFileName(
+        file: AiFileInput,
+        kind: 'image' | 'video' = 'video',
+    ): string {
         const raw = file.fileName?.trim();
         if (raw && /\.[a-z0-9]+$/i.test(raw)) {
             return raw.replace(/[^\w.\-]+/g, '_');
+        }
+        if (kind === 'image') {
+            if (file.mimeType.includes('png')) {
+                return `kling-motion-${Date.now()}.png`;
+            }
+            if (file.mimeType.includes('webp')) {
+                return `kling-motion-${Date.now()}.webp`;
+            }
+            return `kling-motion-${Date.now()}.jpg`;
         }
         if (
             file.mimeType.includes('quicktime') ||

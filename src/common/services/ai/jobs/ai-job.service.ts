@@ -98,6 +98,16 @@ export class AiJobService {
             },
         });
 
+        this.logger.info(
+            {
+                jobId: job.id,
+                toolId: params.toolId,
+                providerJobId: providerJob.providerJobId,
+                tokenCost,
+            },
+            `AI job created [${params.toolId}]`,
+        );
+
         return { job, tokenCost, balance: deductResult.balance };
     }
 

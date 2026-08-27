@@ -184,6 +184,16 @@ export class AiJobCron {
                     status.errorMessage ?? 'Неизвестная ошибка';
                 const toolId = job.toolId as AiToolId;
 
+                this.logger.error(
+                    {
+                        jobId: job.id,
+                        toolId,
+                        providerJobId: job.providerJobId,
+                        errorMessage,
+                    },
+                    `AI job provider failed [${toolId}]: ${errorMessage}`,
+                );
+
                 if (
                     isFailoverEligibleTool(toolId) &&
                     job.user.autoModelFailover !== false
@@ -470,6 +480,17 @@ export class AiJobCron {
         const i18n = getI18n(job.user.language);
         const userMessage = toUserFacingError(errorMessage, i18n);
         const formattedError = formatUserBotErrorMessage(errorMessage, i18n);
+
+        this.logger.error(
+            {
+                jobId: job.id,
+                toolId: job.toolId,
+                providerJobId: job.providerJobId,
+                rawError: errorMessage,
+                userMessage,
+            },
+            `AI job marked failed [${job.toolId}]: ${errorMessage}`,
+        );
 
         await this.aiJobService.failJobWithRefund({
             jobId: job.id,
