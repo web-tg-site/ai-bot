@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import FormData from 'form-data';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { getToolById } from '@/common/config/ai-tools.registry';
 import {
@@ -81,36 +82,76 @@ export class KlingProvider {
         const tool = getToolById(toolId);
         const model = tool?.model ?? DEFAULT_MODEL;
 
-        const { endpoint, body } =
-            toolId === AiToolId.KLING_MOTION
-                ? await this.buildMotionBody(model, input)
-                : await this.buildKlingBody(model, input);
-
-        this.logger.debug(
+        const { images, videos } = splitMediaFiles(input.files);
+        this.logger.info(
             {
                 toolId,
                 model,
-                endpoint,
-                mode: body.mode,
-                duration: body.duration,
+                imageCount: images.length,
+                videoCount: videos.length,
+                hasPrompt: Boolean(input.prompt?.trim()),
+                orientation: input.klingCharacterOrientation,
+                quality: input.quality,
+                resolution: input.resolution,
             },
-            'Kling createJob request',
+            'Kling createJob start',
         );
 
-        const response = await this.post<KlingCreateResponse>(endpoint, body);
-        this.assertApiOk(response);
+        try {
+            const { endpoint, body } =
+                toolId === AiToolId.KLING_MOTION
+                    ? await this.buildMotionBody(model, input)
+                    : await this.buildKlingBody(model, input);
 
-        const taskId = response.data?.task_id;
-        if (!taskId) {
-            throw new Error(
-                response.message ?? 'Kling did not return task_id',
+            this.logger.info(
+                {
+                    toolId,
+                    endpoint,
+                    mode: body.mode,
+                    duration: body.duration,
+                    hasImageUrl: Boolean(body.image_url || body.image),
+                    hasVideoUrl: Boolean(body.video_url),
+                    videoUrlHost:
+                        typeof body.video_url === 'string' &&
+                        body.video_url.startsWith('http')
+                            ? new URL(body.video_url).host
+                            : undefined,
+                },
+                'Kling createJob request',
             );
-        }
 
-        return {
-            providerJobId: this.encodeJobId(endpoint, taskId),
-            estimatedTokenCost: 0,
-        };
+            const response = await this.post<KlingCreateResponse>(
+                endpoint,
+                body,
+            );
+            this.assertApiOk(response);
+
+            const taskId = response.data?.task_id;
+            if (!taskId) {
+                throw new Error(
+                    response.message ?? 'Kling did not return task_id',
+                );
+            }
+
+            this.logger.info(
+                { toolId, endpoint, taskId },
+                'Kling createJob accepted',
+            );
+
+            return {
+                providerJobId: this.encodeJobId(endpoint, taskId),
+                estimatedTokenCost: 0,
+            };
+        } catch (error) {
+            this.logger.error(
+                {
+                    toolId,
+                    err: error instanceof Error ? error.message : String(error),
+                },
+                'Kling createJob failed',
+            );
+            throw error;
+        }
     }
 
     async getJobStatus(providerJobId: string): Promise<AiJobStatusResult> {
@@ -164,10 +205,11 @@ export class KlingProvider {
         if (status === 'failed') {
             return {
                 status,
-                errorMessage:
+                errorMessage: `Kling: ${
                     response.data?.task_status_msg ??
                     response.message ??
-                    'Kling generation failed',
+                    'generation failed'
+                }`,
             };
         }
 
@@ -272,8 +314,9 @@ export class KlingProvider {
         const keepSound =
             input.klingKeepOriginalSound === false ? 'no' : 'yes';
 
-        const imageUrl = await this.toPublicOrBase64(images[0]);
-        const videoUrl = await this.toPublicOrBase64(videos[0], true);
+        // Official Kling Motion requires a publicly reachable video URL (not base64).
+        const imageUrl = await this.toImagePayload(images[0]);
+        const videoUrl = await this.uploadTempPublicUrl(videos[0]);
 
         const body: Record<string, unknown> = {
             model_name: model,
@@ -331,24 +374,68 @@ export class KlingProvider {
 
     /** Raw base64 (no data-URI prefix) or public URL. */
     private async toImagePayload(file: AiFileInput): Promise<string> {
-        return this.toPublicOrBase64(file, false);
-    }
-
-    private async toPublicOrBase64(
-        file: AiFileInput,
-        preferPublic = false,
-    ): Promise<string> {
-        if (preferPublic || this.publicBaseUrl) {
+        if (this.publicBaseUrl) {
             try {
                 return this.publishTempUrl(file);
             } catch (error) {
                 this.logger.warn(
                     { err: error instanceof Error ? error.message : error },
-                    'Kling temp URL publish failed, using base64',
+                    'Kling image temp URL publish failed, using base64',
                 );
             }
         }
         return file.buffer.toString('base64');
+    }
+
+    /**
+     * Motion reference video must be a public http(s) URL.
+     * Prefer PUBLIC_BASE_URL, then catbox / 0x0.st (same as Seedance).
+     */
+    private async uploadTempPublicUrl(file: AiFileInput): Promise<string> {
+        const fileName = this.resolveUploadFileName(file);
+        const errors: string[] = [];
+
+        if (this.publicBaseUrl) {
+            try {
+                const url = this.publishTempUrl(file);
+                this.logger.info(
+                    { fileName, bytes: file.buffer.length, host: 'self' },
+                    'Kling motion video published via PUBLIC_BASE_URL',
+                );
+                return url;
+            } catch (error) {
+                errors.push(`self: ${this.formatError(error)}`);
+            }
+        } else {
+            errors.push('self: PUBLIC_BASE_URL is not configured');
+        }
+
+        try {
+            const url = await this.uploadToCatbox(file, fileName);
+            this.logger.info(
+                { fileName, bytes: file.buffer.length, host: 'catbox' },
+                'Kling motion video uploaded to catbox',
+            );
+            return url;
+        } catch (error) {
+            errors.push(`catbox: ${this.formatError(error)}`);
+        }
+
+        try {
+            const url = await this.uploadTo0x0(file, fileName);
+            this.logger.info(
+                { fileName, bytes: file.buffer.length, host: '0x0' },
+                'Kling motion video uploaded to 0x0.st',
+            );
+            return url;
+        } catch (error) {
+            errors.push(`0x0: ${this.formatError(error)}`);
+        }
+
+        this.logger.error({ errors }, 'Kling motion video upload failed');
+        throw new Error(
+            'Kling Motion: не удалось опубликовать видео-референс. Попробуйте другое видео или позже.',
+        );
     }
 
     private publishTempUrl(file: AiFileInput): string {
@@ -361,6 +448,86 @@ export class KlingProvider {
             fileName: file.fileName,
         });
         return `${this.publicBaseUrl}/api/public/tmp/${id}`;
+    }
+
+    private async uploadToCatbox(
+        file: AiFileInput,
+        fileName: string,
+    ): Promise<string> {
+        const form = new FormData();
+        form.append('reqtype', 'fileupload');
+        form.append('fileToUpload', file.buffer, {
+            filename: fileName,
+            contentType: file.mimeType,
+        });
+
+        const response = await firstValueFrom(
+            this.httpService.post<string>(
+                'https://catbox.moe/user/api.php',
+                form,
+                {
+                    headers: form.getHeaders(),
+                    timeout: 180_000,
+                    maxBodyLength: Infinity,
+                    maxContentLength: Infinity,
+                    responseType: 'text',
+                    transformResponse: [(data) => data],
+                },
+            ),
+        );
+        const url = String(response.data ?? '').trim();
+        if (!/^https?:\/\//i.test(url)) {
+            throw new Error(url || 'empty response');
+        }
+        return url;
+    }
+
+    private async uploadTo0x0(
+        file: AiFileInput,
+        fileName: string,
+    ): Promise<string> {
+        const form = new FormData();
+        form.append('file', file.buffer, {
+            filename: fileName,
+            contentType: file.mimeType,
+        });
+
+        const response = await firstValueFrom(
+            this.httpService.post<string>('https://0x0.st', form, {
+                headers: form.getHeaders(),
+                timeout: 180_000,
+                maxBodyLength: Infinity,
+                maxContentLength: Infinity,
+                responseType: 'text',
+                transformResponse: [(data) => data],
+            }),
+        );
+        const url = String(response.data ?? '').trim();
+        if (!/^https?:\/\//i.test(url)) {
+            throw new Error(url || 'empty response');
+        }
+        return url;
+    }
+
+    private resolveUploadFileName(file: AiFileInput): string {
+        const raw = file.fileName?.trim();
+        if (raw && /\.[a-z0-9]+$/i.test(raw)) {
+            return raw.replace(/[^\w.\-]+/g, '_');
+        }
+        if (
+            file.mimeType.includes('quicktime') ||
+            file.mimeType.includes('mov')
+        ) {
+            return `kling-motion-${Date.now()}.mov`;
+        }
+        return `kling-motion-${Date.now()}.mp4`;
+    }
+
+    private formatError(error: unknown): string {
+        if (error instanceof Error) {
+            return error.message;
+        }
+        return String(error);
     }
 
     private encodeJobId(endpoint: KlingEndpoint, taskId: string): string {
@@ -402,13 +569,14 @@ export class KlingProvider {
     private assertApiOk(response: { code?: number; message?: string }) {
         if (response.code != null && response.code !== 0) {
             throw new Error(
-                response.message ?? `Kling API error code ${response.code}`,
+                `Kling API: ${response.message ?? `error code ${response.code}`}`,
             );
         }
     }
 
     private ensureApiKey() {
         if (!this.apiKey) {
+            this.logger.error('KLING_API_KEY is missing in environment');
             throw new Error('KLING_API_KEY is not configured');
         }
     }
@@ -452,36 +620,41 @@ export class KlingProvider {
     }
 
     private wrapHttpError(error: unknown, op: string): Error {
-        if (
-            error &&
-            typeof error === 'object' &&
-            'response' in error &&
-            (error as { response?: { data?: unknown; status?: number } })
-                .response
-        ) {
-            const axiosError = error as {
-                response?: { data?: unknown; status?: number };
-                message?: string;
-            };
-            const data = axiosError.response?.data;
-            const message =
-                data &&
-                typeof data === 'object' &&
-                'message' in data &&
-                typeof (data as { message: unknown }).message === 'string'
-                    ? (data as { message: string }).message
-                    : axiosError.message ?? `Kling ${op} failed`;
-            this.logger.error(
-                {
-                    status: axiosError.response?.status,
-                    data,
-                },
-                `Kling ${op} HTTP error`,
-            );
-            return new Error(message);
+        const axiosError = error as {
+            response?: { data?: unknown; status?: number };
+            message?: string;
+            code?: string;
+        };
+        const data = axiosError.response?.data;
+        const apiMessage =
+            data &&
+            typeof data === 'object' &&
+            'message' in data &&
+            typeof (data as { message: unknown }).message === 'string'
+                ? (data as { message: string }).message
+                : undefined;
+
+        this.logger.error(
+            {
+                op,
+                status: axiosError.response?.status,
+                code: axiosError.code,
+                data,
+                err: axiosError.message ?? String(error),
+            },
+            `Kling ${op} failed`,
+        );
+
+        if (apiMessage) {
+            return new Error(`Kling: ${apiMessage}`);
         }
-        return error instanceof Error
-            ? error
-            : new Error(`Kling ${op} failed`);
+        if (axiosError.response?.status) {
+            return new Error(
+                `Kling HTTP ${axiosError.response.status}: ${axiosError.message ?? 'request failed'}`,
+            );
+        }
+        return new Error(
+            `Kling ${op} failed: ${axiosError.message ?? String(error)}`,
+        );
     }
 }

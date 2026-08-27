@@ -66,7 +66,7 @@ export function classifyBotError(rawMessage: string): BotErrorCode {
     }
 
     if (
-        /Sharpii|Apiframe|Topaz|Midjourney|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|BFL|Luma|HTTP \d+|provider|generation failed|Insufficient credits|Image generation failed/i.test(
+        /Sharpii|Apiframe|Topaz|Midjourney|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|BFL|Luma|Kling|BytePlus|HTTP \d+|provider|generation failed|Insufficient credits|Image generation failed/i.test(
             message,
         )
     ) {
@@ -86,7 +86,7 @@ function isContentPolicyMessage(message: string): boolean {
 }
 
 function containsProviderLeak(message: string): boolean {
-    return /Sharpii|Apiframe|Topaz|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|BFL|Luma|openrouter|sharpii|apiframe|elevenlabs/i.test(
+    return /Sharpii|Apiframe|Topaz|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|BFL|Luma|Kling|BytePlus|openrouter|sharpii|apiframe|elevenlabs|kling/i.test(
         message,
     );
 }
