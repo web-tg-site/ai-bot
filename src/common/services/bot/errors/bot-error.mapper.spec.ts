@@ -7,6 +7,7 @@ import {
     stripTechnicalErrorDetails,
 } from './bot-error.mapper';
 import { ru } from '../i18n/locales/ru';
+import { en } from '../i18n/locales/en';
 
 describe('bot-error.mapper', () => {
     describe('stripTechnicalErrorDetails', () => {
@@ -175,6 +176,33 @@ describe('bot-error.mapper', () => {
         it('does not leak Luma', () => {
             const result = toUserFacingError('Luma generation failed', ru);
             expect(result).not.toContain('Luma');
+        });
+
+        it('shows actionable Kling duration limit without brand name', () => {
+            const result = toUserFacingError(
+                'Kling: Video duration can not longer than 30.0s',
+                ru,
+            );
+            expect(result).not.toContain('Kling');
+            expect(result).toMatch(/30/);
+            expect(result).toMatch(/длительность|видео/i);
+            expect(result).not.toBe(ru.aiResult.errorByCode[BotErrorCode.PROVIDER]);
+        });
+
+        it('shows actionable duration detail for English locale', () => {
+            const result = toUserFacingError(
+                'Kling: Video duration can not longer than 30.0s',
+                en,
+            );
+            expect(result).not.toContain('Kling');
+            expect(result).toMatch(/30/);
+            expect(result.toLowerCase()).toMatch(/duration|exceed/);
+        });
+
+        it('still hides opaque provider errors', () => {
+            const result = toUserFacingError('Kling: upstream task aborted', ru);
+            expect(result).not.toContain('Kling');
+            expect(result).toBe(ru.aiResult.errorByCode[BotErrorCode.PROVIDER]);
         });
 
         it('passes through user-friendly Russian messages', () => {

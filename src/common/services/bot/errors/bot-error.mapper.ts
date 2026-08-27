@@ -85,10 +85,89 @@ function isContentPolicyMessage(message: string): boolean {
     );
 }
 
+const PROVIDER_NAME_PREFIX =
+    /^(?:Kling(?:\s+API)?|BytePlus|Sharpii|Apiframe|Topaz|Midjourney|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|BFL|Luma|OpenAI(?:\s+Sora)?)\s*:\s*/i;
+
+const PROVIDER_NAME_LEAK =
+    /Sharpii|Apiframe|Topaz|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|BFL|Luma|Kling|BytePlus|openrouter|sharpii|apiframe|elevenlabs|kling/i;
+
+function stripProviderPrefix(message: string): string {
+    return message.replace(PROVIDER_NAME_PREFIX, '').trim();
+}
+
 function containsProviderLeak(message: string): boolean {
-    return /Sharpii|Apiframe|Topaz|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|BFL|Luma|Kling|BytePlus|openrouter|sharpii|apiframe|elevenlabs|kling/i.test(
-        message,
-    );
+    return PROVIDER_NAME_LEAK.test(message);
+}
+
+function isRussianI18n(i18n: I18nBundle): boolean {
+    return Boolean(i18n.aiResult.errorByCode[12]?.includes('провайдера'));
+}
+
+/** Readable validation / constraint messages from providers (after stripping brand). */
+function isActionableProviderDetail(detail: string): boolean {
+    if (detail.length < 12 || detail.length > 320) {
+        return false;
+    }
+
+    if (
+        /^(AxiosError|Error:|TypeError|SyntaxError|HTTP \d+|Unknown error|Неизвестная ошибка|generation failed|Video generation failed|Dubbing failed|request failed)$/i.test(
+            detail,
+        )
+    ) {
+        return false;
+    }
+
+    if (/ECONNREFUSED|ETIMEDOUT|ENOTFOUND|stack trace|at\s+\w+\s+\(/i.test(detail)) {
+        return false;
+    }
+
+    if (
+        /duration|longer than|shorter than|seconds|\d+(?:\.\d+)?\s*s\b|file size|too large|too small|resolution|aspect|format|invalid|must be|cannot|can not|can't|required|upload|orientation|fps|frame|dimension|width|height|mb\b|minutes?/i.test(
+            detail,
+        )
+    ) {
+        return true;
+    }
+
+    // Short English sentence without brand names
+    const words = detail.split(/\s+/).filter(Boolean);
+    return words.length >= 4 && !containsProviderLeak(detail);
+}
+
+function localizeActionableProviderDetail(
+    detail: string,
+    i18n: I18nBundle,
+): string {
+    const ru = isRussianI18n(i18n);
+
+    const maxMatch = detail.match(
+        /(?:duration[^\d]{0,40})?(?:can\s*not|cannot|can't|must\s+not|not\s+(?:be\s+)?(?:longer|greater|more)|exceed(?:s|ed)?|max(?:imum)?(?:\s+of)?)\s*([\d.]+)\s*s(?:ec(?:onds?)?)?/i,
+    ) ?? detail.match(/longer than\s*([\d.]+)\s*s/i);
+    if (
+        maxMatch?.[1] &&
+        /duration|longer|exceed|max|video/i.test(detail)
+    ) {
+        const sec = maxMatch[1].replace(/\.0$/, '');
+        return ru
+            ? `Длительность видео не должна превышать ${sec} с. Сократите клип и попробуйте снова.`
+            : `Video duration must not exceed ${sec}s. Shorten the clip and try again.`;
+    }
+
+    const minMatch = detail.match(
+        /(?:duration[^\d]{0,40})?(?:can\s*not|cannot|can't|must\s+not|not\s+(?:be\s+)?(?:shorter|less)|at\s+least|min(?:imum)?(?:\s+of)?)\s*([\d.]+)\s*s(?:ec(?:onds?)?)?/i,
+    ) ?? detail.match(/shorter than\s*([\d.]+)\s*s/i);
+    if (
+        minMatch?.[1] &&
+        /duration|shorter|least|min|video/i.test(detail)
+    ) {
+        const sec = minMatch[1].replace(/\.0$/, '');
+        return ru
+            ? `Длительность видео должна быть не меньше ${sec} с. Загрузите более длинный клип.`
+            : `Video duration must be at least ${sec}s. Upload a longer clip.`;
+    }
+
+    // Keep other actionable details, but never leak provider brand names.
+    return stripProviderPrefix(detail);
 }
 
 function isUserFriendlyMessage(message: string): boolean {
@@ -226,6 +305,22 @@ export function toUserFacingError(
 
     if (isUserFriendlyMessage(stripped)) {
         return stripped;
+    }
+
+    const providerDetail = stripProviderPrefix(stripped);
+    if (
+        providerDetail &&
+        providerDetail !== stripped &&
+        isActionableProviderDetail(providerDetail)
+    ) {
+        return localizeActionableProviderDetail(providerDetail, i18n);
+    }
+
+    if (
+        !containsProviderLeak(stripped) &&
+        isActionableProviderDetail(stripped)
+    ) {
+        return localizeActionableProviderDetail(stripped, i18n);
     }
 
     const code = classifyBotError(stripped);
