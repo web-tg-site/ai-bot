@@ -196,7 +196,7 @@ describe('bot-error.mapper', () => {
             );
             expect(result).not.toContain('Kling');
             expect(result).toMatch(/10/);
-            expect(result).toMatch(/как на фото|как в видео/i);
+            expect(result).toMatch(/Поза с фото|Поза из видео/i);
         });
 
         it('shows actionable duration detail for English locale', () => {

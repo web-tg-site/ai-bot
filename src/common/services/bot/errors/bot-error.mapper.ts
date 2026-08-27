@@ -150,8 +150,8 @@ function localizeActionableProviderDetail(
         const sec = maxMatch[1].replace(/\.0$/, '');
         if (sec === '10') {
             return ru
-                ? `При ориентации «как на фото» видео должно быть короче 10 с (часто ровно 10 с не проходит). Переключите на «как в видео» (до 30 с) или обрежьте клип.`
-                : `With “match photo” orientation the video must be under 10s (exactly 10s often fails). Switch to “match video” (up to 30s) or trim the clip.`;
+                ? `Режим «Поза с фото»: видео движения должно быть короче 10 секунд (ровно 10 часто не проходит). Выбери «Поза из видео» (до 30 сек) или обрежь клип.`
+                : `“Pose from photo” mode: motion video must be under 10 seconds (exactly 10s often fails). Switch to “Pose from video” (up to 30s) or trim the clip.`;
         }
         return ru
             ? `Длительность видео не должна превышать ${sec} с. Сократите клип и попробуйте снова.`

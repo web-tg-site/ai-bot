@@ -140,7 +140,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         accepts: ['text', 'photo', 'video'],
         isAsync: true,
         instruction:
-            'Загрузите фото персонажа и видео с движением, выберите ориентацию и опишите сцену.',
+            'Загрузите фото персонажа и видео движения. «Поза с фото» — клип короче 10 сек; «Поза из видео» — до 30 сек.',
     },
     {
         id: AiToolId.VEO,

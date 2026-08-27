@@ -191,17 +191,17 @@ Seedream 5.0 также поддерживает вывод в 4K через Mod
 
 Что нужно
 • фото персонажа
-• видео с движением (3–10 с для ориентации «как на фото», до 30 с для «как в видео»)
+• видео с движением (3–10 с для «Поза с фото», до 30 с для «Поза из видео»)
 • опционально промпт
 
 Параметры
-• ориентация персонажа: как на фото / как в видео
+• поза персонажа: с фото / из видео
 • сохранить звук с motion-видео
 • режим STD / PRO
 
 Как пользоваться
 1. Загрузите фото персонажа и видео движения.
-2. Выберите ориентацию и качество.
+2. Выберите позу (с фото или из видео) и качество.
 3. При желании опишите сцену и запустите генерацию.`,
 
     [AiToolId.VEO]: `Veo — AI-модель Google для генерации видео.
@@ -608,17 +608,17 @@ How to use
 
 Required
 • character photo
-• motion video (3–10s for image orientation, up to 30s for video orientation)
+• motion video (under 10s for “Pose from photo”, up to 30s for “Pose from video”)
 • optional prompt
 
 Parameters
-• character orientation: match image / match video
+• character pose: from photo / from video
 • keep sound from the motion video
 • STD / PRO mode
 
 How to use
 1. Upload a character photo and a motion video.
-2. Choose orientation and quality.
+2. Choose pose mode and quality.
 3. Optionally describe the scene and run generation.`,
 
     [AiToolId.VEO]: `Veo is Google's AI model for video generation.

@@ -462,7 +462,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             [AiToolId.KLING]:
                 'Attach up to 4 photos (optional), set STD/PRO and sound, then describe the scene.',
             [AiToolId.KLING_MOTION]:
-                'Upload a character photo and motion video. “Match photo” needs a clip under 10s; “match video” allows up to 30s. Prompt is optional.',
+                'Upload a character photo and motion video. “Pose from photo” needs a clip under 10s; “Pose from video” allows up to 30s. Prompt is optional.',
             [AiToolId.VEO]:
                 'Attach photo or video references (optional), adjust settings, then describe the scene.',
             [AiToolId.SORA]:
