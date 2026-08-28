@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from '@/common/auth';
 import { UserModule } from '@/common/models/user';
 import { GptConversationModule } from '@/common/models/gpt-conversation';
@@ -17,6 +18,7 @@ import { GenerationFacade } from './generation.facade';
 
 @Module({
     imports: [
+        ConfigModule,
         AuthModule,
         UserModule,
         GptConversationModule,
