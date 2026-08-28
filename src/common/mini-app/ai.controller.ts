@@ -60,7 +60,7 @@ import { compressReferenceImage } from '@/common/utils/compress-reference-image'
 import { normalizeUploadMime } from '@/common/utils/normalize-upload-mime';
 import { getI18n } from '@/common/services/bot/i18n';
 import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
-import { formatMiniAppSendMessage } from './format-mini-app-send-message';
+import { formatMiniAppSendMessage, formatSendPromptMessage } from './format-mini-app-send-message';
 import { ConfigService } from '@nestjs/config';
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
@@ -969,12 +969,10 @@ export class AiController {
             const botService = this.moduleRef.get(BotService, {
                 strict: false,
             });
-            const editor = body.editorLabel?.trim()
-                ? `Редактор: ${body.editorLabel.trim()}\n\n`
-                : '';
             await botService.sendMessage(
                 current.telegramId,
-                `📝 Промпт из мини-приложения:\n\n${editor}${trimmed}`,
+                formatSendPromptMessage(trimmed, body.editorLabel),
+                { parse_mode: 'HTML' },
             );
             return { ok: true };
         } catch (error) {

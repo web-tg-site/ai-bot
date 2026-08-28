@@ -26,6 +26,21 @@ export function escapeHtml(text: string): string {
         .replace(/>/g, '&gt;');
 }
 
+/** Telegram shows native tap-to-copy on code blocks with a language class. */
+export function formatCopyablePromptBlock(text: string): string {
+    return `<pre><code class="language-text">${escapeHtml(text)}</code></pre>`;
+}
+
+export function formatSendPromptMessage(
+    prompt: string,
+    editorLabel?: string | null,
+): string {
+    const editor = editorLabel?.trim()
+        ? `Редактор: ${escapeHtml(editorLabel.trim())}\n\n`
+        : '';
+    return `📝 Промпт из мини-приложения:\n\n${editor}📍 Ваш запрос:\n${formatCopyablePromptBlock(prompt)}`;
+}
+
 function getLocaleTag(language?: UserLanguage | null): 'ru-RU' | 'en-US' {
     return language === UserLanguage.EN ? 'en-US' : 'ru-RU';
 }
@@ -149,7 +164,7 @@ export function formatMiniAppSendMessage(params: {
     const trimmedPrompt = prompt?.trim() || input.prompt?.trim() || '';
     if (trimmedPrompt) {
         parts.push('📍 Ваш запрос:');
-        parts.push(`<pre>${escapeHtml(trimmedPrompt)}</pre>`);
+        parts.push(formatCopyablePromptBlock(trimmedPrompt));
         parts.push('');
     }
 
