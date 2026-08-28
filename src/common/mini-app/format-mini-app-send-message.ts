@@ -30,16 +30,6 @@ export function formatCopyablePromptBlock(text: string): string {
     return `<code>${escapeHtml(text)}</code>`;
 }
 
-export function formatMiniAppPromptMessage(prompt: string): string {
-    const trimmed = prompt.trim();
-    const maxPromptLen = TELEGRAM_MESSAGE_MAX - 40;
-    const body =
-        trimmed.length > maxPromptLen
-            ? `${trimmed.slice(0, maxPromptLen)}…`
-            : trimmed;
-    return `📍 Ваш запрос:\n\n${formatCopyablePromptBlock(body)}`;
-}
-
 export function formatSendPromptMessage(
     prompt: string,
     editorLabel?: string | null,
@@ -138,6 +128,7 @@ export function formatGenerationSettingsLines(
 export function formatMiniAppSendMessage(params: {
     jobId: string;
     toolId: AiToolId;
+    prompt?: string | null;
     inputJson: unknown;
     tokenCost: number;
     tokenLeft: number;
@@ -148,6 +139,7 @@ export function formatMiniAppSendMessage(params: {
     const {
         jobId,
         toolId,
+        prompt,
         inputJson,
         tokenCost,
         tokenLeft,
@@ -165,6 +157,13 @@ export function formatMiniAppSendMessage(params: {
         parts.push(
             `Вот прямая <a href="${escapeHtml(publicUrl)}">ссылка</a> на качественную версию.`,
         );
+        parts.push('');
+    }
+
+    const trimmedPrompt = resolveMiniAppJobPrompt(prompt, inputJson);
+    if (trimmedPrompt) {
+        parts.push('📍 Ваш запрос:');
+        parts.push(formatCopyablePromptBlock(trimmedPrompt));
         parts.push('');
     }
 
@@ -190,6 +189,19 @@ export function formatMiniAppSendMessage(params: {
 
     let message = parts.join('\n');
     if (message.length > TELEGRAM_MESSAGE_MAX) {
+        const overhead = message.length - trimmedPrompt.length;
+        const maxPromptLen = Math.max(
+            0,
+            TELEGRAM_MESSAGE_MAX - overhead - 20,
+        );
+        if (trimmedPrompt && maxPromptLen < trimmedPrompt.length) {
+            const truncated = `${trimmedPrompt.slice(0, maxPromptLen)}…`;
+            return formatMiniAppSendMessage({
+                ...params,
+                prompt: truncated,
+                inputJson: { ...input, prompt: truncated },
+            });
+        }
         message = `${message.slice(0, TELEGRAM_MESSAGE_MAX - 1)}…`;
     }
 

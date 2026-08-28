@@ -61,10 +61,8 @@ import { normalizeUploadMime } from '@/common/utils/normalize-upload-mime';
 import { getI18n } from '@/common/services/bot/i18n';
 import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
 import {
-    formatMiniAppPromptMessage,
     formatMiniAppSendMessage,
     formatSendPromptMessage,
-    resolveMiniAppJobPrompt,
 } from './format-mini-app-send-message';
 import { ConfigService } from '@nestjs/config';
 
@@ -1114,26 +1112,12 @@ export class AiController {
             let partialWarning: string | null = null;
 
             const sendInfoMessage = async () => {
-                const messageOptions = {
-                    parse_mode: 'HTML' as const,
-                    link_preview_options: { is_disabled: false },
-                };
-                const trimmedPrompt = resolveMiniAppJobPrompt(
-                    job.prompt,
-                    job.inputJson,
-                );
-                if (trimmedPrompt) {
-                    await botService.sendMessage(
-                        current.telegramId,
-                        formatMiniAppPromptMessage(trimmedPrompt),
-                        messageOptions,
-                    );
-                }
                 await botService.sendMessage(
                     current.telegramId,
                     formatMiniAppSendMessage({
                         jobId: job.id,
                         toolId,
+                        prompt: job.prompt,
                         inputJson: job.inputJson,
                         tokenCost: job.tokenCost,
                         tokenLeft: job.user.tokenLeft,
@@ -1141,7 +1125,10 @@ export class AiController {
                         language: job.user.language,
                         partialWarning,
                     }),
-                    messageOptions,
+                    {
+                        parse_mode: 'HTML',
+                        link_preview_options: { is_disabled: false },
+                    },
                 );
             };
 
