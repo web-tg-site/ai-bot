@@ -27,11 +27,13 @@ import { ModelFailoverService } from './failover/model-failover.service';
 import { SoraCharactersService } from './sora-characters.service';
 import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/elevenlabs-voice-preview.service';
 import { TempPublicMediaService } from './temp-public-media.service';
+import { JobMediaResolverService } from './job-media-resolver.service';
 import { PublicTmpController } from '@/common/controllers/public-tmp.controller';
+import { PublicJobMediaController } from '@/common/controllers/public-job-media.controller';
 
 @Module({
     imports: [HttpModule, ConfigModule, UserModule, UserAiToolSettingsModule],
-    controllers: [PublicTmpController],
+    controllers: [PublicTmpController, PublicJobMediaController],
     providers: [
         AiService,
         TokenBillingService,
@@ -55,6 +57,7 @@ import { PublicTmpController } from '@/common/controllers/public-tmp.controller'
         AiJobCron,
         SoraCharactersService,
         TempPublicMediaService,
+        JobMediaResolverService,
     ],
     exports: [
         AiService,
@@ -70,6 +73,7 @@ import { PublicTmpController } from '@/common/controllers/public-tmp.controller'
         HeyGenProvider,
         OpenAiProvider,
         TempPublicMediaService,
+        JobMediaResolverService,
         BytePlusProvider,
         KlingProvider,
     ],

@@ -43,29 +43,13 @@ import {
     AI_TOOLS_REGISTRY,
 } from '@/common/config/ai-tools.registry';
 import {
-    downloadRemoteFile,
-    getAuthHeadersForUrl,
-    streamRemoteFile,
-} from '@/common/utils/download-remote-file';
-import {
-    buildOpenAiVideoResultUrl,
-    isOpenAiVideoResultUrl,
-    OpenAiProvider,
-} from '@/common/services/ai/providers/openai.provider';
-import { parseDataUrl } from '@/common/utils/parse-data-url';
-import { ElevenLabsProvider } from '@/common/services/ai/providers/elevenlabs.provider';
-import {
     getElevenLabsAgeLabel,
     getElevenLabsUseCaseLabel,
 } from '@/common/config/elevenlabs-voices.config';
-import {
-    ELEVENLABS_DUBBING_RESULT_PREFIX,
-    isElevenLabsDubbingResultUrl,
-} from '@/common/services/ai/providers/elevenlabs.provider';
 import { HiggsfieldProvider } from '@/common/services/ai/providers/higgsfield.provider';
 import { HeyGenProvider } from '@/common/services/ai/providers/heygen.provider';
-import { BytePlusProvider } from '@/common/services/ai/providers/byteplus.provider';
-import { TempPublicMediaService } from '@/common/services/ai/temp-public-media.service';
+import { ElevenLabsProvider } from '@/common/services/ai/providers/elevenlabs.provider';
+import { JobMediaResolverService } from '@/common/services/ai/job-media-resolver.service';
 import { ElevenLabsVoicePreviewService } from '@/common/services/elevenlabs-voice-preview';
 import { GenerationFacade } from './generation.facade';
 import { ModuleRef } from '@nestjs/core';
@@ -74,8 +58,10 @@ import { SoraCharactersService } from '@/common/services/ai/sora-characters.serv
 import { AiJobService } from '@/common/services/ai/jobs/ai-job.service';
 import { compressReferenceImage } from '@/common/utils/compress-reference-image';
 import { normalizeUploadMime } from '@/common/utils/normalize-upload-mime';
-import { getI18n, getToolLabel } from '@/common/services/bot/i18n';
+import { getI18n } from '@/common/services/bot/i18n';
 import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
+import { formatMiniAppSendMessage } from './format-mini-app-send-message';
+import { ConfigService } from '@nestjs/config';
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
@@ -369,68 +355,11 @@ export class AiController {
         private readonly heyGenProvider: HeyGenProvider,
         private readonly elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService,
         private readonly soraCharactersService: SoraCharactersService,
-        private readonly openAiProvider: OpenAiProvider,
-        private readonly bytePlusProvider: BytePlusProvider,
-        private readonly tempPublicMedia: TempPublicMediaService,
+        private readonly jobMediaResolver: JobMediaResolverService,
         private readonly aiJobService: AiJobService,
         private readonly moduleRef: ModuleRef,
+        private readonly configService: ConfigService,
     ) {}
-
-    private static readonly MEDIA_CACHE_MAX = 80;
-    private static readonly MEDIA_CACHE_MAX_BYTES = 200 * 1024 * 1024;
-    private readonly mediaCache = new Map<
-        string,
-        { buffer: Buffer; mimeType: string; accessedAt: number }
-    >();
-    private mediaCacheBytes = 0;
-
-    private getCachedMedia(
-        jobId: string,
-    ): { buffer: Buffer; mimeType: string } | null {
-        const entry = this.mediaCache.get(jobId);
-        if (!entry) return null;
-        entry.accessedAt = Date.now();
-        return { buffer: entry.buffer, mimeType: entry.mimeType };
-    }
-
-    private setCachedMedia(
-        jobId: string,
-        buffer: Buffer,
-        mimeType: string,
-    ): void {
-        const existing = this.mediaCache.get(jobId);
-        if (existing) {
-            this.mediaCacheBytes -= existing.buffer.length;
-        }
-        this.mediaCacheBytes += buffer.length;
-        this.mediaCache.set(jobId, {
-            buffer,
-            mimeType,
-            accessedAt: Date.now(),
-        });
-        this.evictMediaCache();
-    }
-
-    private evictMediaCache(): void {
-        while (
-            (this.mediaCache.size > AiController.MEDIA_CACHE_MAX ||
-                this.mediaCacheBytes > AiController.MEDIA_CACHE_MAX_BYTES) &&
-            this.mediaCache.size > 0
-        ) {
-            let oldest: string | null = null;
-            let oldestTime = Infinity;
-            for (const [key, val] of this.mediaCache) {
-                if (val.accessedAt < oldestTime) {
-                    oldestTime = val.accessedAt;
-                    oldest = key;
-                }
-            }
-            if (!oldest) break;
-            const entry = this.mediaCache.get(oldest)!;
-            this.mediaCacheBytes -= entry.buffer.length;
-            this.mediaCache.delete(oldest);
-        }
-    }
 
     @Get('tools')
     listTools() {
@@ -1144,6 +1073,15 @@ export class AiController {
                 status: true,
                 resultUrl: true,
                 providerJobId: true,
+                prompt: true,
+                inputJson: true,
+                tokenCost: true,
+                user: {
+                    select: {
+                        tokenLeft: true,
+                        language: true,
+                    },
+                },
             },
         });
 
@@ -1154,25 +1092,51 @@ export class AiController {
             );
         }
 
-        const { buffer, mimeType } = await this.resolveJobMedia(
-            job.resultUrl,
-            job.providerJobId,
-            job.toolId as AiToolId,
-        );
-        const type = this.resolveMediaType(job.toolId as AiToolId, mimeType);
-        const caption = getToolLabel(job.toolId as AiToolId);
+        const toolId = job.toolId as AiToolId;
+        const { buffer, mimeType } =
+            await this.jobMediaResolver.resolveCompletedJobMedia({
+                id: job.id,
+                resultUrl: job.resultUrl,
+                providerJobId: job.providerJobId,
+                toolId,
+            });
+        const type = this.jobMediaResolver.resolveMediaType(toolId, mimeType);
+        const publicBaseUrl =
+            this.configService.get<string>('PUBLIC_BASE_URL') ?? null;
 
         try {
             const botService = this.moduleRef.get(BotService, {
                 strict: false,
             });
+            let partialWarning: string | null = null;
+
+            const sendInfoMessage = async () => {
+                await botService.sendMessage(
+                    current.telegramId,
+                    formatMiniAppSendMessage({
+                        jobId: job.id,
+                        toolId,
+                        prompt: job.prompt,
+                        inputJson: job.inputJson,
+                        tokenCost: job.tokenCost,
+                        tokenLeft: job.user.tokenLeft,
+                        publicBaseUrl,
+                        language: job.user.language,
+                        partialWarning,
+                    }),
+                    {
+                        parse_mode: 'HTML',
+                        link_preview_options: { is_disabled: false },
+                    },
+                );
+            };
+
             if (type === 'video') {
                 await botService.sendVideoBuffer(
                     current.telegramId,
                     buffer,
                     mimeType,
                     false,
-                    caption,
                 );
             } else if (type === 'audio') {
                 await botService.sendAudioBuffer(
@@ -1189,7 +1153,6 @@ export class AiController {
                         buffer,
                         mimeType,
                         false,
-                        caption,
                     );
                     photoSent = true;
                 } catch {
@@ -1202,14 +1165,12 @@ export class AiController {
                         buffer,
                         mimeType,
                         true,
-                        caption,
                     );
                 } catch (fileError) {
                     if (photoSent) {
-                        await botService.sendMessage(
-                            current.telegramId,
-                            '⚠️ Фото отправлено, но файл не удалось отправить',
-                        );
+                        partialWarning =
+                            '⚠️ Фото отправлено, но файл не удалось отправить';
+                        await sendInfoMessage();
                         return { ok: true };
                     }
                     const message =
@@ -1219,18 +1180,13 @@ export class AiController {
                     throw new Error(message);
                 }
 
-                await botService.sendMessage(
-                    current.telegramId,
-                    photoSent
-                        ? '✅ Фото и файл из мини-приложения'
-                        : '✅ Файл из мини-приложения (фото не удалось отправить — слишком большое)',
-                );
-                return { ok: true };
+                if (!photoSent) {
+                    partialWarning =
+                        '⚠️ Фото не удалось отправить — слишком большое';
+                }
             }
-            await botService.sendMessage(
-                current.telegramId,
-                '✅ Файл из мини-приложения',
-            );
+
+            await sendInfoMessage();
             return { ok: true };
         } catch (error) {
             const message =
@@ -1253,6 +1209,7 @@ export class AiController {
         const job = await this.prismaService.aiGenerationJob.findFirst({
             where: { id: jobId, userId: current.id },
             select: {
+                id: true,
                 resultUrl: true,
                 status: true,
                 providerJobId: true,
@@ -1268,90 +1225,18 @@ export class AiController {
         }
 
         const disposition = download === '1' ? 'attachment' : 'inline';
-        const filenameBase = `generation-${jobId.slice(0, 8)}`;
 
         try {
-            let media = this.getCachedMedia(jobId);
-
-            if (!media) {
-                const jobLocal = this.tempPublicMedia.getByJobId(jobId);
-                if (jobLocal) {
-                    media = {
-                        buffer: jobLocal.buffer,
-                        mimeType: jobLocal.mimeType,
-                    };
-                }
-            }
-
-            if (!media) {
-                const buffered = await this.resolveBufferedJobMedia(
-                    job.resultUrl,
-                    job.providerJobId,
-                    job.toolId as AiToolId,
-                );
-
-                if (buffered) {
-                    media = buffered;
-                } else {
-                    try {
-                        media = await downloadRemoteFile(
-                            job.resultUrl,
-                            getAuthHeadersForUrl(job.resultUrl),
-                        );
-                    } catch (remoteError) {
-                        if (
-                            job.toolId === AiToolId.SEEDANCE &&
-                            job.providerJobId
-                        ) {
-                            const status =
-                                await this.bytePlusProvider.getJobStatus(
-                                    job.providerJobId,
-                                );
-                            if (status.result?.buffer) {
-                                media = {
-                                    buffer: status.result.buffer,
-                                    mimeType:
-                                        status.result.mimeType ?? 'video/mp4',
-                                };
-                            } else {
-                                throw remoteError;
-                            }
-                        } else if (
-                            job.toolId === AiToolId.HIGGSFIELD &&
-                            job.providerJobId
-                        ) {
-                            const fetched =
-                                await this.higgsfieldProvider.fetchResultMedia(
-                                    job.providerJobId,
-                                );
-                            if (fetched) {
-                                media = fetched;
-                            } else {
-                                throw remoteError;
-                            }
-                        } else {
-                            throw remoteError;
-                        }
-                    }
-                }
-
-                this.setCachedMedia(jobId, media.buffer, media.mimeType);
-                this.tempPublicMedia.put({
-                    buffer: media.buffer,
-                    mimeType: media.mimeType,
-                    fileName: filenameBase,
-                    jobId,
-                });
-            }
-
-            const ext = media.mimeType.startsWith('video/')
-                ? 'mp4'
-                : media.mimeType.startsWith('audio/')
-                  ? 'mp3'
-                  : media.mimeType.includes('png')
-                    ? 'png'
-                    : 'jpg';
-            const filename = `${filenameBase}.${ext}`;
+            const media = await this.jobMediaResolver.resolveCompletedJobMedia({
+                id: job.id,
+                resultUrl: job.resultUrl,
+                providerJobId: job.providerJobId,
+                toolId: job.toolId as AiToolId,
+            });
+            const filename = this.jobMediaResolver.buildMediaFilename(
+                job.id,
+                media.mimeType,
+            );
             this.sendBufferedMedia(req, res, media.buffer, {
                 mimeType: media.mimeType,
                 disposition,
@@ -1370,72 +1255,6 @@ export class AiController {
                 HttpStatus.BAD_GATEWAY,
             );
         }
-    }
-
-    /** Returns buffer for data URLs and ElevenLabs dubbing; null for streamable remote URLs. */
-    private async resolveBufferedJobMedia(
-        resultUrl: string,
-        providerJobId: string | null,
-        toolId?: AiToolId,
-    ): Promise<{ buffer: Buffer; mimeType: string } | null> {
-        const dataUrl = parseDataUrl(resultUrl);
-        if (dataUrl) {
-            return { buffer: dataUrl.buffer, mimeType: dataUrl.mimeType };
-        }
-
-        if (isOpenAiVideoResultUrl(resultUrl) && providerJobId) {
-            const status = await this.openAiProvider.getJobStatus(providerJobId);
-            if (!status.result?.buffer || !status.result.mimeType) {
-                throw new Error('OpenAI video result is empty');
-            }
-            return {
-                buffer: status.result.buffer,
-                mimeType: status.result.mimeType,
-            };
-        }
-
-        if (
-            toolId === AiToolId.SEEDANCE &&
-            providerJobId &&
-            /bytepluses?\.com|byteplus|tos-cn|tos-ap|ark\./i.test(resultUrl)
-        ) {
-            const status =
-                await this.bytePlusProvider.getJobStatus(providerJobId);
-            if (status.result?.buffer) {
-                return {
-                    buffer: status.result.buffer,
-                    mimeType: status.result.mimeType ?? 'video/mp4',
-                };
-            }
-        }
-
-        if (isElevenLabsDubbingResultUrl(resultUrl) && providerJobId) {
-            const parsed = this.parseElevenLabsDubbingUrl(resultUrl);
-            const downloaded =
-                await this.elevenLabsProvider.downloadDubbingResult(
-                    providerJobId,
-                    {
-                        type: parsed.mimeType.startsWith('video/')
-                            ? 'video'
-                            : 'audio',
-                        url: resultUrl,
-                        mimeType: parsed.mimeType,
-                    },
-                );
-            if (!downloaded.buffer || !downloaded.mimeType) {
-                throw new Error('Empty dubbing result');
-            }
-            return {
-                buffer: downloaded.buffer,
-                mimeType: downloaded.mimeType,
-            };
-        }
-
-        if (toolId === AiToolId.HIGGSFIELD && providerJobId) {
-            return this.higgsfieldProvider.fetchResultMedia(providerJobId);
-        }
-
-        return null;
     }
 
     private sendBufferedMedia(
@@ -1489,62 +1308,6 @@ export class AiController {
 
         res.setHeader('Content-Length', String(size));
         res.end(buffer);
-    }
-
-    private async resolveJobMedia(
-        resultUrl: string,
-        providerJobId: string | null,
-        toolId: AiToolId,
-    ): Promise<{ buffer: Buffer; mimeType: string }> {
-        const buffered = await this.resolveBufferedJobMedia(
-            resultUrl,
-            providerJobId,
-            toolId,
-        );
-        if (buffered) {
-            return buffered;
-        }
-
-        try {
-            return await downloadRemoteFile(
-                resultUrl,
-                getAuthHeadersForUrl(resultUrl),
-            );
-        } catch (remoteError) {
-            if (toolId === AiToolId.SEEDANCE && providerJobId) {
-                const status =
-                    await this.bytePlusProvider.getJobStatus(providerJobId);
-                if (status.result?.buffer) {
-                    return {
-                        buffer: status.result.buffer,
-                        mimeType: status.result.mimeType ?? 'video/mp4',
-                    };
-                }
-            }
-            throw remoteError;
-        }
-    }
-
-    private parseElevenLabsDubbingUrl(url: string): { mimeType: string } {
-        const raw = url.slice(ELEVENLABS_DUBBING_RESULT_PREFIX.length);
-        const parts = raw.split('/');
-        const encodedMime = parts[2] ?? 'audio/mpeg';
-        try {
-            return { mimeType: decodeURIComponent(encodedMime) };
-        } catch {
-            return { mimeType: 'audio/mpeg' };
-        }
-    }
-
-    private resolveMediaType(
-        toolId: AiToolId,
-        mimeType: string,
-    ): 'image' | 'video' | 'audio' {
-        if (mimeType.startsWith('video/')) return 'video';
-        if (mimeType.startsWith('audio/')) return 'audio';
-        if (this.isVideoTool(toolId)) return 'video';
-        if (this.isVoiceTool(toolId)) return 'audio';
-        return 'image';
     }
 
     private assertToolId(toolId: string): asserts toolId is AiToolId {
