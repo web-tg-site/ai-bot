@@ -1,4 +1,3 @@
-import { getToolById } from '@/common/config/ai-tools.registry';
 import { formatImageQualityLabel } from '@/common/config/image-editor-capabilities.config';
 import { getVideoQualityLabel } from '@/common/config/video-editor-capabilities.config';
 import { AiGenerationInput, AiToolId } from '@/common/services/ai/types';
@@ -26,9 +25,19 @@ export function escapeHtml(text: string): string {
         .replace(/>/g, '&gt;');
 }
 
-/** Telegram shows native tap-to-copy on code blocks with a language class. */
+/** Inline monospace — tap copies to clipboard in Telegram mobile/desktop. */
 export function formatCopyablePromptBlock(text: string): string {
-    return `<pre><code class="language-text">${escapeHtml(text)}</code></pre>`;
+    return `<code>${escapeHtml(text)}</code>`;
+}
+
+export function formatMiniAppPromptMessage(prompt: string): string {
+    const trimmed = prompt.trim();
+    const maxPromptLen = TELEGRAM_MESSAGE_MAX - 40;
+    const body =
+        trimmed.length > maxPromptLen
+            ? `${trimmed.slice(0, maxPromptLen)}…`
+            : trimmed;
+    return `📍 Ваш запрос:\n\n${formatCopyablePromptBlock(body)}`;
 }
 
 export function formatSendPromptMessage(
@@ -129,7 +138,6 @@ export function formatGenerationSettingsLines(
 export function formatMiniAppSendMessage(params: {
     jobId: string;
     toolId: AiToolId;
-    prompt?: string | null;
     inputJson: unknown;
     tokenCost: number;
     tokenLeft: number;
@@ -140,7 +148,6 @@ export function formatMiniAppSendMessage(params: {
     const {
         jobId,
         toolId,
-        prompt,
         inputJson,
         tokenCost,
         tokenLeft,
@@ -158,13 +165,6 @@ export function formatMiniAppSendMessage(params: {
         parts.push(
             `Вот прямая <a href="${escapeHtml(publicUrl)}">ссылка</a> на качественную версию.`,
         );
-        parts.push('');
-    }
-
-    const trimmedPrompt = prompt?.trim() || input.prompt?.trim() || '';
-    if (trimmedPrompt) {
-        parts.push('📍 Ваш запрос:');
-        parts.push(formatCopyablePromptBlock(trimmedPrompt));
         parts.push('');
     }
 
@@ -190,21 +190,16 @@ export function formatMiniAppSendMessage(params: {
 
     let message = parts.join('\n');
     if (message.length > TELEGRAM_MESSAGE_MAX) {
-        const overhead = message.length - trimmedPrompt.length;
-        const maxPromptLen = Math.max(
-            0,
-            TELEGRAM_MESSAGE_MAX - overhead - 20,
-        );
-        if (trimmedPrompt && maxPromptLen < trimmedPrompt.length) {
-            const truncated = `${trimmedPrompt.slice(0, maxPromptLen)}…`;
-            return formatMiniAppSendMessage({
-                ...params,
-                prompt: truncated,
-                inputJson: { ...input, prompt: truncated },
-            });
-        }
         message = `${message.slice(0, TELEGRAM_MESSAGE_MAX - 1)}…`;
     }
 
     return message;
+}
+
+export function resolveMiniAppJobPrompt(
+    prompt?: string | null,
+    inputJson?: unknown,
+): string {
+    const input = (inputJson ?? {}) as AiGenerationInput;
+    return prompt?.trim() || input.prompt?.trim() || '';
 }
