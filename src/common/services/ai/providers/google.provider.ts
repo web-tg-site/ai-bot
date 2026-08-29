@@ -5,8 +5,8 @@ import { firstValueFrom } from 'rxjs';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import {
     GoogleGenAI,
+    GenerateVideosOperation,
     VideoGenerationReferenceType,
-    type GenerateVideosOperation,
 } from '@google/genai';
 import { getToolById } from '@/common/config/ai-tools.registry';
 import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
@@ -125,8 +125,12 @@ export class GoogleProvider {
         const client = this.getClient();
 
         try {
+            // SDK requires a real GenerateVideosOperation instance (has _fromAPIResponse),
+            // not a plain { name } object.
+            const seed = new GenerateVideosOperation();
+            seed.name = providerJobId;
             const operation = await client.operations.getVideosOperation({
-                operation: { name: providerJobId } as GenerateVideosOperation,
+                operation: seed,
             });
 
             if (operation.error) {
@@ -209,13 +213,10 @@ export class GoogleProvider {
                 },
                 `Veo getJobStatus failed: ${err}`,
             );
-            return {
-                status: 'failed',
-                errorMessage:
-                    error instanceof Error
-                        ? error.message
-                        : 'Veo status check failed',
-            };
+            // Transient poll/SDK errors should not kill the job — cron will retry.
+            throw error instanceof Error
+                ? error
+                : new Error(`Veo getJobStatus failed: ${err}`);
         }
     }
 
