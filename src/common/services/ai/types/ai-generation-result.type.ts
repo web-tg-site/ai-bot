@@ -18,6 +18,8 @@ export type AiGenerationResult = {
     additionalUrls?: string[];
     /** Apiframe multi-output (MJ grid / Suno tracks). */
     resultJson?: import('@/common/config/apiframe.config').ApiframeResultJson;
+    /** Gemini Interactions API id for Nano Banana multi-turn edits. */
+    googleInteractionId?: string;
 };
 
 export type GptReplyMode = 'text' | 'audio' | 'both';
@@ -86,6 +88,7 @@ export type AiGenerationInput = {
         | 'garment'
         | 'start_frame'
         | 'end_frame'
+        | 'reference'
     )[];
     lumaStyle?: 'auto' | 'manga';
     lumaWebSearch?: boolean;
@@ -94,7 +97,7 @@ export type AiGenerationInput = {
     soraVideoMode?: 'create' | 'extend' | 'edit';
     soraCharacterIds?: string[];
     soraCharacterName?: string;
-    /** Kling negative prompt (text2video / image2video / multi-image). */
+    /** Kling / Veo negative prompt. */
     negativePrompt?: string;
     /** Kling native audio generation (sound on/off). */
     klingSound?: boolean;
@@ -102,6 +105,14 @@ export type AiGenerationInput = {
     klingCharacterOrientation?: 'image' | 'video';
     /** Kling Motion: keep audio from motion reference video. */
     klingKeepOriginalSound?: boolean;
+    /** Nano Banana thinking depth (Gemini Interactions). */
+    nanoThinkingLevel?: 'minimal' | 'high';
+    /** Nano Banana Google Search grounding. */
+    nanoGoogleSearch?: boolean;
+    /** Previous Gemini interaction id for multi-turn Nano Banana edits. */
+    googlePreviousInteractionId?: string;
+    /** Veo: create new clip or extend a previous Veo video. */
+    veoMode?: 'create' | 'extend';
 };
 
 export type AiFileInput = {

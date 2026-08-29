@@ -18,16 +18,27 @@ export const MIDJOURNEY_ASPECT_RATIOS = [
 
 export const DEFAULT_RESOLUTIONS = ['1K', '2K', '4K'];
 
-/** OpenRouter Nano Banana 2 (gemini-3.1-flash-image) output tiers. */
+/** Gemini Nano Banana 2 (gemini-3.1-flash-image) output tiers. */
 export const NANO_BANANA_RESOLUTIONS = ['1K', '2K', '4K', '512'] as const;
+
+/** Ultra-wide / ultra-tall ratios supported by Gemini 3.1 Flash Image. */
+export const NANO_BANANA_EXTRA_ASPECT_RATIOS = [
+    '4:1',
+    '1:4',
+    '8:1',
+    '1:8',
+] as const;
+
+/** Gemini Nano Banana 2 aspect ratios (UI picker). */
+export const NANO_BANANA_ASPECT_RATIOS = [
+    ...UI_ASPECT_RATIOS,
+    ...NANO_BANANA_EXTRA_ASPECT_RATIOS,
+] as const;
+
+export const NANO_BANANA_MAX_REFERENCES = 14;
 
 /** Seedream 4.5 rejects 1K (below ~3.7M pixels); keep 2K/4K only. */
 export const SEEDREAM_RESOLUTIONS = ['2K', '4K'] as const;
-
-/** OpenRouter Nano Banana 2 aspect ratios (subset shown in UI picker). */
-export const NANO_BANANA_ASPECT_RATIOS = [...UI_ASPECT_RATIOS] as const;
-
-export const NANO_BANANA_MAX_REFERENCES = 10;
 
 export const BFL_MAX_REFERENCES = 8;
 

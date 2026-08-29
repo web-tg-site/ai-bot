@@ -14,6 +14,7 @@ import {
     HeyGenProvider,
     OpenAiProvider,
     OpenRouterProvider,
+    GoogleProvider,
     SharpiiProvider,
     ApiframeProvider,
     TopazProvider,
@@ -29,6 +30,7 @@ export class AiService {
     constructor(
         private readonly openAiProvider: OpenAiProvider,
         private readonly openRouterProvider: OpenRouterProvider,
+        private readonly googleProvider: GoogleProvider,
         private readonly sharpiiProvider: SharpiiProvider,
         private readonly apiframeProvider: ApiframeProvider,
         private readonly heyGenProvider: HeyGenProvider,
@@ -71,6 +73,8 @@ export class AiService {
                 return this.openAiProvider.generate(toolId, input);
             case AiProviderId.OPENROUTER:
                 return this.openRouterProvider.generate(toolId, input);
+            case AiProviderId.GOOGLE:
+                return this.googleProvider.generate(toolId, input);
             case AiProviderId.SHARPII:
                 return this.sharpiiProvider.generate(toolId, input);
             case AiProviderId.APIFRAME:
@@ -112,6 +116,8 @@ export class AiService {
         switch (tool.provider) {
             case AiProviderId.OPENROUTER:
                 return this.openRouterProvider.createJob(toolId, input);
+            case AiProviderId.GOOGLE:
+                return this.googleProvider.createJob(toolId, input);
             case AiProviderId.OPENAI:
                 return this.openAiProvider.createJob(toolId, input);
             case AiProviderId.SHARPII:
@@ -153,6 +159,8 @@ export class AiService {
         switch (tool.provider) {
             case AiProviderId.OPENROUTER:
                 return this.openRouterProvider.getJobStatus(providerJobId);
+            case AiProviderId.GOOGLE:
+                return this.googleProvider.getJobStatus(providerJobId);
             case AiProviderId.OPENAI:
                 return this.openAiProvider.getJobStatus(providerJobId);
             case AiProviderId.SHARPII:

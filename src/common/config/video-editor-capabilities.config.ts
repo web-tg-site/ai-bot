@@ -288,7 +288,7 @@ export const VIDEO_TOOLS_WITH_ASPECT_SETTINGS: AiToolId[] = [
 export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
     [AiToolId.KLING]: 4,
     [AiToolId.KLING_MOTION]: 2,
-    [AiToolId.VEO]: 10,
+    [AiToolId.VEO]: 3,
     [AiToolId.SORA]: 1,
     [AiToolId.SEEDANCE]: 40,
     [AiToolId.LUMA_RAY]: 2,
@@ -318,7 +318,7 @@ export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
 
 export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.KLING]: [...UI_ASPECT_RATIOS],
-    [AiToolId.VEO]: [...UI_ASPECT_RATIOS],
+    [AiToolId.VEO]: ['16:9', '9:16'],
     [AiToolId.SORA]: [...UI_ASPECT_RATIOS],
     [AiToolId.SEEDANCE]: [...UI_ASPECT_RATIOS],
     [AiToolId.LUMA_RAY]: [...UI_ASPECT_RATIOS],
@@ -329,6 +329,7 @@ export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
 export const STATIC_VIDEO_RESOLUTIONS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.KLING]: ['720p', '1080p'],
     [AiToolId.KLING_MOTION]: ['720p', '1080p'],
+    [AiToolId.VEO]: ['720p', '1080p', '4k'],
     [AiToolId.SORA]: ['720p', '1080p'],
     [AiToolId.SEEDANCE]: ['480p', '720p'],
     [AiToolId.LUMA_RAY]: ['1080p', '720p'],

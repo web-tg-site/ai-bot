@@ -147,6 +147,8 @@ export class GenerationFacade {
                 topazScale: input.topazScale,
                 quality: input.quality,
                 resolution: input.resolution,
+                nanoThinkingLevel: input.nanoThinkingLevel,
+                nanoGoogleSearch: input.nanoGoogleSearch,
             },
         );
 
@@ -543,6 +545,7 @@ export class GenerationFacade {
             mimeType: result.mimeType ?? result.voiceMimeType,
             dataUrl,
             images,
+            googleInteractionId: result.googleInteractionId,
         };
     }
 

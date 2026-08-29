@@ -552,6 +552,18 @@ ${getTariffIncludesText(type, plan, ru)}
         changeResolutionButton: '🖼 Изменить разрешение',
         changeQualityButton: '✨ Изменить качество',
         changeFluxModeButton: '🎛 Режим Flux',
+        nanoThinkingButton: (high) =>
+            high ? '✨ Качество: лучше' : '⚡️ Качество: быстрее',
+        nanoSearchButton: (on) =>
+            on ? '🌐 Поиск: да' : '🌐 Поиск: нет',
+        nanoThinkingChanged: (high) =>
+            high
+                ? 'Режим «лучше»: дольше, но аккуратнее'
+                : 'Режим «быстрее»: обычная генерация',
+        nanoSearchChanged: (on) =>
+            on
+                ? 'Поиск включён: можно подсмотреть свежие факты в сети'
+                : 'Поиск выключен',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Выберите формат:',
         selectResolutionTitle: 'Выберите разрешение:',

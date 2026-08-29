@@ -22,6 +22,8 @@ export class TokenBillingService {
                   quality?: string;
                   resolution?: string;
                   apiframeAction?: import('@/common/config/apiframe.config').ApiframeAction;
+                  nanoThinkingLevel?: 'minimal' | 'high';
+                  nanoGoogleSearch?: boolean;
               }
             | number,
     ): number {

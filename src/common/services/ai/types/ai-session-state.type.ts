@@ -127,6 +127,10 @@ export type BotSession = {
         awaitingSoraCharacterVideo?: boolean;
         awaitingSoraCharacterName?: boolean;
         pendingSoraCharacterVideo?: StoredVoiceSample;
+        /** Veo: create | extend */
+        veoMode?: 'create' | 'extend';
+        /** Gemini interaction id for Nano Banana multi-turn */
+        googlePreviousInteractionId?: string;
         /** Apiframe MJ inpaint: waiting for mask image */
         awaitingMjInpaint?: {
             parentJobId: string;

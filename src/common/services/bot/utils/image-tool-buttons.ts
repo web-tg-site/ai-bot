@@ -32,6 +32,8 @@ export type ImageToolButtonAction =
     | { type: 'set_flux_mode'; value: FluxImageMode }
     | { type: 'set_topaz_scale'; value: number }
     | { type: 'toggle_send_as_file' }
+    | { type: 'toggle_nano_thinking' }
+    | { type: 'toggle_nano_search' }
     | { type: 'continue_prompt' }
     | { type: 'skip_refs' }
     | { type: 'back_to_settings' }
@@ -201,6 +203,21 @@ export function resolveImageToolButtonAction(
             text === i18n.imageTool.changeQualityButton
         ) {
             return { type: 'open_quality_picker' };
+        }
+
+        if (options.toolId === AiToolId.NANO_BANANA) {
+            if (
+                text === i18n.imageTool.nanoThinkingButton(true) ||
+                text === i18n.imageTool.nanoThinkingButton(false)
+            ) {
+                return { type: 'toggle_nano_thinking' };
+            }
+            if (
+                text === i18n.imageTool.nanoSearchButton(true) ||
+                text === i18n.imageTool.nanoSearchButton(false)
+            ) {
+                return { type: 'toggle_nano_search' };
+            }
         }
 
         if (

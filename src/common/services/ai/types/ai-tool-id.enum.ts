@@ -25,6 +25,7 @@ export enum AiToolId {
 export enum AiProviderId {
     OPENAI = 'openai',
     OPENROUTER = 'openrouter',
+    GOOGLE = 'google',
     SHARPII = 'sharpii',
     APIFRAME = 'apiframe',
     BYTEPLUS = 'byteplus',
@@ -53,7 +54,8 @@ export type AiAttachmentRole =
     | 'person'
     | 'garment'
     | 'start_frame'
-    | 'end_frame';
+    | 'end_frame'
+    | 'reference';
 
 export type LumaStyle = 'auto' | 'manga';
 

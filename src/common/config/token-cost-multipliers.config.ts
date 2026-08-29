@@ -18,6 +18,8 @@ const VIDEO_RESOLUTION_MULTIPLIERS: Record<string, number> = {
     '480p': 1.0,
     '720p': 1.0,
     '1080p': 1.25,
+    '4k': 2.0,
+    '4K': 2.0,
 };
 
 const VIDEO_QUALITY_MULTIPLIERS: Record<string, number> = {
@@ -44,6 +46,7 @@ const VIDEO_TOOLS_WITH_RESOLUTION_COST: AiToolId[] = [
     AiToolId.HEYGEN,
     AiToolId.KLING,
     AiToolId.KLING_MOTION,
+    AiToolId.VEO,
 ];
 
 const VIDEO_TOOLS_WITH_QUALITY_COST: AiToolId[] = [
@@ -100,14 +103,31 @@ export function getVideoQualityMultiplier(
 export function applyImageCostMultipliers(
     toolId: AiToolId,
     baseCost: number,
-    options?: { resolution?: string; quality?: string },
+    options?: {
+        resolution?: string;
+        quality?: string;
+        nanoThinkingLevel?: 'minimal' | 'high';
+        nanoGoogleSearch?: boolean;
+    },
 ): number {
     const resolutionMult = getImageResolutionMultiplier(
         toolId,
         options?.resolution,
     );
     const qualityMult = getImageQualityMultiplier(toolId, options?.quality);
-    return Math.ceil(baseCost * resolutionMult * qualityMult);
+    let thinkingMult = 1.0;
+    let searchMult = 1.0;
+    if (toolId === AiToolId.NANO_BANANA) {
+        if (options?.nanoThinkingLevel === 'high') {
+            thinkingMult = 1.25;
+        }
+        if (options?.nanoGoogleSearch) {
+            searchMult = 1.15;
+        }
+    }
+    return Math.ceil(
+        baseCost * resolutionMult * qualityMult * thinkingMult * searchMult,
+    );
 }
 
 export function applyVideoCostMultipliers(

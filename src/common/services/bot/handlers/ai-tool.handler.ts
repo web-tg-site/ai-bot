@@ -1262,6 +1262,44 @@ async function handleImageToolButtonPress(
         return true;
     }
 
+    if (action.type === 'toggle_nano_thinking') {
+        const currentSettings = (session.ai.toolSettings ??
+            {}) as ImageToolSettings;
+        const nextHigh = currentSettings.nanoThinkingLevel !== 'high';
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertSettings(
+                user.id,
+                toolId,
+                { nanoThinkingLevel: nextHigh ? 'high' : 'minimal' },
+            );
+        session.ai.toolSettings = nextSettings;
+        session.ai.imageKeyboardMode = 'settings';
+        await ctx.reply(i18n.imageTool.nanoThinkingChanged(nextHigh), {
+            ...replyKeyboard('settings', nextSettings),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
+    if (action.type === 'toggle_nano_search') {
+        const currentSettings = (session.ai.toolSettings ??
+            {}) as ImageToolSettings;
+        const nextOn = !currentSettings.nanoGoogleSearch;
+        const nextSettings =
+            await deps.userAiToolSettingsModelService.upsertSettings(
+                user.id,
+                toolId,
+                { nanoGoogleSearch: nextOn },
+            );
+        session.ai.toolSettings = nextSettings;
+        session.ai.imageKeyboardMode = 'settings';
+        await ctx.reply(i18n.imageTool.nanoSearchChanged(nextOn), {
+            ...replyKeyboard('settings', nextSettings),
+            parse_mode: 'HTML',
+        });
+        return true;
+    }
+
     if (action.type === 'continue_prompt') {
         await goToImagePromptStep(
             ctx,
@@ -3601,7 +3639,10 @@ async function buildAiGenerationInput(
             toolId === AiToolId.HEYGEN
                 ? videoSettings?.heygenVoicePitch
                 : undefined,
-        negativePrompt: undefined,
+        negativePrompt:
+            toolId === AiToolId.KLING || toolId === AiToolId.VEO
+                ? videoSettings?.negativePrompt?.trim() || undefined
+                : undefined,
         klingSound:
             toolId === AiToolId.KLING
                 ? Boolean(videoSettings?.klingSound)
@@ -3613,6 +3654,24 @@ async function buildAiGenerationInput(
         klingKeepOriginalSound:
             toolId === AiToolId.KLING_MOTION
                 ? videoSettings?.klingKeepOriginalSound !== false
+                : undefined,
+        nanoThinkingLevel:
+            toolId === AiToolId.NANO_BANANA
+                ? (imageSettings?.nanoThinkingLevel ?? 'minimal')
+                : undefined,
+        nanoGoogleSearch:
+            toolId === AiToolId.NANO_BANANA
+                ? Boolean(imageSettings?.nanoGoogleSearch)
+                : undefined,
+        googlePreviousInteractionId:
+            toolId === AiToolId.NANO_BANANA
+                ? session.ai?.googlePreviousInteractionId
+                : undefined,
+        veoMode:
+            toolId === AiToolId.VEO
+                ? (session.ai?.veoMode ??
+                  videoSettings?.veoMode ??
+                  'create')
                 : undefined,
         sunoGenreId:
             toolId === AiToolId.SUNO ? voiceSettings?.sunoGenreId : undefined,
@@ -3763,6 +3822,8 @@ async function runGeneration(
                 ?.topazScale,
         quality: input.quality,
         resolution: input.resolution,
+        nanoThinkingLevel: input.nanoThinkingLevel,
+        nanoGoogleSearch: input.nanoGoogleSearch,
     });
 
     const balanceCheck = await deps.tokenBillingService.checkBalance(
@@ -3892,6 +3953,14 @@ async function runGeneration(
         try {
             generationResult = await deps.aiService.generate(toolId, input);
             actualCost = generationResult.actualTokenCost ?? tokenCost;
+            if (
+                toolId === AiToolId.NANO_BANANA &&
+                generationResult.googleInteractionId &&
+                session.ai
+            ) {
+                session.ai.googlePreviousInteractionId =
+                    generationResult.googleInteractionId;
+            }
         } catch (error) {
             const message =
                 error instanceof Error ? error.message : String(error);

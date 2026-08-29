@@ -552,6 +552,13 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
         changeResolutionButton: '🖼 Change resolution',
         changeQualityButton: '✨ Change quality',
         changeFluxModeButton: '🎛 Flux mode',
+        nanoThinkingButton: (high) =>
+            high ? '🧠 Thinking: high' : '🧠 Thinking: min',
+        nanoSearchButton: (on) => (on ? '🌐 Search: on' : '🌐 Search: off'),
+        nanoThinkingChanged: (high) =>
+            high ? 'Thinking: high' : 'Thinking: minimal',
+        nanoSearchChanged: (on) =>
+            on ? 'Google Search enabled' : 'Google Search disabled',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Choose aspect ratio:',
         selectResolutionTitle: 'Choose resolution:',

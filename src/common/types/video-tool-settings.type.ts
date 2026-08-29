@@ -42,6 +42,10 @@ export type VideoToolSettings = {
     klingCharacterOrientation?: 'image' | 'video';
     /** Kling Motion keep reference video audio */
     klingKeepOriginalSound?: boolean;
+    /** Veo / Kling negative prompt stored per tool */
+    negativePrompt?: string;
+    /** Veo create | extend */
+    veoMode?: 'create' | 'extend';
 };
 
 export const DEFAULT_VIDEO_TOOL_SETTINGS: VideoToolSettings = {
@@ -61,4 +65,5 @@ export const DEFAULT_VIDEO_TOOL_SETTINGS: VideoToolSettings = {
     klingSound: false,
     klingCharacterOrientation: 'image',
     klingKeepOriginalSound: true,
+    veoMode: 'create',
 };

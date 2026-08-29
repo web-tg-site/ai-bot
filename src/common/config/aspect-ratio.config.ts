@@ -32,6 +32,10 @@ const ASPECT_RATIO_LABELS_RU: Record<string, string> = {
     '4:3': 'классика',
     '5:4': 'печать (5×4)',
     '1:1': 'квадрат',
+    '4:1': 'панорама',
+    '1:4': 'башня',
+    '8:1': 'ультра-широкий',
+    '1:8': 'ультра-высокий',
 };
 
 const ASPECT_RATIO_LABELS_EN: Record<string, string> = {
@@ -45,6 +49,10 @@ const ASPECT_RATIO_LABELS_EN: Record<string, string> = {
     '4:3': 'Classic',
     '5:4': 'Print (5x4)',
     '1:1': 'Square',
+    '4:1': 'Panorama',
+    '1:4': 'Tower',
+    '8:1': 'Ultra-wide',
+    '1:8': 'Ultra-tall',
 };
 
 export function getAspectRatioLabel(
@@ -75,7 +83,13 @@ export function formatAspectRatioToolbarLabel(
 
 export function orderAspectRatios(allowed: string[]): string[] {
     const allowedSet = new Set(allowed);
-    return STANDARD_ASPECT_RATIOS.filter((ratio) => allowedSet.has(ratio));
+    const ordered = STANDARD_ASPECT_RATIOS.filter((ratio) =>
+        allowedSet.has(ratio),
+    );
+    const extras = allowed.filter(
+        (ratio) => !STANDARD_ASPECT_RATIOS.includes(ratio as StandardAspectRatio),
+    );
+    return [...ordered, ...extras];
 }
 
 /**

@@ -315,6 +315,22 @@ class GenerateBodyDto {
     @IsOptional()
     @IsString()
     klingKeepOriginalSound?: string;
+
+    @IsOptional()
+    @IsIn(['minimal', 'high'])
+    nanoThinkingLevel?: 'minimal' | 'high';
+
+    @IsOptional()
+    @IsString()
+    nanoGoogleSearch?: string;
+
+    @IsOptional()
+    @IsString()
+    googlePreviousInteractionId?: string;
+
+    @IsOptional()
+    @IsIn(['create', 'extend'])
+    veoMode?: 'create' | 'extend';
 }
 
 class CreateSoraCharacterBodyDto {
@@ -759,6 +775,18 @@ export class AiController {
                                 body.klingKeepOriginalSound === '0'
                               ? false
                               : undefined,
+                    nanoThinkingLevel: body.nanoThinkingLevel,
+                    nanoGoogleSearch:
+                        body.nanoGoogleSearch === 'true' ||
+                        body.nanoGoogleSearch === '1'
+                            ? true
+                            : body.nanoGoogleSearch === 'false' ||
+                                body.nanoGoogleSearch === '0'
+                              ? false
+                              : undefined,
+                    googlePreviousInteractionId:
+                        body.googlePreviousInteractionId,
+                    veoMode: body.veoMode,
                 },
             });
         } catch (error) {

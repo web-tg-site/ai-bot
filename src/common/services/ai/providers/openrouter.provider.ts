@@ -52,7 +52,6 @@ export class OpenRouterProvider {
         switch (toolId) {
             case AiToolId.CLAUDE_SONNET:
                 return this.chatClaude(input);
-            case AiToolId.NANO_BANANA:
             case AiToolId.SEEDREAM: {
                 const tool = getToolById(toolId);
                 if (!tool?.model) {

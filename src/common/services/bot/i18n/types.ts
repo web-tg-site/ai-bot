@@ -213,6 +213,10 @@ export type I18nBundle = {
         changeResolutionButton: string;
         changeQualityButton: string;
         changeFluxModeButton: string;
+        nanoThinkingButton: (high: boolean) => string;
+        nanoSearchButton: (on: boolean) => string;
+        nanoThinkingChanged: (high: boolean) => string;
+        nanoSearchChanged: (on: boolean) => string;
         resolutionToolbarButton: (resolution: string) => string;
         selectAspectRatioTitle: string;
         selectResolutionTitle: string;

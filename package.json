@@ -26,6 +26,7 @@
     "dependencies": {
         "@commitlint/cli": "^21.0.2",
         "@commitlint/config-conventional": "^21.0.2",
+        "@google/genai": "^2.19.0",
         "@nestjs/axios": "^4.0.1",
         "@nestjs/common": "^11.0.1",
         "@nestjs/config": "^4.0.4",

@@ -82,13 +82,13 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         id: AiToolId.NANO_BANANA,
         label: 'Nano Banana',
         category: 'image',
-        provider: AiProviderId.OPENROUTER,
-        model: 'google/gemini-3.1-flash-image',
+        provider: AiProviderId.GOOGLE,
+        model: 'gemini-3.1-flash-image',
         baseTokenCost: 20,
-        accepts: ['text', 'photo'],
+        accepts: ['text', 'photo', 'video'],
         isAsync: false,
         instruction:
-            'Опишите задачу и при желании добавьте референсы (до 4 изображений). Чем точнее вы укажете роль каждого изображения, тем предсказуемее будет результат.',
+            'Опишите задачу и при желании добавьте референсы (до 14 изображений или видео). Можно включить поиск Google и thinking. Повторный промпт без новых референсов продолжает правку прошлого результата.',
     },
     {
         id: AiToolId.SEEDREAM,
@@ -146,15 +146,15 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         id: AiToolId.VEO,
         label: 'Veo',
         category: 'video',
-        provider: AiProviderId.OPENROUTER,
-        model: 'google/veo-3.1-lite',
+        provider: AiProviderId.GOOGLE,
+        model: 'veo-3.1-generate-preview',
         baseTokenCost: 0,
         perSecondCost: 25,
         defaultDurationSeconds: 4,
         accepts: ['text', 'photo', 'video'],
         isAsync: true,
         instruction:
-            'Прикрепите фото или видео-референсы (можно пропустить), настройте параметры и опишите сцену.',
+            'Veo 3.1: 16:9 или 9:16, 720p/1080p/4K (звук всегда). 1–2 фото — first/last frame; до 3 reference images; режим Extend — +7с к своему Veo-ролику (только 720p).',
     },
     {
         id: AiToolId.SORA,
@@ -326,6 +326,8 @@ export type ToolCostOptions = {
     quality?: string;
     resolution?: string;
     apiframeAction?: ApiframeAction;
+    nanoThinkingLevel?: 'minimal' | 'high';
+    nanoGoogleSearch?: boolean;
 };
 
 export const calculateToolTokenCost = (
@@ -363,6 +365,8 @@ export const calculateToolTokenCost = (
         return applyImageCostMultipliers(tool.id, tool.baseTokenCost, {
             resolution: normalized.resolution,
             quality: normalized.quality,
+            nanoThinkingLevel: normalized.nanoThinkingLevel,
+            nanoGoogleSearch: normalized.nanoGoogleSearch,
         });
     }
 

@@ -89,7 +89,7 @@ const PROVIDER_NAME_PREFIX =
     /^(?:Kling(?:\s+API)?|BytePlus|Sharpii|Apiframe|Topaz|Midjourney|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|BFL|Luma|OpenAI(?:\s+Sora)?)\s*:\s*/i;
 
 const PROVIDER_NAME_LEAK =
-    /Sharpii|Apiframe|Topaz|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|BFL|Luma|Kling|BytePlus|openrouter|sharpii|apiframe|elevenlabs|kling/i;
+    /Sharpii|Apiframe|Topaz|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|Google|BFL|Luma|Kling|BytePlus|openrouter|sharpii|apiframe|elevenlabs|kling|generativelanguage/i;
 
 function stripProviderPrefix(message: string): string {
     return message.replace(PROVIDER_NAME_PREFIX, '').trim();
