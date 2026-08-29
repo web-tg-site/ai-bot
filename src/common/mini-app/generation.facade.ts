@@ -191,7 +191,7 @@ export class GenerationFacade {
                     error instanceof Error ? error.message : String(error);
                 this.logger.warn(
                     { toolId: effectiveToolId, err: message },
-                    'Async generation create failed',
+                    `Async generation create failed [${effectiveToolId}]: ${message}`,
                 );
                 if (message === 'INSUFFICIENT_TOKENS') {
                     throw new HttpException(
@@ -428,7 +428,7 @@ export class GenerationFacade {
                 error instanceof Error ? error.message : String(error);
             this.logger.warn(
                 { toolId: effectiveToolId, err: message },
-                'Sync generation failed',
+                `Sync generation failed [${effectiveToolId}]: ${message}`,
             );
 
             if (

@@ -105,14 +105,18 @@ export class GoogleProvider {
                 estimatedTokenCost: 0,
             };
         } catch (error) {
+            const err = this.formatProviderError(error);
             this.logger.error(
                 {
                     toolId,
-                    err: this.formatProviderError(error),
+                    err,
+                    // Keep a plain string copy — Railway filters often match message only.
                 },
-                'Veo createJob failed',
+                `Veo createJob failed: ${err}`,
             );
-            throw error;
+            throw error instanceof Error
+                ? error
+                : new Error(`Veo createJob failed: ${err}`);
         }
     }
 
@@ -140,7 +144,7 @@ export class GoogleProvider {
                         err: message,
                         operationError: operation.error,
                     },
-                    'Veo operation reported error',
+                    `Veo operation reported error: ${message}`,
                 );
                 return {
                     status: 'failed',
@@ -160,7 +164,7 @@ export class GoogleProvider {
                     'Veo завершил задачу без видео';
                 this.logger.warn(
                     { providerJobId, err: filtered },
-                    'Veo finished without video',
+                    `Veo finished without video: ${filtered}`,
                 );
                 return { status: 'failed', errorMessage: filtered };
             }
@@ -197,12 +201,13 @@ export class GoogleProvider {
                 errorMessage: 'Veo завершил задачу без данных видео',
             };
         } catch (error) {
+            const err = this.formatProviderError(error);
             this.logger.warn(
                 {
                     providerJobId,
-                    err: this.formatProviderError(error),
+                    err,
                 },
-                'Veo getJobStatus failed',
+                `Veo getJobStatus failed: ${err}`,
             );
             return {
                 status: 'failed',
@@ -353,18 +358,41 @@ export class GoogleProvider {
             ? 8
             : this.snapVeoDuration(input.durationSeconds ?? 4);
 
+        const hasImageInput = images.length > 0 || isExtend;
         const config: Record<string, unknown> = {
             aspectRatio,
             resolution,
             durationSeconds,
             numberOfVideos: 1,
-            // Gemini Veo accepts only dont_allow | allow_adult (not allow_all).
-            personGeneration: 'allow_adult',
         };
+
+        // Gemini Veo personGeneration rules (AI Studio / Gemini API):
+        // - text-to-video: omit or allow_all (allow_adult is rejected)
+        // - image-to-video: allow_adult (or omit)
+        if (hasImageInput) {
+            config.personGeneration = 'allow_adult';
+        } else {
+            config.personGeneration = 'allow_all';
+        }
 
         if (input.negativePrompt?.trim()) {
             config.negativePrompt = input.negativePrompt.trim();
         }
+
+        this.logger.info(
+            {
+                model,
+                aspectRatio,
+                resolution,
+                durationSeconds,
+                personGeneration: config.personGeneration,
+                veoMode: isExtend ? 'extend' : 'create',
+                hasImageInput,
+                hasExplicitRefs,
+                promptLength: prompt.length,
+            },
+            'Veo generateVideos request',
+        );
 
         if (isExtend) {
             const sourceVideo = videos[0];
@@ -605,10 +633,12 @@ export class GoogleProvider {
             code?: unknown;
             error?: unknown;
             cause?: unknown;
+            response?: unknown;
         };
         if (anyError.status !== undefined) extras.status = anyError.status;
         if (anyError.code !== undefined) extras.code = anyError.code;
         if (anyError.error !== undefined) extras.error = anyError.error;
+        if (anyError.response !== undefined) extras.response = anyError.response;
         if (anyError.cause !== undefined) {
             extras.cause =
                 anyError.cause instanceof Error
@@ -616,14 +646,27 @@ export class GoogleProvider {
                     : anyError.cause;
         }
 
+        // Google GenAI often puts the useful text in error.error.message
+        const nestedMessage = (() => {
+            const nested = anyError.error;
+            if (!nested || typeof nested !== 'object') return null;
+            const msg = (nested as { message?: unknown }).message;
+            return typeof msg === 'string' && msg.trim() ? msg.trim() : null;
+        })();
+
+        const base =
+            nestedMessage && !error.message.includes(nestedMessage)
+                ? `${error.message}: ${nestedMessage}`
+                : error.message || nestedMessage || 'Unknown Google API error';
+
         if (!Object.keys(extras).length) {
-            return error.message;
+            return base;
         }
 
         try {
-            return `${error.message} | ${JSON.stringify(extras).slice(0, 800)}`;
+            return `${base} | ${JSON.stringify(extras).slice(0, 800)}`;
         } catch {
-            return error.message;
+            return base;
         }
     }
 }

@@ -135,16 +135,16 @@ export class ModelFailoverService {
                 errorMessage: params.errorMessage,
             })
         ) {
-            this.logger.warn(
-                {
-                    failedToolId: params.failedToolId,
-                    autoModelFailover: params.autoModelFailover,
-                    eligibleTool: isFailoverEligibleTool(params.failedToolId),
-                    eligibleError: isFailoverEligibleError(params.errorMessage),
-                    errorMessage: params.errorMessage,
-                },
-                'Failover skipped',
-            );
+                this.logger.warn(
+                    {
+                        failedToolId: params.failedToolId,
+                        autoModelFailover: params.autoModelFailover,
+                        eligibleTool: isFailoverEligibleTool(params.failedToolId),
+                        eligibleError: isFailoverEligibleError(params.errorMessage),
+                        errorMessage: params.errorMessage,
+                    },
+                    `Failover skipped [${params.failedToolId}]: ${params.errorMessage}`,
+                );
             return { ok: false, reason: 'disabled' };
         }
 
@@ -176,7 +176,7 @@ export class ModelFailoverService {
                 chain,
                 errorMessage: params.errorMessage,
             },
-            'Failover chain ready',
+            `Failover chain ready [${params.failedToolId}]: ${params.errorMessage}`,
         );
 
         let charged = params.alreadyCharged ?? 0;
