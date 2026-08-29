@@ -36,10 +36,15 @@ export function isFailoverEligibleError(rawMessage: string): boolean {
     if (
         code === BotErrorCode.CONTENT_POLICY ||
         code === BotErrorCode.INSUFFICIENT_TOKENS ||
-        code === BotErrorCode.CONFIG ||
         code === BotErrorCode.DELIVERY
     ) {
         return false;
+    }
+
+    // Missing/misconfigured single-provider key should still redirect to another model.
+    // Only block failover for non-key config issues (e.g. unknown tool wiring).
+    if (code === BotErrorCode.CONFIG) {
+        return /API_KEY|not configured/i.test(rawMessage);
     }
 
     // User-fixable input validation — show the message, don't burn another model.

@@ -58,7 +58,18 @@ export class GoogleProvider {
             );
         }
 
-        return this.generateNanoBanana(input);
+        try {
+            return await this.generateNanoBanana(input);
+        } catch (error) {
+            this.logger.error(
+                {
+                    toolId,
+                    err: error instanceof Error ? error.message : String(error),
+                },
+                'Nano Banana generation failed',
+            );
+            throw error;
+        }
     }
 
     async createJob(
@@ -71,15 +82,26 @@ export class GoogleProvider {
             throw new Error(`Google async jobs only support Veo, got ${toolId}`);
         }
 
-        const operation = await this.startVeoGeneration(input);
-        if (!operation.name) {
-            throw new Error('Gemini did not return Veo operation name');
-        }
+        try {
+            const operation = await this.startVeoGeneration(input);
+            if (!operation.name) {
+                throw new Error('Gemini did not return Veo operation name');
+            }
 
-        return {
-            providerJobId: operation.name,
-            estimatedTokenCost: 0,
-        };
+            return {
+                providerJobId: operation.name,
+                estimatedTokenCost: 0,
+            };
+        } catch (error) {
+            this.logger.error(
+                {
+                    toolId,
+                    err: error instanceof Error ? error.message : String(error),
+                },
+                'Veo createJob failed',
+            );
+            throw error;
+        }
     }
 
     async getJobStatus(providerJobId: string): Promise<AiJobStatusResult> {
@@ -533,6 +555,7 @@ export class GoogleProvider {
 
     private ensureApiKey(): void {
         if (!this.apiKey || !this.client) {
+            this.logger.error('GEMINI_API_KEY is not configured');
             throw new Error('GEMINI_API_KEY is not configured');
         }
     }

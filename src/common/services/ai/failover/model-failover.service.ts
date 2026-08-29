@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserLanguage } from '@/generated/prisma/enums';
 import { getToolById } from '@/common/config/ai-tools.registry';
 import { TokenBillingService } from '../billing/token-billing.service';
@@ -55,6 +56,8 @@ export class ModelFailoverService {
         private readonly aiJobService: AiJobService,
         private readonly tokenBillingService: TokenBillingService,
         private readonly configService: ConfigService,
+        @InjectPinoLogger(ModelFailoverService.name)
+        private readonly logger: PinoLogger,
     ) {}
 
     buildSettingsUrl(botUsername?: string | null): string | null {
@@ -132,6 +135,16 @@ export class ModelFailoverService {
                 errorMessage: params.errorMessage,
             })
         ) {
+            this.logger.warn(
+                {
+                    failedToolId: params.failedToolId,
+                    autoModelFailover: params.autoModelFailover,
+                    eligibleTool: isFailoverEligibleTool(params.failedToolId),
+                    eligibleError: isFailoverEligibleError(params.errorMessage),
+                    errorMessage: params.errorMessage,
+                },
+                'Failover skipped',
+            );
             return { ok: false, reason: 'disabled' };
         }
 
@@ -147,8 +160,24 @@ export class ModelFailoverService {
         });
 
         if (!chain.length) {
+            this.logger.warn(
+                {
+                    failedToolId: params.failedToolId,
+                    errorMessage: params.errorMessage,
+                },
+                'Failover chain empty',
+            );
             return { ok: false, reason: 'exhausted' };
         }
+
+        this.logger.info(
+            {
+                failedToolId: params.failedToolId,
+                chain,
+                errorMessage: params.errorMessage,
+            },
+            'Failover chain ready',
+        );
 
         let charged = params.alreadyCharged ?? 0;
         const fromToolId = params.failedToolId;

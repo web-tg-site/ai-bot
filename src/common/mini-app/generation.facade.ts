@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserModelService } from '@/common/models/user';
 import { GptConversationModelService } from '@/common/models/gpt-conversation';
 import { getToolById } from '@/common/config/ai-tools.registry';
@@ -73,6 +74,8 @@ export class GenerationFacade {
         private readonly videoCapabilitiesService: VideoCapabilitiesService,
         private readonly modelFailoverService: ModelFailoverService,
         private readonly tempPublicMedia: TempPublicMediaService,
+        @InjectPinoLogger(GenerationFacade.name)
+        private readonly logger: PinoLogger,
     ) {}
 
     async generate(params: GenerationRequest): Promise<GenerationFacadeResult> {
@@ -186,6 +189,10 @@ export class GenerationFacade {
             } catch (error) {
                 const message =
                     error instanceof Error ? error.message : String(error);
+                this.logger.warn(
+                    { toolId: effectiveToolId, err: message },
+                    'Async generation create failed',
+                );
                 if (message === 'INSUFFICIENT_TOKENS') {
                     throw new HttpException(
                         { error: 'INSUFFICIENT_TOKENS' },
@@ -419,6 +426,10 @@ export class GenerationFacade {
             }
             const message =
                 error instanceof Error ? error.message : String(error);
+            this.logger.warn(
+                { toolId: effectiveToolId, err: message },
+                'Sync generation failed',
+            );
 
             if (
                 isFailoverEligibleTool(effectiveToolId) &&
