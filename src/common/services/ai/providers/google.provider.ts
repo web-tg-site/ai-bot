@@ -411,8 +411,10 @@ export class GoogleProvider {
 
             return this.getClient().models.generateVideos({
                 model,
-                prompt: prompt || undefined,
-                video: videoPayload,
+                source: {
+                    prompt: prompt || undefined,
+                    video: videoPayload,
+                },
                 config: {
                     ...config,
                     // Extend clip length must be a supported Veo duration.
@@ -440,7 +442,7 @@ export class GoogleProvider {
 
             return this.getClient().models.generateVideos({
                 model,
-                prompt,
+                source: { prompt },
                 config: {
                     ...config,
                     durationSeconds: 8,
@@ -471,8 +473,10 @@ export class GoogleProvider {
 
         return this.getClient().models.generateVideos({
             model,
-            prompt: prompt || undefined,
-            image: first ? this.toGeminiImage(first) : undefined,
+            source: {
+                prompt: prompt || undefined,
+                image: first ? this.toGeminiImage(first) : undefined,
+            },
             config,
         });
     }
