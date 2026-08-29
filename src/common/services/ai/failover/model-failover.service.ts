@@ -269,6 +269,14 @@ export class ModelFailoverService {
             } catch (error) {
                 const message =
                     error instanceof Error ? error.message : String(error);
+                this.logger.warn(
+                    {
+                        fromToolId,
+                        nextToolId,
+                        err: message,
+                    },
+                    'Failover candidate failed',
+                );
                 if (!isFailoverEligibleError(message)) {
                     if (charged > 0) {
                         await this.tokenBillingService.refund(

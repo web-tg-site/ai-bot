@@ -64,7 +64,7 @@ export class GoogleProvider {
             this.logger.error(
                 {
                     toolId,
-                    err: error instanceof Error ? error.message : String(error),
+                    err: this.formatProviderError(error),
                 },
                 'Nano Banana generation failed',
             );
@@ -88,6 +88,18 @@ export class GoogleProvider {
                 throw new Error('Gemini did not return Veo operation name');
             }
 
+            this.logger.info(
+                {
+                    toolId,
+                    providerJobId: operation.name,
+                    aspectRatio: input.aspectRatio,
+                    resolution: input.resolution,
+                    durationSeconds: input.durationSeconds,
+                    veoMode: input.veoMode ?? 'create',
+                },
+                'Veo createJob started',
+            );
+
             return {
                 providerJobId: operation.name,
                 estimatedTokenCost: 0,
@@ -96,7 +108,7 @@ export class GoogleProvider {
             this.logger.error(
                 {
                     toolId,
-                    err: error instanceof Error ? error.message : String(error),
+                    err: this.formatProviderError(error),
                 },
                 'Veo createJob failed',
             );
@@ -122,6 +134,14 @@ export class GoogleProvider {
                               (operation.error as { message?: unknown }).message,
                           )
                         : 'Veo generation failed';
+                this.logger.warn(
+                    {
+                        providerJobId,
+                        err: message,
+                        operationError: operation.error,
+                    },
+                    'Veo operation reported error',
+                );
                 return {
                     status: 'failed',
                     errorMessage: message || 'Veo generation failed',
@@ -138,6 +158,10 @@ export class GoogleProvider {
                 const filtered =
                     operation.response?.raiMediaFilteredReasons?.join('; ') ??
                     'Veo завершил задачу без видео';
+                this.logger.warn(
+                    { providerJobId, err: filtered },
+                    'Veo finished without video',
+                );
                 return { status: 'failed', errorMessage: filtered };
             }
 
@@ -174,7 +198,10 @@ export class GoogleProvider {
             };
         } catch (error) {
             this.logger.warn(
-                { err: error instanceof Error ? error.message : String(error) },
+                {
+                    providerJobId,
+                    err: this.formatProviderError(error),
+                },
                 'Veo getJobStatus failed',
             );
             return {
@@ -331,8 +358,8 @@ export class GoogleProvider {
             resolution,
             durationSeconds,
             numberOfVideos: 1,
-            personGeneration:
-                images.length > 0 || isExtend ? 'allow_adult' : 'allow_all',
+            // Gemini Veo accepts only dont_allow | allow_adult (not allow_all).
+            personGeneration: 'allow_adult',
         };
 
         if (input.negativePrompt?.trim()) {
@@ -360,7 +387,8 @@ export class GoogleProvider {
                 video: videoPayload,
                 config: {
                     ...config,
-                    durationSeconds: 7,
+                    // Extend clip length must be a supported Veo duration.
+                    durationSeconds: 8,
                     resolution: '720p',
                 },
             });
@@ -564,5 +592,38 @@ export class GoogleProvider {
     private getClient(): GoogleGenAI {
         this.ensureApiKey();
         return this.client!;
+    }
+
+    private formatProviderError(error: unknown): string {
+        if (!(error instanceof Error)) {
+            return String(error);
+        }
+
+        const extras: Record<string, unknown> = {};
+        const anyError = error as Error & {
+            status?: unknown;
+            code?: unknown;
+            error?: unknown;
+            cause?: unknown;
+        };
+        if (anyError.status !== undefined) extras.status = anyError.status;
+        if (anyError.code !== undefined) extras.code = anyError.code;
+        if (anyError.error !== undefined) extras.error = anyError.error;
+        if (anyError.cause !== undefined) {
+            extras.cause =
+                anyError.cause instanceof Error
+                    ? anyError.cause.message
+                    : anyError.cause;
+        }
+
+        if (!Object.keys(extras).length) {
+            return error.message;
+        }
+
+        try {
+            return `${error.message} | ${JSON.stringify(extras).slice(0, 800)}`;
+        } catch {
+            return error.message;
+        }
     }
 }
