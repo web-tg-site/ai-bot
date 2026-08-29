@@ -241,7 +241,8 @@ export class GoogleProvider {
             store: true,
             response_format: {
                 type: 'image',
-                mime_type: 'image/png',
+                // Gemini image models currently accept only JPEG for output.
+                mime_type: 'image/jpeg',
                 aspect_ratio: aspectRatio,
                 image_size: imageSize,
             },
@@ -278,7 +279,7 @@ export class GoogleProvider {
         return {
             type: 'image',
             buffer: Buffer.from(image.data, 'base64'),
-            mimeType: image.mime_type ?? 'image/png',
+            mimeType: image.mime_type ?? 'image/jpeg',
             googleInteractionId: interaction.id,
         };
     }
