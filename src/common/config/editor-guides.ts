@@ -395,13 +395,13 @@ How to use
 4. Tap U1–U4 or V1–V4, then pan / zoom / inpaint if needed.`,
 
     [AiToolId.NANO_BANANA]: `Nano Banana is Google's Gemini image model family via the Gemini API.
-Create or edit images with text, up to 14 image refs, video-to-image, Thinking, and Google Search grounding.
+Create or edit images with text, up to 14 image refs, video-to-image, and Google Search grounding.
 
 What you can do
 • text-to-image up to 4K (incl. 512px)
 • edit / combine up to 14 references
 • video → image
-• thinking minimal/high
+• resolution: 512 / 1K / 2K / 4K
 • Google Search / Image Search grounding
 • multi-turn follow-up edits without new refs
 
@@ -409,8 +409,7 @@ How to use
 1. Describe the result.
 2. Optionally attach photo or video references.
 3. Pick aspect ratio and resolution.
-4. Optionally enable Thinking and Search.
-5. Run generation.`,
+4. Run generation.`,
 
     [AiToolId.SEEDREAM]: `Seedream is a ByteDance model for generating and editing images. It suits ad creatives, commercial graphics, product photography, characters and complex visual compositions.
 Seedream 5.0 also supports 4K output via ModelArk.
