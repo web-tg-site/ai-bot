@@ -165,13 +165,6 @@ function generateSettingsMenuKeyboard(
         if (options.qualities.length) {
             settingButtons.push(i18n.imageTool.changeQualityButton);
         }
-        if (options.toolId === AiToolId.NANO_BANANA) {
-            settingButtons.push(
-                i18n.imageTool.nanoThinkingButton(
-                    options.settings.nanoThinkingLevel === 'high',
-                ),
-            );
-        }
         rows.push(
             ...chunkKeyboardRow(settingButtons).map((chunk) => [...chunk]),
         );

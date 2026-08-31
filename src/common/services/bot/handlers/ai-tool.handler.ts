@@ -3649,9 +3649,7 @@ async function buildAiGenerationInput(
                 ? videoSettings?.klingKeepOriginalSound !== false
                 : undefined,
         nanoThinkingLevel:
-            toolId === AiToolId.NANO_BANANA
-                ? (imageSettings?.nanoThinkingLevel ?? 'minimal')
-                : undefined,
+            toolId === AiToolId.NANO_BANANA ? 'minimal' : undefined,
         nanoGoogleSearch:
             toolId === AiToolId.NANO_BANANA ? true : undefined,
         googlePreviousInteractionId:
