@@ -135,9 +135,9 @@ export function calculateTopazTokenCost(
 
 const IMAGE_QUALITY_LABELS: Record<string, { ru: string; en: string }> = {
     auto: { ru: 'Авто', en: 'Auto' },
-    low: { ru: 'Низкое', en: 'Low' },
-    medium: { ru: 'Среднее', en: 'Medium' },
-    high: { ru: 'Высокое', en: 'High' },
+    low: { ru: '1K', en: '1K' },
+    medium: { ru: '2K', en: '2K' },
+    high: { ru: '4K', en: '4K' },
 };
 
 export function formatImageQualityLabel(

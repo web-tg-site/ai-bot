@@ -196,13 +196,13 @@ export const MODEL_PASSTHROUGH_QUALITY_ENUMS: Record<
         quality: [
             {
                 value: 'standard',
-                labelRu: 'Стандарт',
-                labelEn: 'Standard',
+                labelRu: '720p',
+                labelEn: '720p',
             },
             {
                 value: 'high',
-                labelRu: 'Высокое',
-                labelEn: 'High',
+                labelRu: '1080p',
+                labelEn: '1080p',
             },
         ],
     },
@@ -218,37 +218,37 @@ export const STATIC_VIDEO_QUALITIES: Partial<
     [AiToolId.SORA]: [
         {
             value: 'standard',
-            labelRu: 'Стандарт',
-            labelEn: 'Standard',
+            labelRu: '720p',
+            labelEn: '720p',
         },
         {
             value: 'high',
-            labelRu: 'Высокое',
-            labelEn: 'High',
+            labelRu: '1080p',
+            labelEn: '1080p',
         },
     ],
     [AiToolId.KLING]: [
         {
             value: 'standard',
-            labelRu: 'STD',
-            labelEn: 'STD',
+            labelRu: '720p',
+            labelEn: '720p',
         },
         {
             value: 'high',
-            labelRu: 'PRO',
-            labelEn: 'PRO',
+            labelRu: '1080p',
+            labelEn: '1080p',
         },
     ],
     [AiToolId.KLING_MOTION]: [
         {
             value: 'standard',
-            labelRu: 'STD',
-            labelEn: 'STD',
+            labelRu: '720p',
+            labelEn: '720p',
         },
         {
             value: 'high',
-            labelRu: 'PRO',
-            labelEn: 'PRO',
+            labelRu: '1080p',
+            labelEn: '1080p',
         },
     ],
 };
