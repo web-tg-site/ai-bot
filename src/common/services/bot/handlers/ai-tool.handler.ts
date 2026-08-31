@@ -1038,6 +1038,7 @@ async function handleImageToolButtonPress(
                         ? formatImageQualityLabel(
                               imageSettings.quality ?? caps.qualities[0],
                               i18n.localeTag,
+                              toolId,
                           )
                         : undefined,
                 ),
@@ -1186,7 +1187,7 @@ async function handleImageToolButtonPress(
             : 0;
         await ctx.reply(
             i18n.imageTool.qualityChanged(
-                formatImageQualityLabel(action.value, i18n.localeTag),
+                formatImageQualityLabel(action.value, i18n.localeTag, toolId),
                 tokens,
             ),
             {

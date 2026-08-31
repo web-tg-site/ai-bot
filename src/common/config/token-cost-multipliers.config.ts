@@ -38,6 +38,7 @@ const IMAGE_TOOLS_WITH_QUALITY_COST: AiToolId[] = [
     AiToolId.GPT_IMAGES,
     AiToolId.FLUX,
     AiToolId.SEEDREAM,
+    AiToolId.MIDJOURNEY,
 ];
 
 const VIDEO_TOOLS_WITH_RESOLUTION_COST: AiToolId[] = [

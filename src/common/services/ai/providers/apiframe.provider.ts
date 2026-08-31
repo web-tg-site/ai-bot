@@ -18,6 +18,7 @@ import {
     SUNO_MODEL_VERSIONS,
     type SunoModelVersion,
 } from '@/common/config/apiframe.config';
+import { midjourneyQualityToQParam } from '@/common/config/image-editor-capabilities.config';
 import {
     AiGenerationInput,
     AiGenerationResult,
@@ -183,10 +184,16 @@ export class ApiframeProvider {
     private async createMidjourneyJob(
         input: AiGenerationInput,
     ): Promise<AiJobCreateResult> {
-        const prompt = input.prompt?.trim();
-        if (!prompt) {
+        const rawPrompt = input.prompt?.trim();
+        if (!rawPrompt) {
             throw new Error('Midjourney requires a prompt');
         }
+
+        const q = midjourneyQualityToQParam(input.quality);
+        const promptWithoutQ = rawPrompt
+            .replace(/\s--q\s+[\d.]+/gi, '')
+            .trim();
+        const prompt = `${promptWithoutQ} --q ${q}`;
 
         const body: Record<string, unknown> = {
             prompt,

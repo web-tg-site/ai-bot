@@ -61,9 +61,10 @@ export function formatGenerationSettingsLines(
             break;
         case AiToolId.GPT_IMAGES:
         case AiToolId.FLUX:
+        case AiToolId.MIDJOURNEY:
             if (input.quality) {
                 lines.push(
-                    `✨ Качество: ${escapeHtml(formatImageQualityLabel(input.quality, locale))}`,
+                    `✨ Качество: ${escapeHtml(formatImageQualityLabel(input.quality, locale, toolId))}`,
                 );
             }
             break;

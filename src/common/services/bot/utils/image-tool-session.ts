@@ -87,6 +87,7 @@ export function buildImageToolMainScreenText(
                     ? formatImageQualityLabel(
                           settings.quality ?? caps.qualities[0],
                           i18n.localeTag,
+                          toolId,
                       )
                     : undefined,
             ),

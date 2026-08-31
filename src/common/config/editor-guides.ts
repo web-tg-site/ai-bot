@@ -54,10 +54,11 @@ const RU: Partial<Record<AiToolId, string>> = {
 • V1–V4 — сделать похожие варианты выбранной
 • можно потом сдвинуть кадр в сторону или отдалить
 • можно закрасить кусок и перерисовать только его
+• качество: 720p / 1080p / 4K
 
 Как пользоваться
 1. Опиши картинку простыми словами.
-2. Выбери формат (квадрат, сторис и т.д.).
+2. Выбери формат и качество.
 3. Запусти генерацию и подожди сетку.
 4. Нажми U, чтобы взять одну картинку, или V, чтобы сделать похожие.`,
 
@@ -382,6 +383,7 @@ How to use
 What you can do
 • create images from a text prompt
 • choose aspect ratio
+• quality: 720p / 1080p / 4K
 • upsample a selected frame (U1–U4)
 • create variations (V1–V4)
 • expand the canvas (pan / zoom out)
@@ -389,7 +391,7 @@ What you can do
 
 How to use
 1. Describe the image you want.
-2. Choose aspect ratio.
+2. Choose aspect ratio and quality.
 3. Run generation — you get a 4-image grid.
 4. Tap U1–U4 or V1–V4, then pan / zoom / inpaint if needed.`,
 

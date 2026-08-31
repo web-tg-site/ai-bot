@@ -118,7 +118,7 @@ export function resolveImageToolButtonAction(
     if (options.keyboardMode === 'quality') {
         const tool = getToolById(options.toolId);
         for (const quality of options.qualities) {
-            const label = formatImageQualityLabel(quality, options.localeTag);
+            const label = formatImageQualityLabel(quality, options.localeTag, options.toolId);
             const tokens = tool
                 ? calculateToolTokenCost(tool, {
                       resolution: options.currentSettings.resolution,

@@ -242,7 +242,7 @@ function generateQualityPickerKeyboard(
     const tool = getToolById(toolId);
     const rows = chunkKeyboardRow(qualities).map((chunk) =>
         chunk.map((quality) => {
-            const label = formatImageQualityLabel(quality, localeTag);
+            const label = formatImageQualityLabel(quality, localeTag, toolId);
             const tokens = tool
                 ? calculateToolTokenCost(tool, {
                       resolution: currentResolution,

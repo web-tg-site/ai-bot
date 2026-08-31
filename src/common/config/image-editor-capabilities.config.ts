@@ -133,6 +133,18 @@ export function calculateTopazTokenCost(
     return Math.ceil(baseTokenCost * (topazScale / 2));
 }
 
+export const MIDJOURNEY_IMAGE_QUALITIES = ['low', 'medium', 'high'] as const;
+
+/** Midjourney --q values for our low/medium/high picker. */
+export const MIDJOURNEY_Q_VALUES: Record<
+    (typeof MIDJOURNEY_IMAGE_QUALITIES)[number],
+    string
+> = {
+    low: '0.5',
+    medium: '1',
+    high: '2',
+};
+
 const IMAGE_QUALITY_LABELS: Record<string, { ru: string; en: string }> = {
     auto: { ru: 'Авто', en: 'Auto' },
     low: { ru: '1K', en: '1K' },
@@ -140,13 +152,36 @@ const IMAGE_QUALITY_LABELS: Record<string, { ru: string; en: string }> = {
     high: { ru: '4K', en: '4K' },
 };
 
+const MIDJOURNEY_QUALITY_LABELS: Record<string, { ru: string; en: string }> = {
+    low: { ru: '720p', en: '720p' },
+    medium: { ru: '1080p', en: '1080p' },
+    high: { ru: '4K', en: '4K' },
+};
+
 export function formatImageQualityLabel(
     quality: string,
     locale: 'ru-RU' | 'en-US',
+    toolId?: AiToolId,
 ): string {
-    const labels = IMAGE_QUALITY_LABELS[quality];
+    const table =
+        toolId === AiToolId.MIDJOURNEY
+            ? MIDJOURNEY_QUALITY_LABELS
+            : IMAGE_QUALITY_LABELS;
+    const labels = table[quality];
     if (labels) {
         return locale === 'ru-RU' ? labels.ru : labels.en;
     }
     return quality;
+}
+
+export function midjourneyQualityToQParam(quality?: string): string {
+    if (
+        quality &&
+        (MIDJOURNEY_IMAGE_QUALITIES as readonly string[]).includes(quality)
+    ) {
+        return MIDJOURNEY_Q_VALUES[
+            quality as (typeof MIDJOURNEY_IMAGE_QUALITIES)[number]
+        ];
+    }
+    return MIDJOURNEY_Q_VALUES.medium;
 }

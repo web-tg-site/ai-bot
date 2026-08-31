@@ -85,15 +85,11 @@ export class ImageCapabilitiesService implements OnModuleInit {
     }
 
     getQualities(toolId: AiToolId): string[] {
-        if (
-            toolId === AiToolId.MIDJOURNEY ||
-            isTopazTool(toolId) ||
-            toolId === AiToolId.NANO_BANANA
-        ) {
+        if (isTopazTool(toolId) || toolId === AiToolId.NANO_BANANA) {
             return [];
         }
 
-        if (toolId === AiToolId.FLUX) {
+        if (toolId === AiToolId.MIDJOURNEY || toolId === AiToolId.FLUX) {
             return ['low', 'medium', 'high'];
         }
 
@@ -156,6 +152,12 @@ export class ImageCapabilitiesService implements OnModuleInit {
         }
         if (allowed.includes('auto')) {
             return 'auto';
+        }
+        if (
+            (toolId === AiToolId.MIDJOURNEY || toolId === AiToolId.FLUX) &&
+            allowed.includes('medium')
+        ) {
+            return 'medium';
         }
         return allowed[0];
     }
