@@ -37,7 +37,6 @@ const IMAGE_TOOLS_WITH_RESOLUTION_COST: AiToolId[] = [
 const IMAGE_TOOLS_WITH_QUALITY_COST: AiToolId[] = [
     AiToolId.GPT_IMAGES,
     AiToolId.FLUX,
-    AiToolId.SEEDREAM,
     AiToolId.MIDJOURNEY,
 ];
 
@@ -50,11 +49,7 @@ const VIDEO_TOOLS_WITH_RESOLUTION_COST: AiToolId[] = [
     AiToolId.VEO,
 ];
 
-const VIDEO_TOOLS_WITH_QUALITY_COST: AiToolId[] = [
-    AiToolId.SORA,
-    AiToolId.KLING,
-    AiToolId.KLING_MOTION,
-];
+const VIDEO_TOOLS_WITH_QUALITY_COST: AiToolId[] = [];
 
 export function getImageResolutionMultiplier(
     toolId: AiToolId,
@@ -87,6 +82,14 @@ export function getVideoResolutionMultiplier(
         if (resolution === '720p') return 1.25;
         if (resolution === '480p') return 1.0;
         return 1.0;
+    }
+    if (
+        (toolId === AiToolId.SORA ||
+            toolId === AiToolId.KLING ||
+            toolId === AiToolId.KLING_MOTION) &&
+        resolution === '1080p'
+    ) {
+        return 1.5;
     }
     return VIDEO_RESOLUTION_MULTIPLIERS[resolution] ?? 1.0;
 }

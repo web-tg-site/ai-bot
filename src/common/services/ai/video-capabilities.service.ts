@@ -104,6 +104,15 @@ export class VideoCapabilitiesService implements OnModuleInit {
             return [];
         }
 
+        // Resolution picker already exposes 720p/1080p — no separate quality UI.
+        if (
+            toolId === AiToolId.SORA ||
+            toolId === AiToolId.KLING ||
+            toolId === AiToolId.KLING_MOTION
+        ) {
+            return [];
+        }
+
         const staticQualities = STATIC_VIDEO_QUALITIES[toolId];
         if (staticQualities?.length) {
             return [...staticQualities];

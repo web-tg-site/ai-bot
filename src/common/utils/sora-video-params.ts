@@ -44,8 +44,14 @@ export function parseSoraVideoSize(size: SoraVideoSize): {
     return { width, height };
 }
 
-export function resolveSoraModel(quality?: string): 'sora-2' | 'sora-2-pro' {
-    return quality === 'high' ? 'sora-2-pro' : 'sora-2';
+export function resolveSoraModel(
+    quality?: string,
+    resolution?: string,
+): 'sora-2' | 'sora-2-pro' {
+    if (quality === 'high' || resolution === '1080p') {
+        return 'sora-2-pro';
+    }
+    return 'sora-2';
 }
 
 export function toSoraCreateSeconds(

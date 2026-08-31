@@ -85,7 +85,11 @@ export class ImageCapabilitiesService implements OnModuleInit {
     }
 
     getQualities(toolId: AiToolId): string[] {
-        if (isTopazTool(toolId) || toolId === AiToolId.NANO_BANANA) {
+        if (
+            isTopazTool(toolId) ||
+            toolId === AiToolId.NANO_BANANA ||
+            toolId === AiToolId.SEEDREAM
+        ) {
             return [];
         }
 
@@ -97,12 +101,7 @@ export class ImageCapabilitiesService implements OnModuleInit {
             return [...DEFAULT_IMAGE_QUALITIES];
         }
 
-        const model = getOpenRouterModelForTool(toolId);
-        if (!model) {
-            return [];
-        }
-
-        return this.cache.get(model)?.qualities ?? [];
+        return [];
     }
 
     supportsQuality(toolId: AiToolId): boolean {

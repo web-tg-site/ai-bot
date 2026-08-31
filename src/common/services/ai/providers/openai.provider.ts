@@ -792,7 +792,7 @@ export class OpenAiProvider {
         const prompt = this.resolveSoraPrompt(input);
         const size = resolveSoraVideoSize(input.aspectRatio, input.resolution);
         const seconds = toSoraCreateSeconds(input.durationSeconds);
-        const model = resolveSoraModel(input.quality);
+        const model = resolveSoraModel(input.quality, input.resolution);
         const characterIds = (input.soraCharacterIds ?? [])
             .map((id) => id.trim())
             .filter(Boolean)

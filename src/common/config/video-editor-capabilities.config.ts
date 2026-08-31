@@ -211,47 +211,11 @@ export const MODEL_PASSTHROUGH_QUALITY_ENUMS: Record<
 /** Passthrough param names treated as rendering quality. */
 export const MODEL_QUALITY_PASSTHROUGH_PARAMS = new Set(['quality']);
 
-/** Quality presets for providers outside OpenRouter video API. */
+/** Quality presets for providers outside OpenRouter video API.
+ * Empty: resolution picker covers 720p/1080p; no separate quality button. */
 export const STATIC_VIDEO_QUALITIES: Partial<
     Record<AiToolId, VideoQualityOption[]>
-> = {
-    [AiToolId.SORA]: [
-        {
-            value: 'standard',
-            labelRu: '720p',
-            labelEn: '720p',
-        },
-        {
-            value: 'high',
-            labelRu: '1080p',
-            labelEn: '1080p',
-        },
-    ],
-    [AiToolId.KLING]: [
-        {
-            value: 'standard',
-            labelRu: '720p',
-            labelEn: '720p',
-        },
-        {
-            value: 'high',
-            labelRu: '1080p',
-            labelEn: '1080p',
-        },
-    ],
-    [AiToolId.KLING_MOTION]: [
-        {
-            value: 'standard',
-            labelRu: '720p',
-            labelEn: '720p',
-        },
-        {
-            value: 'high',
-            labelRu: '1080p',
-            labelEn: '1080p',
-        },
-    ],
-};
+> = {};
 
 export const VIDEO_TOOLS_WITH_REFERENCES: AiToolId[] = [
     AiToolId.KLING,

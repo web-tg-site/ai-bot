@@ -129,7 +129,7 @@ const RU: Partial<Record<AiToolId, string>> = {
 Как пользоваться
 1. Напиши, что происходит в сцене.
 2. При желании добавь одно фото или готовое видео для правки.
-3. Выбери формат, качество и длительность.
+3. Выбери формат, разрешение и длительность.
 4. Запусти и подожди.
 5. Чтобы продлить: под готовым роликом нажми «Продлить видео» и опиши продолжение.`,
 
@@ -140,7 +140,7 @@ const RU: Partial<Record<AiToolId, string>> = {
 • 1 фото — видео начнётся с него
 • 2 фото — от первого кадра ко второму
 • до 4 фото — несколько примеров сразу
-• качество: 720p или 1080p (1080p дороже)
+• разрешение: 720p или 1080p (1080p дороже)
 • «Звук: вкл» — модель сама добавит звук
 • поле «Чего не должно быть» — напиши, чего избегать
 
@@ -158,11 +158,12 @@ const RU: Partial<Record<AiToolId, string>> = {
 • «Поза с фото» — короткие клипы (до ~10 сек)
 • «Поза из видео» — можно подлиннее (до ~30 сек)
 • можно оставить звук с видео движения
+• разрешение: 720p или 1080p
 
 Как пользоваться
 1. Загрузи фото персонажа.
 2. Загрузи видео с движением.
-3. Выбери позу и качество.
+3. Выбери позу и разрешение.
 4. При желании допиши описание сцены.
 5. Запусти генерацию.`,
 
@@ -472,12 +473,12 @@ Cost
 • 4 sec — 600 credits
 • 8 sec — 1,200 credits
 • 12 sec — 1,800 credits
-• "high" quality — ×1.5
+• 1080p — ×1.5 (Pro)
 
 How to use
 1. Describe the scene.
 2. Optionally upload one photo or a video to edit.
-3. Choose format, resolution, duration, and quality.
+3. Choose format, resolution, and duration.
 4. Run generation.
 
 Extend video: tap "Extend video" under a finished clip, describe how the scene should continue, and generate again. Extension costs from 600 credits (4 sec).`,
@@ -489,14 +490,14 @@ What you can do
 • text → video
 • image → video (first / last frame)
 • multi-image → video (up to 4 photos)
-• STD / PRO mode
+• resolution 720p / 1080p
 • sound on/off
 • negative prompt
 
 How to use
 1. Optionally upload up to 4 photos (1–2 = start/end, 3–4 = multi-image).
 2. Describe the scene; optionally add a negative prompt.
-3. Choose aspect, duration, STD/PRO, and sound.
+3. Choose aspect, duration, resolution (720p/1080p), and sound.
 4. Run generation.`,
 
     [AiToolId.KLING_MOTION]: `Kling Motion — transfer motion from a reference video onto a character photo.
@@ -509,11 +510,11 @@ Required
 Parameters
 • character pose: from photo / from video
 • keep sound from the motion video
-• STD / PRO mode
+• resolution: 720p / 1080p
 
 How to use
 1. Upload a character photo and a motion video.
-2. Choose pose mode and quality.
+2. Choose pose mode and resolution.
 3. Optionally describe the scene and run generation.`,
 
     [AiToolId.VEO]: `Veo is Google's video model via the Gemini API.
