@@ -214,28 +214,11 @@ export class OpenAiProvider {
         return textResult;
     }
 
-    private resolveGptModel(input: AiGenerationInput): {
+    private resolveGptModel(): {
         model: string;
         tokenCost: number;
     } {
-        const hasMedia = (input.files?.length ?? 0) > 0;
-        const prompt = input.prompt ?? '';
-        const webSearchEnabled = input.gptWebSearch !== false;
-        const wantsSearch = webSearchEnabled || this.detectSearchIntent(prompt);
-
-        if (wantsSearch) {
-            return {
-                model: 'gpt-5.5',
-                tokenCost: webSearchEnabled ? 8 : 15,
-            };
-        }
-        if (hasMedia) {
-            return { model: 'gpt-5.5', tokenCost: 8 };
-        }
-        if (prompt.length > 200) {
-            return { model: 'gpt-5.5', tokenCost: 5 };
-        }
-        return { model: 'gpt-4o-mini', tokenCost: 1 };
+        return { model: 'gpt-5.5', tokenCost: 8 };
     }
 
     private async chatUnified(
@@ -243,9 +226,7 @@ export class OpenAiProvider {
     ): Promise<AiGenerationResult> {
         const client = this.requireClient();
         const prompt = input.prompt ?? '';
-        const webSearchEnabled = input.gptWebSearch !== false;
-        const wantsSearch = webSearchEnabled || this.detectSearchIntent(prompt);
-        const { model, tokenCost } = this.resolveGptModel(input);
+        const { model, tokenCost } = this.resolveGptModel();
 
         const messages: EasyMessage[] = [];
 
@@ -282,10 +263,7 @@ export class OpenAiProvider {
 
         const tools: Array<
             { type: 'web_search' } | { type: 'image_generation' }
-        > = [{ type: 'image_generation' }];
-        if (wantsSearch) {
-            tools.unshift({ type: 'web_search' });
-        }
+        > = [{ type: 'web_search' }, { type: 'image_generation' }];
 
         try {
             const response = await client.responses.create({
@@ -663,12 +641,6 @@ export class OpenAiProvider {
             'Если в сообщении есть изображения, кадры видео, транскрипт аудио или документы — анализируй их (в том числе людей) и давай конкретную обратную связь, а не отвечай, что не видишь вложения. ' +
             'Если пользователь просит нарисовать, проиллюстрировать или отредактировать картинку — сгенерируй изображение. ' +
             'Используй Markdown-форматирование (жирный текст, списки, код), когда это улучшает читаемость.'
-        );
-    }
-
-    private detectSearchIntent(prompt: string): boolean {
-        return /(найди|поиск|актуальн|сейчас|новост|в интернете|погода)/i.test(
-            prompt,
         );
     }
 

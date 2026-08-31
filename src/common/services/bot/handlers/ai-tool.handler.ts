@@ -691,7 +691,6 @@ async function selectTool(
     if (isChatAssistantTool(toolId)) {
         await ctx.reply(i18n.gptChat.controlsHint, {
             ...generateGptControlKeyboard(i18n, {
-                webSearch: session.ai.gptWebSearch !== false,
                 replyMode: session.ai.gptReplyMode ?? 'text',
             }),
             parse_mode: 'HTML',
@@ -1282,19 +1281,12 @@ async function handleImageToolButtonPress(
     }
 
     if (action.type === 'toggle_nano_search') {
-        const currentSettings = (session.ai.toolSettings ??
-            {}) as ImageToolSettings;
-        const nextOn = !currentSettings.nanoGoogleSearch;
-        const nextSettings =
-            await deps.userAiToolSettingsModelService.upsertSettings(
-                user.id,
-                toolId,
-                { nanoGoogleSearch: nextOn },
-            );
-        session.ai.toolSettings = nextSettings;
         session.ai.imageKeyboardMode = 'settings';
-        await ctx.reply(i18n.imageTool.nanoSearchChanged(nextOn), {
-            ...replyKeyboard('settings', nextSettings),
+        await ctx.reply(i18n.imageTool.nanoSearchAlwaysOn, {
+            ...replyKeyboard(
+                'settings',
+                (session.ai.toolSettings ?? {}) as ImageToolSettings,
+            ),
             parse_mode: 'HTML',
         });
         return true;
@@ -3585,7 +3577,7 @@ async function buildAiGenerationInput(
                 ? resolveAudioToolDurationSeconds(toolId, voiceSettings)
                 : tool.defaultDurationSeconds),
         chatHistory,
-        gptWebSearch: session.ai?.gptWebSearch,
+        gptWebSearch: true,
         gptReplyMode: session.ai?.gptReplyMode,
         localeTag: i18n.localeTag,
         elevenLabsVoiceId: voiceSettings?.elevenLabsVoiceId,
@@ -3660,9 +3652,7 @@ async function buildAiGenerationInput(
                 ? (imageSettings?.nanoThinkingLevel ?? 'minimal')
                 : undefined,
         nanoGoogleSearch:
-            toolId === AiToolId.NANO_BANANA
-                ? Boolean(imageSettings?.nanoGoogleSearch)
-                : undefined,
+            toolId === AiToolId.NANO_BANANA ? true : undefined,
         googlePreviousInteractionId:
             toolId === AiToolId.NANO_BANANA
                 ? session.ai?.googlePreviousInteractionId

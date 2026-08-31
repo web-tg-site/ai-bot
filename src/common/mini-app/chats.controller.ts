@@ -200,8 +200,7 @@ export class ChatsController {
                     mimeType: file.mimetype,
                     fileName: file.originalname,
                 })),
-                gptWebSearch:
-                    body.gptWebSearch === 'true' || body.gptWebSearch === '1',
+                gptWebSearch: true,
                 gptReplyMode: body.gptReplyMode,
             },
         });

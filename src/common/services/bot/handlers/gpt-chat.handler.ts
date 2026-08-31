@@ -86,7 +86,6 @@ export const registerGptChatHandlers = (
         await ctx.answerCbQuery(i18n.gptChat.newChatCreated);
         await ctx.reply(i18n.gptChat.newChatCreated, {
             ...generateGptControlKeyboard(i18n, {
-                webSearch: session.ai.gptWebSearch !== false,
                 replyMode: session.ai.gptReplyMode ?? 'text',
             }),
             parse_mode: 'HTML',
@@ -177,7 +176,6 @@ export const registerGptChatHandlers = (
             ),
             {
                 ...generateGptControlKeyboard(i18n, {
-                    webSearch: session.ai.gptWebSearch !== false,
                     replyMode: session.ai.gptReplyMode ?? 'text',
                 }),
                 parse_mode: 'HTML',
@@ -389,18 +387,13 @@ export const registerGptChatHandlers = (
         const session = getSession(ctx);
         ensureGptSession(session);
 
-        session.ai!.gptWebSearch = ctx.match[1] === 'on';
+        session.ai!.gptWebSearch = true;
 
-        await ctx.answerCbQuery(
-            session.ai!.gptWebSearch
-                ? i18n.gptChat.webSearchEnabled
-                : i18n.gptChat.webSearchDisabled,
-        );
+        await ctx.answerCbQuery(i18n.gptChat.webSearchAlwaysOn);
 
         try {
             await ctx.editMessageReplyMarkup(
                 generateGptControlKeyboard(i18n, {
-                    webSearch: session.ai!.gptWebSearch !== false,
                     replyMode: session.ai!.gptReplyMode ?? 'text',
                 }).reply_markup,
             );
@@ -432,7 +425,6 @@ export const registerGptChatHandlers = (
         try {
             await ctx.editMessageReplyMarkup(
                 generateGptControlKeyboard(i18n, {
-                    webSearch: session.ai!.gptWebSearch !== false,
                     replyMode: session.ai!.gptReplyMode ?? 'text',
                 }).reply_markup,
             );
@@ -456,7 +448,6 @@ export const registerGptChatHandlers = (
         await ctx.answerCbQuery();
         await ctx.reply(i18n.gptChat.controlsHint, {
             ...generateGptControlKeyboard(i18n, {
-                webSearch: session.ai?.gptWebSearch !== false,
                 replyMode: session.ai?.gptReplyMode ?? 'text',
             }),
             parse_mode: 'HTML',

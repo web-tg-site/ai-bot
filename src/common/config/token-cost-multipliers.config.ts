@@ -121,9 +121,7 @@ export function applyImageCostMultipliers(
         if (options?.nanoThinkingLevel === 'high') {
             thinkingMult = 1.25;
         }
-        if (options?.nanoGoogleSearch) {
-            searchMult = 1.15;
-        }
+        searchMult = 1.15;
     }
     return Math.ceil(
         baseCost * resolutionMult * qualityMult * thinkingMult * searchMult,

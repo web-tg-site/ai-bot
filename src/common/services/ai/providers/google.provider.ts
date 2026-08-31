@@ -288,14 +288,12 @@ export class GoogleProvider {
             request.previous_interaction_id = input.googlePreviousInteractionId;
         }
 
-        if (input.nanoGoogleSearch) {
-            request.tools = [
-                {
-                    type: 'google_search',
-                    search_types: ['web_search', 'image_search'],
-                },
-            ];
-        }
+        request.tools = [
+            {
+                type: 'google_search',
+                search_types: ['web_search', 'image_search'],
+            },
+        ];
 
         const interaction = (await this.getClient().interactions.create(
             request as Parameters<GoogleGenAI['interactions']['create']>[0],

@@ -171,11 +171,6 @@ function generateSettingsMenuKeyboard(
                     options.settings.nanoThinkingLevel === 'high',
                 ),
             );
-            settingButtons.push(
-                i18n.imageTool.nanoSearchButton(
-                    Boolean(options.settings.nanoGoogleSearch),
-                ),
-            );
         }
         rows.push(
             ...chunkKeyboardRow(settingButtons).map((chunk) => [...chunk]),

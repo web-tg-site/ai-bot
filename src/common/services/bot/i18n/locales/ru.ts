@@ -525,13 +525,14 @@ ${getTariffIncludesText(type, plan, ru)}
         clearCancelled: 'Очистка отменена',
         webSearchEnabled: 'Поиск в интернете включён',
         webSearchDisabled: 'Поиск в интернете выключен',
+        webSearchAlwaysOn: 'Поиск в интернете всегда включён',
         replyModeChanged: (mode) => {
             if (mode === 'audio') return 'Режим ответа: только аудио';
             if (mode === 'both') return 'Режим ответа: текст и аудио';
             return 'Режим ответа: только текст';
         },
         controlsHint:
-            'Управление чатом:\n• Новый чат — начать отдельный диалог\n• Мои чаты — переключиться между диалогами\n• Поиск — актуальные данные из интернета',
+            'Управление чатом:\n• Новый чат — начать отдельный диалог\n• Мои чаты — переключиться между диалогами\n• Поиск в интернете всегда включён',
     },
     imageTool: {
         promptHint: 'Опишите задачу.',
@@ -564,6 +565,7 @@ ${getTariffIncludesText(type, plan, ru)}
             on
                 ? 'Поиск включён: можно подсмотреть свежие факты в сети'
                 : 'Поиск выключен',
+        nanoSearchAlwaysOn: 'Поиск всегда включён',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Выберите формат:',
         selectResolutionTitle: 'Выберите разрешение:',

@@ -525,13 +525,14 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
         clearCancelled: 'Clear cancelled',
         webSearchEnabled: 'Web search enabled',
         webSearchDisabled: 'Web search disabled',
+        webSearchAlwaysOn: 'Web search is always on',
         replyModeChanged: (mode) => {
             if (mode === 'audio') return 'Reply mode: audio only';
             if (mode === 'both') return 'Reply mode: text and audio';
             return 'Reply mode: text only';
         },
         controlsHint:
-            'Chat controls:\n• New chat — start a separate conversation\n• My chats — switch between conversations\n• Search — up-to-date data from the web',
+            'Chat controls:\n• New chat — start a separate conversation\n• My chats — switch between conversations\n• Web search is always on',
     },
     imageTool: {
         promptHint: 'Describe the task.',
@@ -559,6 +560,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             high ? 'Thinking: high' : 'Thinking: minimal',
         nanoSearchChanged: (on) =>
             on ? 'Google Search enabled' : 'Google Search disabled',
+        nanoSearchAlwaysOn: 'Search is always on',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Choose aspect ratio:',
         selectResolutionTitle: 'Choose resolution:',

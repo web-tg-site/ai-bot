@@ -151,7 +151,10 @@ export class GenerationFacade {
                 quality: input.quality,
                 resolution: input.resolution,
                 nanoThinkingLevel: input.nanoThinkingLevel,
-                nanoGoogleSearch: input.nanoGoogleSearch,
+                nanoGoogleSearch:
+                    effectiveToolId === AiToolId.NANO_BANANA
+                        ? true
+                        : input.nanoGoogleSearch,
             },
         );
 

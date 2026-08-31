@@ -7,7 +7,6 @@ const PAGE_SIZE = 8;
 export function generateGptControlKeyboard(
     i18n: I18nBundle,
     options: {
-        webSearch: boolean;
         replyMode: GptReplyMode;
     },
 ) {
@@ -16,15 +15,7 @@ export function generateGptControlKeyboard(
             Markup.button.callback(i18n.gptChat.newChat, 'gpt:new'),
             Markup.button.callback(i18n.gptChat.myChats, 'gpt:list:0'),
         ],
-        [
-            Markup.button.callback(i18n.gptChat.clearHistory, 'gpt:clear'),
-            Markup.button.callback(
-                options.webSearch
-                    ? i18n.gptChat.webSearchOn
-                    : i18n.gptChat.webSearchOff,
-                `gpt:web_search:${options.webSearch ? 'off' : 'on'}`,
-            ),
-        ],
+        [Markup.button.callback(i18n.gptChat.clearHistory, 'gpt:clear')],
         [
             Markup.button.callback(
                 i18n.gptChat.replyModeLabel(options.replyMode),

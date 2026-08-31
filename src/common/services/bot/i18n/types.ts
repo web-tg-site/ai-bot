@@ -194,6 +194,7 @@ export type I18nBundle = {
         clearCancelled: string;
         webSearchEnabled: string;
         webSearchDisabled: string;
+        webSearchAlwaysOn: string;
         replyModeChanged: (mode: GptReplyMode) => string;
         controlsHint: string;
     };
@@ -217,6 +218,7 @@ export type I18nBundle = {
         nanoSearchButton: (on: boolean) => string;
         nanoThinkingChanged: (high: boolean) => string;
         nanoSearchChanged: (on: boolean) => string;
+        nanoSearchAlwaysOn: string;
         resolutionToolbarButton: (resolution: string) => string;
         selectAspectRatioTitle: string;
         selectResolutionTitle: string;

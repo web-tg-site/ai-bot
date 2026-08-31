@@ -341,7 +341,7 @@ export class OpenRouterProvider {
         input: AiGenerationInput,
     ): Promise<AiGenerationResult> {
         return this.chatWithReplyMode(input, AiToolId.CLAUDE_SONNET, () =>
-            this.resolveClaudeModel(input),
+            this.resolveClaudeModel(),
         );
     }
 
@@ -385,28 +385,16 @@ export class OpenRouterProvider {
         return textResult;
     }
 
-    private resolveClaudeModel(input: AiGenerationInput): {
+    private resolveClaudeModel(): {
         model: string;
         tokenCost: number;
     } {
-        const hasMedia = (input.files?.length ?? 0) > 0;
-        const prompt = input.prompt ?? '';
-        const webSearchEnabled = input.gptWebSearch !== false;
-        const wantsSearch = webSearchEnabled || this.detectSearchIntent(prompt);
-        const model =
-            getToolById(AiToolId.CLAUDE_SONNET)?.model ??
-            'anthropic/claude-sonnet-4.6';
-
-        if (wantsSearch) {
-            return { model, tokenCost: 15 };
-        }
-        if (hasMedia) {
-            return { model, tokenCost: 8 };
-        }
-        if (prompt.length > 200) {
-            return { model, tokenCost: 5 };
-        }
-        return { model, tokenCost: 3 };
+        return {
+            model:
+                getToolById(AiToolId.CLAUDE_SONNET)?.model ??
+                'anthropic/claude-sonnet-4.6',
+            tokenCost: 15,
+        };
     }
 
     private async chatUnified(
@@ -415,8 +403,6 @@ export class OpenRouterProvider {
         resolveModel: () => { model: string; tokenCost: number },
     ): Promise<AiGenerationResult> {
         const prompt = input.prompt ?? '';
-        const webSearchEnabled = input.gptWebSearch !== false;
-        const wantsSearch = webSearchEnabled || this.detectSearchIntent(prompt);
         const { model, tokenCost } = resolveModel();
 
         const messages: Array<{
@@ -458,14 +444,14 @@ export class OpenRouterProvider {
         );
         messages.push({ role: 'user', content: userContent });
 
-        const body: Record<string, unknown> = { model, messages };
-
-        if (wantsSearch) {
-            body.tools = [
+        const body: Record<string, unknown> = {
+            model,
+            messages,
+            tools: [
                 { type: 'openrouter:web_search', max_results: 5 },
                 { type: 'openrouter:datetime' },
-            ];
-        }
+            ],
+        };
 
         const response = await this.post<{
             choices: Array<{
@@ -847,12 +833,6 @@ export class OpenRouterProvider {
         }
 
         return { type: 'image', url };
-    }
-
-    private detectSearchIntent(prompt: string): boolean {
-        return /(найди|поиск|актуальн|сейчас|новост|в интернете|погода)/i.test(
-            prompt,
-        );
     }
 
     private extractImageFromContent(content?: string): string | undefined {

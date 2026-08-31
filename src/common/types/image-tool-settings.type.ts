@@ -17,7 +17,7 @@ export const DEFAULT_IMAGE_TOOL_SETTINGS: ImageToolSettings = {
     quality: 'auto',
     topazScale: 2,
     nanoThinkingLevel: 'minimal',
-    nanoGoogleSearch: false,
+    nanoGoogleSearch: true,
 };
 
 export const MAX_IMAGE_REFERENCES = 14;

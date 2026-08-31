@@ -676,9 +676,7 @@ export class AiController {
                     heygenVoicePitch: body.heygenVoicePitch
                         ? Number(body.heygenVoicePitch)
                         : undefined,
-                    gptWebSearch:
-                        body.gptWebSearch === 'true' ||
-                        body.gptWebSearch === '1',
+                    gptWebSearch: true,
                     gptReplyMode: body.gptReplyMode,
                     sunoGenreId: body.sunoGenreId,
                     sunoMoodId: body.sunoMoodId,
@@ -777,13 +775,7 @@ export class AiController {
                               : undefined,
                     nanoThinkingLevel: body.nanoThinkingLevel,
                     nanoGoogleSearch:
-                        body.nanoGoogleSearch === 'true' ||
-                        body.nanoGoogleSearch === '1'
-                            ? true
-                            : body.nanoGoogleSearch === 'false' ||
-                                body.nanoGoogleSearch === '0'
-                              ? false
-                              : undefined,
+                        body.toolId === AiToolId.NANO_BANANA ? true : undefined,
                     googlePreviousInteractionId:
                         body.googlePreviousInteractionId,
                     veoMode: body.veoMode,
