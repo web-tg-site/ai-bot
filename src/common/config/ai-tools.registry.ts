@@ -238,7 +238,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
     },
     {
         id: AiToolId.ELEVENLABS_VOICE,
-        label: 'ElevenLAbs Voice',
+        label: 'ElevenLabs',
         category: 'audio',
         provider: AiProviderId.ELEVENLABS,
         baseTokenCost: 40,
@@ -261,7 +261,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
     },
     {
         id: AiToolId.VIDEO_TO_AUDIO,
-        label: 'Озвучка видео',
+        label: 'Озвучка к видео',
         category: 'audio',
         provider: AiProviderId.ELEVENLABS,
         baseTokenCost: 60,

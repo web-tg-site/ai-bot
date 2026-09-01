@@ -109,7 +109,7 @@ export const ru: I18nBundle = {
 🎙️ <b>Работа с голосом и аудио</b>
 • ElevenLabs
 • Клонирование голоса
-• Озвучка видео
+• Озвучка к видео
 • Генерация звуков по запросу
 • Suno
 
@@ -440,9 +440,9 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.HIGGSFIELD]: 'Higgsfield',
             [AiToolId.HEYGEN]: 'HeyGen',
             [AiToolId.TOPAZ]: 'Topaz AI',
-            [AiToolId.ELEVENLABS_VOICE]: 'ElevenLAbs Voice',
+            [AiToolId.ELEVENLABS_VOICE]: 'ElevenLabs',
             [AiToolId.VOICE_CLONE]: 'Клонирование голоса',
-            [AiToolId.VIDEO_TO_AUDIO]: 'Озвучка видео',
+            [AiToolId.VIDEO_TO_AUDIO]: 'Озвучка к видео',
             [AiToolId.SOUND_GENERATOR]: 'Генерация звуков',
             [AiToolId.SUNO]: 'Suno',
         },

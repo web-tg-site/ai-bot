@@ -259,7 +259,7 @@ const RU: Partial<Record<AiToolId, string>> = {
 3. Выбери формат, длительность и стиль.
 4. Запусти генерацию.`,
 
-    [AiToolId.ELEVENLABS_VOICE]: `🎙️ ElevenLabs Voice
+    [AiToolId.ELEVENLABS_VOICE]: `🎙️ ElevenLabs
 Превращает написанный текст в речь — выбери голос и озвучь.
 
 - ✍️ Пишешь текст — получаешь голос, который его читает
@@ -283,8 +283,8 @@ const RU: Partial<Record<AiToolId, string>> = {
 2. Впиши текст.
 3. Запусти генерацию.`,
 
-    [AiToolId.VIDEO_TO_AUDIO]: `🔊 Озвучка видео
-Добавляет звук к ролику без нормальной аудиодорожки.
+    [AiToolId.VIDEO_TO_AUDIO]: `🔊 Озвучка к видео
+Добавляет озвучку к ролику без нормальной аудиодорожки.
 
 - 🎬 Загружаешь видео — модель делает подходящую озвучку или звуковой слой
 - 🌍 Можно указать язык (или оставить русский)
@@ -294,7 +294,7 @@ const RU: Partial<Record<AiToolId, string>> = {
 2. При желании укажи язык.
 3. Запусти генерацию.`,
 
-    [AiToolId.SOUND_GENERATOR]: `🔔 Генератор звуков
+    [AiToolId.SOUND_GENERATOR]: `🔔 Генерация звуков
 Создаёт звуковой эффект по описанию.
 
 - ✍️ Напиши звук словами — получишь аудиофайл
@@ -580,7 +580,7 @@ How to use
 3. Choose format, duration and style.
 4. Run generation.`,
 
-    [AiToolId.ELEVENLABS_VOICE]: `🎙️ ElevenLabs Voice
+    [AiToolId.ELEVENLABS_VOICE]: `🎙️ ElevenLabs
 Turns written text into speech — pick a voice and narrate.
 
 - ✍️ You write text — get a voice that reads it
@@ -604,8 +604,8 @@ How to use
 2. Enter your text.
 3. Run generation.`,
 
-    [AiToolId.VIDEO_TO_AUDIO]: `🔊 Video Dubbing
-Adds sound to a clip without a proper audio track.
+    [AiToolId.VIDEO_TO_AUDIO]: `🔊 Video Voice-over
+Adds voice-over to a clip without a proper audio track.
 
 - 🎬 Upload a video — the model creates suitable voice-over or a sound layer
 - 🌍 You can specify a language (or leave Russian)
@@ -615,7 +615,7 @@ How to use
 2. Optionally specify a language.
 3. Run generation.`,
 
-    [AiToolId.SOUND_GENERATOR]: `🔔 Sound Generator
+    [AiToolId.SOUND_GENERATOR]: `🔔 Sound Generation
 Creates a sound effect from a description.
 
 - ✍️ Describe a sound in words — get an audio file
