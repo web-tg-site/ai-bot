@@ -16,6 +16,40 @@ export type SoraCharacterRecord = VideoToolSettings['characters'] extends
 const MAX_SORA_CHARACTERS = 20;
 const MAX_SORA_CHARACTERS_PER_VIDEO = 2;
 
+function extractOpenAiErrorMessage(error: unknown): string {
+    if (error instanceof APIError) {
+        const parts: string[] = [];
+        if (error.message?.trim()) {
+            parts.push(error.message.trim());
+        }
+        const body = error.error;
+        if (body && typeof body === 'object') {
+            const record = body as {
+                message?: unknown;
+                code?: unknown;
+                type?: unknown;
+            };
+            if (typeof record.message === 'string' && record.message.trim()) {
+                parts.push(record.message.trim());
+            }
+            if (typeof record.code === 'string' && record.code.trim()) {
+                parts.push(record.code.trim());
+            }
+            if (typeof record.type === 'string' && record.type.trim()) {
+                parts.push(record.type.trim());
+            }
+        }
+        if (error.status) {
+            parts.push(`HTTP ${error.status}`);
+        }
+        return parts.join(' | ');
+    }
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return 'Character create failed';
+}
+
 @Injectable()
 export class SoraCharactersService {
     private readonly apiKey: string;
@@ -148,42 +182,45 @@ export class SoraCharactersService {
     }
 
     private formatCreateError(error: unknown): string {
-        const raw =
-            error instanceof APIError
-                ? error.message
-                : error instanceof Error
-                  ? error.message
-                  : 'Character create failed';
+        const raw = extractOpenAiErrorMessage(error);
+
+        if (/[а-яА-ЯёЁ]/.test(raw) && !/status code|Request failed/i.test(raw)) {
+            return raw.split('\n')[0].trim();
+        }
 
         if (
-            /copyright|trademark|intellectual property|\bip\b|third[- ]party|franchis|licensed character|real person|public figure|famous/i.test(
+            /human likeness|human-like|humanlike|depict.*human|looks like a person|real person|public figure|face detected|human face|people in/i.test(
                 raw,
             )
         ) {
-            return 'Sora не принимает известных персонажей из фильмов и игр (Шрек, Дисней и т.п.). Нужен свой оригинальный персонаж или объект без чужого IP.';
+            return 'Sora не принимает персонажей, похожих на людей (даже ваших оригинальных). Нужно животное, игрушка, маскот или предмет без человеческого лица.';
+        }
+
+        if (
+            /copyright|trademark|intellectual property|\bip\b|third[- ]party|franchis|licensed character|famous/i.test(
+                raw,
+            )
+        ) {
+            return 'Sora не принимает известных персонажей из фильмов и игр. Нужен свой оригинальный объект или маскот без чужого IP.';
         }
 
         if (/unsupported video format|accepted inputs|h\.?264|hevc|quicktime/i.test(raw)) {
-            return 'Формат видео не подошёл для персонажа Sora. Загрузите другой клип 2–4 сек (MP4/MOV), без людей в кадре.';
+            return 'Формат видео не подошёл. Загрузите клип 2–4 сек в MP4 или MOV (вертикальный или горизонтальный).';
         }
 
-        if (/face|human likeness|people|person/i.test(raw)) {
-            return 'Sora отклонила клип с лицом человека. Загрузите объект или персонажа без человеческого лица.';
+        if (/resolution|720|1080|aspect|dimension|width|height|too (small|large)/i.test(raw)) {
+            return 'Клип не подходит по размеру. Нужно 2–4 сек, 720p, формат 16:9 или 9:16.';
         }
 
         if (/duration|seconds|too (long|short)|2.?4/i.test(raw)) {
-            return 'Для персонажа нужно короткое видео 2–4 секунды. Обрежьте клип и попробуйте снова.';
+            return 'Для персонажа нужно видео 2–4 секунды. Попробуйте чуть более длинный клип (около 3 сек).';
         }
 
         if (/moderation|content policy|blocked|safety|rejected|not allowed|violat/i.test(raw)) {
-            return 'Sora отклонила клип. Нельзя: лица людей и известные персонажи (мультфильмы, игры, бренды). Попробуйте свой оригинальный объект или персонаж.';
-        }
-
-        if (/[а-яА-ЯёЁ]/.test(raw)) {
-            return raw;
+            return 'Sora отклонила клип по модерации. Подходят только животные, игрушки и объекты — без людей и без известных брендов.';
         }
 
         this.logger.warn({ err: raw }, 'Sora createCharacter failed');
-        return 'Не удалось создать персонажа Sora. Нужен свой оригинальный клип 2–4 сек без лиц людей и без известных персонажей из фильмов/игр.';
+        return 'Sora не приняла клип. Нужно 2–4 сек, 720p, вертикаль или горизонталь. Только животные, игрушки или объекты — без людей и без известных персонажей.';
     }
 }
