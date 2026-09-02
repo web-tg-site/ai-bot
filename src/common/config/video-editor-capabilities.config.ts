@@ -1,6 +1,6 @@
 import { AiToolId } from '@/common/services/ai/types';
 import { getToolById } from '@/common/config/ai-tools.registry';
-import { UI_ASPECT_RATIOS } from '@/common/config/aspect-ratio.config';
+import { SORA_VIDEO_ASPECT_RATIOS, UI_ASPECT_RATIOS } from '@/common/config/aspect-ratio.config';
 
 export const VIDEO_DURATION_TIERS = [5, 10, 15, 30] as const;
 
@@ -283,7 +283,7 @@ export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
 export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.KLING]: [...UI_ASPECT_RATIOS],
     [AiToolId.VEO]: ['16:9', '9:16'],
-    [AiToolId.SORA]: [...UI_ASPECT_RATIOS],
+    [AiToolId.SORA]: [...SORA_VIDEO_ASPECT_RATIOS],
     [AiToolId.SEEDANCE]: [...UI_ASPECT_RATIOS],
     [AiToolId.LUMA_RAY]: [...UI_ASPECT_RATIOS],
     [AiToolId.HIGGSFIELD]: [...UI_ASPECT_RATIOS],

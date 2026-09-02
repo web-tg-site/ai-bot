@@ -117,6 +117,7 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 🆕 «Создать» — новое видео с нуля
 - ⏩ «Продлить» — продолжить уже готовый ролик Sora
 - ✏️ «Редактировать» — изменить готовое видео по тексту
+- 📐 Формат: широкий (16:9) или вертикальный сторис (9:16)
 - ⚠️ Лица людей на фото иногда отклоняются
 
 Как пользоваться
@@ -429,6 +430,7 @@ Create short videos from text with Sora.
 - 🆕 "Create" — new video from scratch
 - ⏩ "Extend" — continue an existing Sora clip
 - ✏️ "Edit" — change a finished video with a prompt
+- 📐 Format: widescreen (16:9) or vertical stories (9:16)
 - ⚠️ Human faces in photos may be rejected
 
 How to use
