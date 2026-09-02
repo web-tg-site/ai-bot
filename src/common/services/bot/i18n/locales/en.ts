@@ -807,7 +807,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
         soraFaceWarning:
             '⚠️ Photos with human faces may be rejected by OpenAI Sora.',
         soraNeedCharacterVideo:
-            'Send a short character clip (2–4 sec, no human faces).',
+            'Send a short character clip (2–4 sec). No human faces and no famous film/game characters.',
         soraNeedCharacterName: 'Enter the character name:',
         soraCharacterCreated: (name) =>
             `Character <b>${name}</b> created and saved.`,

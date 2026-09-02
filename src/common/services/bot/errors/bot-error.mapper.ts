@@ -305,6 +305,10 @@ function matchKnownFallback(
         return i18n.aiResult.userErrors.checkoutFailed;
     }
 
+    if (/Request failed with status code|status code 422|HTTP 422/i.test(message)) {
+        return i18n.aiResult.userErrors.generationFailed;
+    }
+
     if (/generation failed/i.test(message)) {
         return i18n.aiResult.userErrors.generationFailed;
     }
