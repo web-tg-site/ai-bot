@@ -794,26 +794,10 @@ export class OpenAiProvider {
         const size = resolveSoraVideoSize(input.aspectRatio, input.resolution);
         const seconds = toSoraCreateSeconds(input.durationSeconds);
         const model = resolveSoraModel(input.quality, input.resolution);
-        const characterIds = (input.soraCharacterIds ?? [])
-            .map((id) => id.trim())
-            .filter(Boolean)
-            .slice(0, 2);
 
         const { images } = splitMediaFiles(input.files);
         if (images.length > 1) {
             throw new Error('Sora принимает только одно фото-референс');
-        }
-
-        if (characterIds.length > 0) {
-            const video = await this.postSoraJson('/videos', {
-                model,
-                prompt,
-                size,
-                seconds,
-                characters: characterIds.map((id) => ({ id })),
-            });
-
-            return this.toSoraJobResult(video);
         }
 
         const client = this.requireClient();

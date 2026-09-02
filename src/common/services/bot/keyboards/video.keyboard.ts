@@ -47,8 +47,7 @@ export type VideoKeyboardMode =
     | 'heygen_background'
     | 'heygen_expressiveness'
     | 'heygen_speed'
-    | 'heygen_pitch'
-    | 'sora_characters';
+    | 'heygen_pitch';
 
 export const HEYGEN_PICKER_PAGE_SIZE = 18;
 
@@ -100,8 +99,6 @@ export function generateVideoEditorReplyKeyboard(
         heygenAvatars?: HeyGenAvatarLookOption[];
         heygenVoicePage?: number;
         heygenAvatarPage?: number;
-        soraCharacters?: Array<{ id: string; name: string }>;
-        soraSelectedCharacterIds?: string[];
         step: AiSessionStep;
         keyboardMode: VideoKeyboardMode;
         localeTag: 'ru-RU' | 'en-US';
@@ -276,10 +273,6 @@ export function generateVideoEditorReplyKeyboard(
         );
     }
 
-    if (options.keyboardMode === 'sora_characters') {
-        return generateSoraCharactersKeyboard(i18n, options);
-    }
-
     const rows: string[][] = [];
 
     if (
@@ -366,10 +359,6 @@ function generateSettingsMenuKeyboard(
             i18n.videoTool.changeHeygenSpeedButton,
             i18n.videoTool.changeHeygenPitchButton,
         );
-    }
-
-    if (options.toolId === AiToolId.SORA) {
-        settingButtons.push(i18n.videoTool.changeSoraCharactersButton);
     }
 
     const rows = chunkKeyboardRow(settingButtons).map((chunk) => [...chunk]);
@@ -547,33 +536,6 @@ function generateStylePickerKeyboard(
         ),
     );
 
-    rows.push([i18n.videoTool.backToSettings]);
-    return Markup.keyboard(rows).resize();
-}
-
-function generateSoraCharactersKeyboard(
-    i18n: I18nBundle,
-    options: {
-        soraCharacters?: Array<{ id: string; name: string }>;
-        soraSelectedCharacterIds?: string[];
-    },
-) {
-    const characters = options.soraCharacters ?? [];
-    const selected = new Set(options.soraSelectedCharacterIds ?? []);
-    const rows: string[][] = [];
-
-    if (characters.length) {
-        const labels = characters.map((character) =>
-            selected.has(character.id)
-                ? i18n.videoTool.soraCharacterSelected(character.name)
-                : i18n.videoTool.soraCharacterOption(character.name),
-        );
-        rows.push(...chunkKeyboardRow(labels).map((chunk) => [...chunk]));
-    } else {
-        rows.push([i18n.videoTool.soraCharactersEmpty]);
-    }
-
-    rows.push([i18n.videoTool.createSoraCharacterButton]);
     rows.push([i18n.videoTool.backToSettings]);
     return Markup.keyboard(rows).resize();
 }

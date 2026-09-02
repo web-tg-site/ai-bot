@@ -42,7 +42,7 @@ export function buildSoraGenerationFields(
     referenceFiles: AiFileInput[],
 ): Pick<
     AiGenerationInput,
-    'soraVideoMode' | 'sourceGenerationId' | 'soraCharacterIds'
+    'soraVideoMode' | 'sourceGenerationId'
 > {
     if (session.ai?.activeToolId !== AiToolId.SORA) {
         return {};
@@ -58,16 +58,11 @@ export function buildSoraGenerationFields(
 
     const fields: Pick<
         AiGenerationInput,
-        'soraVideoMode' | 'sourceGenerationId' | 'soraCharacterIds'
+        'soraVideoMode' | 'sourceGenerationId'
     > = { soraVideoMode: mode };
 
     if (mode === 'extend' && session.ai.soraExtendSourceId?.trim()) {
         fields.sourceGenerationId = session.ai.soraExtendSourceId.trim();
-    }
-
-    const selected = session.ai.soraSelectedCharacterIds ?? [];
-    if (mode === 'create' && selected.length) {
-        fields.soraCharacterIds = selected;
     }
 
     return fields;

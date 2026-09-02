@@ -67,8 +67,7 @@ export type BotSession = {
             | 'heygen_background'
             | 'heygen_expressiveness'
             | 'heygen_speed'
-            | 'heygen_pitch'
-            | 'sora_characters';
+            | 'heygen_pitch';
         voiceKeyboardMode?:
             | 'main'
             | 'settings'
@@ -123,10 +122,6 @@ export type BotSession = {
         soraVideoMode?: 'create' | 'extend' | 'edit';
         /** OpenAI video_* id for extend */
         soraExtendSourceId?: string;
-        soraSelectedCharacterIds?: string[];
-        awaitingSoraCharacterVideo?: boolean;
-        awaitingSoraCharacterName?: boolean;
-        pendingSoraCharacterVideo?: StoredVoiceSample;
         /** Veo: create | extend */
         veoMode?: 'create' | 'extend';
         /** Gemini interaction id for Nano Banana multi-turn */

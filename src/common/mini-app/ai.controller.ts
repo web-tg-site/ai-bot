@@ -54,7 +54,6 @@ import { ElevenLabsVoicePreviewService } from '@/common/services/elevenlabs-voic
 import { GenerationFacade } from './generation.facade';
 import { ModuleRef } from '@nestjs/core';
 import { BotService } from '@/common/services/bot';
-import { SoraCharactersService } from '@/common/services/ai/sora-characters.service';
 import { AiJobService } from '@/common/services/ai/jobs/ai-job.service';
 import { normalizeUploadMime } from '@/common/utils/normalize-upload-mime';
 import { prepareUploadMedia } from '@/common/utils/prepare-upload-media';
@@ -295,10 +294,6 @@ class GenerateBodyDto {
 
     @IsOptional()
     @IsString()
-    soraCharacterIds?: string;
-
-    @IsOptional()
-    @IsString()
     attachmentRoles?: string;
 
     @IsOptional()
@@ -334,13 +329,6 @@ class GenerateBodyDto {
     veoMode?: 'create' | 'extend';
 }
 
-class CreateSoraCharacterBodyDto {
-    @IsString()
-    @MinLength(1)
-    @MaxLength(80)
-    name!: string;
-}
-
 class SavedPromptBodyDto {
     @IsString()
     @MinLength(1)
@@ -374,7 +362,6 @@ export class AiController {
         private readonly higgsfieldProvider: HiggsfieldProvider,
         private readonly heyGenProvider: HeyGenProvider,
         private readonly elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService,
-        private readonly soraCharactersService: SoraCharactersService,
         private readonly jobMediaResolver: JobMediaResolverService,
         private readonly aiJobService: AiJobService,
         private readonly moduleRef: ModuleRef,
@@ -392,67 +379,6 @@ export class AiController {
             defaultDurationSeconds: tool.defaultDurationSeconds,
             label: tool.label,
         }));
-    }
-
-    @Get('sora/characters')
-    async listSoraCharacters(@CurrentUser() current: CurrentUserPayload) {
-        const items = await this.soraCharactersService.listCharacters(current.id);
-        return { items };
-    }
-
-    @Post('sora/characters')
-    @UseInterceptors(
-        FilesInterceptor('video', 1, {
-            storage: memoryStorage(),
-            limits: { fileSize: MAX_UPLOAD_BYTES },
-        }),
-    )
-    async createSoraCharacter(
-        @CurrentUser() current: CurrentUserPayload,
-        @Body() body: CreateSoraCharacterBodyDto,
-        @UploadedFiles() files: Express.Multer.File[],
-    ) {
-        const file = files?.[0];
-        if (!file?.buffer?.length) {
-            throw new HttpException(
-                { error: 'Загрузите короткое видео персонажа (2–4 сек)' },
-                HttpStatus.BAD_REQUEST,
-            );
-        }
-
-        try {
-            const character = await this.soraCharactersService.createCharacter({
-                userId: current.id,
-                name: body.name,
-                videoBuffer: file.buffer,
-                mimeType: normalizeUploadMime({
-                    buffer: file.buffer,
-                    mimeType: file.mimetype,
-                    fileName: file.originalname,
-                }).mimeType,
-                fileName: file.originalname,
-            });
-            return { character };
-        } catch (error) {
-            const message =
-                error instanceof Error ? error.message : 'Character create failed';
-            throw new HttpException(
-                { error: toUserFacingError(message) },
-                HttpStatus.BAD_REQUEST,
-            );
-        }
-    }
-
-    @Delete('sora/characters/:characterId')
-    async deleteSoraCharacter(
-        @CurrentUser() current: CurrentUserPayload,
-        @Param('characterId') characterId: string,
-    ) {
-        await this.soraCharactersService.deleteCharacter(
-            current.id,
-            characterId,
-        );
-        return { ok: true };
     }
 
     @Get('voices')
@@ -725,24 +651,6 @@ export class AiController {
                     parentJobId: body.sourceGenerationId,
                     parentProviderJobId,
                     soraVideoMode: body.soraVideoMode,
-                    soraCharacterIds: (() => {
-                        if (!body.soraCharacterIds) return undefined;
-                        try {
-                            const parsed = JSON.parse(body.soraCharacterIds);
-                            if (Array.isArray(parsed)) {
-                                return parsed.filter(
-                                    (value): value is string =>
-                                        typeof value === 'string',
-                                );
-                            }
-                        } catch {
-                            // fall through to comma-separated parsing
-                        }
-                        return body.soraCharacterIds
-                            .split(',')
-                            .map((id) => id.trim())
-                            .filter(Boolean);
-                    })(),
                     attachmentRoles: (() => {
                         if (!body.attachmentRoles) return undefined;
                         try {

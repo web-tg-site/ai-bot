@@ -25,7 +25,6 @@ import {
 import { AiJobService } from './jobs/ai-job.service';
 import { AiJobCron } from './jobs/ai-job.cron';
 import { ModelFailoverService } from './failover/model-failover.service';
-import { SoraCharactersService } from './sora-characters.service';
 import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/elevenlabs-voice-preview.service';
 import { TempPublicMediaService } from './temp-public-media.service';
 import { JobMediaResolverService } from './job-media-resolver.service';
@@ -57,7 +56,6 @@ import { PublicJobMediaController } from '@/common/controllers/public-job-media.
         AiJobService,
         ModelFailoverService,
         AiJobCron,
-        SoraCharactersService,
         TempPublicMediaService,
         JobMediaResolverService,
     ],
@@ -66,7 +64,6 @@ import { PublicJobMediaController } from '@/common/controllers/public-job-media.
         TokenBillingService,
         AiJobService,
         ModelFailoverService,
-        SoraCharactersService,
         ImageCapabilitiesService,
         VideoCapabilitiesService,
         ElevenLabsProvider,

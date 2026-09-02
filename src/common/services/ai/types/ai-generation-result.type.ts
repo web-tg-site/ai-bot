@@ -95,8 +95,6 @@ export type AiGenerationInput = {
     lumaOutputFormat?: 'png' | 'jpeg';
     sourceGenerationId?: string;
     soraVideoMode?: 'create' | 'extend' | 'edit';
-    soraCharacterIds?: string[];
-    soraCharacterName?: string;
     /** Kling / Veo negative prompt. */
     negativePrompt?: string;
     /** Kling native audio generation (sound on/off). */

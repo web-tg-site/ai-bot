@@ -1701,13 +1701,6 @@ async function handleVideoToolButtonPress(
     const currentSettings = (session.ai.toolSettings ??
         {}) as VideoToolSettings;
 
-    const soraCharacters =
-        toolId === AiToolId.SORA &&
-        (keyboardMode === 'sora_characters' ||
-            text === i18n.videoTool.changeSoraCharactersButton)
-            ? await deps.soraCharactersService.listCharacters(user.id)
-            : undefined;
-
     if (
         toolId === AiToolId.HIGGSFIELD &&
         !session.ai.accessibleHiggsfieldMotions?.length
@@ -1753,7 +1746,6 @@ async function handleVideoToolButtonPress(
         heygenAvatarPage: session.ai.heygenAvatarPage ?? 0,
         currentSettings,
         localeTag: i18n.localeTag,
-        soraCharacters,
     });
 
     if (!action) {
@@ -1780,8 +1772,6 @@ async function handleVideoToolButtonPress(
             step: session.ai!.step,
             keyboardMode: mode,
             localeTag: i18n.localeTag,
-            soraCharacters,
-            soraSelectedCharacterIds: session.ai!.soraSelectedCharacterIds,
         });
 
     const summaryOptions = (settings: VideoToolSettings) => ({
@@ -1851,41 +1841,6 @@ async function handleVideoToolButtonPress(
                 : i18n.videoTool.selectDurationTitle;
         await ctx.reply(title, {
             ...replyKeyboard('duration'),
-            parse_mode: 'HTML',
-        });
-        return true;
-    }
-
-    if (action.type === 'open_sora_characters') {
-        session.ai.videoKeyboardMode = 'sora_characters';
-        await ctx.reply(i18n.videoTool.selectSoraCharactersTitle, {
-            ...replyKeyboard('sora_characters'),
-            parse_mode: 'HTML',
-        });
-        return true;
-    }
-
-    if (action.type === 'create_sora_character') {
-        session.ai.awaitingSoraCharacterVideo = true;
-        session.ai.awaitingSoraCharacterName = false;
-        session.ai.pendingSoraCharacterVideo = undefined;
-        session.ai.videoKeyboardMode = 'main';
-        await ctx.reply(i18n.videoTool.soraNeedCharacterVideo, {
-            parse_mode: 'HTML',
-        });
-        return true;
-    }
-
-    if (action.type === 'toggle_sora_character') {
-        const current = session.ai.soraSelectedCharacterIds ?? [];
-        const exists = current.includes(action.value);
-        const next = exists
-            ? current.filter((id) => id !== action.value)
-            : [...current, action.value].slice(-2);
-        session.ai.soraSelectedCharacterIds = next;
-        session.ai.videoKeyboardMode = 'sora_characters';
-        await ctx.reply(i18n.videoTool.soraCharactersChanged(next.length), {
-            ...replyKeyboard('sora_characters'),
             parse_mode: 'HTML',
         });
         return true;
@@ -3168,92 +3123,6 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
                 parse_mode: 'HTML',
             },
         );
-        return;
-    }
-
-    if (
-        toolId === AiToolId.SORA &&
-        session.ai?.awaitingSoraCharacterVideo &&
-        files.length
-    ) {
-        const video = files.find((file) =>
-            isVideoMedia(file.mimeType, file.fileName),
-        );
-        if (!video) {
-            await ctx.reply(i18n.videoTool.soraNeedCharacterVideo, {
-                parse_mode: 'HTML',
-            });
-            return;
-        }
-        session.ai.pendingSoraCharacterVideo = {
-            data: video.buffer.toString('base64'),
-            mimeType: video.mimeType,
-            fileName: video.fileName,
-        };
-        session.ai.awaitingSoraCharacterVideo = false;
-        session.ai.awaitingSoraCharacterName = true;
-        await ctx.reply(i18n.videoTool.soraNeedCharacterName, {
-            parse_mode: 'HTML',
-        });
-        return;
-    }
-
-    if (
-        toolId === AiToolId.SORA &&
-        session.ai?.awaitingSoraCharacterName &&
-        text?.trim()
-    ) {
-        const pending = session.ai.pendingSoraCharacterVideo;
-        if (!pending) {
-            session.ai.awaitingSoraCharacterName = false;
-            session.ai.awaitingSoraCharacterVideo = true;
-            await ctx.reply(i18n.videoTool.soraNeedCharacterVideo, {
-                parse_mode: 'HTML',
-            });
-            return;
-        }
-
-        try {
-            const character = await deps.soraCharactersService.createCharacter({
-                userId: user.id,
-                name: text.trim(),
-                videoBuffer: Buffer.from(pending.data, 'base64'),
-                mimeType: pending.mimeType,
-                fileName: pending.fileName,
-            });
-            session.ai.awaitingSoraCharacterName = false;
-            session.ai.pendingSoraCharacterVideo = undefined;
-            session.ai.videoKeyboardMode = 'sora_characters';
-            await ctx.reply(
-                i18n.videoTool.soraCharacterCreated(character.name),
-                { parse_mode: 'HTML' },
-            );
-            const soraCharacters =
-                await deps.soraCharactersService.listCharacters(user.id);
-            await ctx.reply(i18n.videoTool.selectSoraCharactersTitle, {
-                ...generateVideoEditorReplyKeyboard(i18n, {
-                    toolId,
-                    settings: (session.ai.toolSettings ??
-                        {}) as VideoToolSettings,
-                    aspectRatios: [],
-                    resolutions: [],
-                    qualities: [],
-                    durations: [],
-                    stylePresets: [],
-                    step: session.ai.step,
-                    keyboardMode: 'sora_characters',
-                    localeTag: i18n.localeTag,
-                    soraCharacters,
-                    soraSelectedCharacterIds:
-                        session.ai.soraSelectedCharacterIds,
-                }),
-                parse_mode: 'HTML',
-            });
-        } catch (error) {
-            await ctx.reply(formatUserBotError(error, i18n), {
-                parse_mode: 'HTML',
-            });
-        }
         return;
     }
 

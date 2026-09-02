@@ -67,10 +67,7 @@ export type VideoToolButtonAction =
     | { type: 'continue_prompt' }
     | { type: 'skip_refs' }
     | { type: 'back_to_settings' }
-    | { type: 'back_to_editor' }
-    | { type: 'open_sora_characters' }
-    | { type: 'create_sora_character' }
-    | { type: 'toggle_sora_character'; value: string };
+    | { type: 'back_to_editor' };
 
 export function resolveVideoToolButtonAction(
     text: string,
@@ -91,23 +88,8 @@ export function resolveVideoToolButtonAction(
         heygenAvatarPage?: number;
         currentSettings: VideoToolSettings;
         localeTag: 'ru-RU' | 'en-US';
-        soraCharacters?: Array<{ id: string; name: string }>;
     },
 ): VideoToolButtonAction | null {
-    if (options.keyboardMode === 'sora_characters') {
-        if (text === i18n.videoTool.createSoraCharacterButton) {
-            return { type: 'create_sora_character' };
-        }
-        for (const character of options.soraCharacters ?? []) {
-            if (
-                text === i18n.videoTool.soraCharacterOption(character.name) ||
-                text === i18n.videoTool.soraCharacterSelected(character.name)
-            ) {
-                return { type: 'toggle_sora_character', value: character.id };
-            }
-        }
-    }
-
     if (
         text === i18n.videoTool.continueToPrompt &&
         options.step === 'awaiting_video_references'
@@ -464,13 +446,6 @@ export function resolveVideoToolButtonAction(
         }
 
         if (
-            options.toolId === AiToolId.SORA &&
-            text === i18n.videoTool.changeSoraCharactersButton
-        ) {
-            return { type: 'open_sora_characters' };
-        }
-
-        if (
             text ===
                 i18n.videoTool.sendAsFileButton(
                     resolveVideoSendAsFile(
@@ -527,10 +502,7 @@ export function isVideoToolControlButton(text: string | undefined): boolean {
             text === i18n.videoTool.toggleHeygenCaptionsButton(true) ||
             text === i18n.videoTool.toggleHeygenCaptionsButton(false) ||
             text === i18n.videoTool.heygenNextPage ||
-            text === i18n.videoTool.heygenPrevPage ||
-            text === i18n.videoTool.changeSoraCharactersButton ||
-            text === i18n.videoTool.createSoraCharacterButton ||
-            text === i18n.videoTool.soraCharactersEmpty
+            text === i18n.videoTool.heygenPrevPage
         ) {
             return true;
         }

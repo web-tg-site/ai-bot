@@ -468,7 +468,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             [AiToolId.VEO]:
                 'Attach photo or video references (optional), adjust settings, then describe the scene.',
             [AiToolId.SORA]:
-                'OpenAI Sora: 4/8/12 sec, one photo or video edit, extend completed clips, characters without human faces.',
+                'OpenAI Sora: 4/8/12 sec, one photo or video edit, extend completed clips.',
             [AiToolId.SEEDANCE]:
                 'Describe the scene (up to 30s). You can attach up to 30 photos, 10 videos and 10 audio references.',
             [AiToolId.LUMA_RAY]:
@@ -788,17 +788,6 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
                 : 'Results will be sent as a <b>video</b>',
         deliveryLine: (asFile) =>
             asFile ? 'Delivery: <b>file</b>' : 'Delivery: <b>video</b>',
-        changeSoraCharactersButton: '👤 Sora characters',
-        createSoraCharacterButton: '➕ Create character',
-        soraCharactersEmpty: 'No characters yet',
-        soraCharacterOption: (name) => name,
-        soraCharacterSelected: (name) => `✓ ${name}`,
-        selectSoraCharactersTitle:
-            'Pick up to 2 characters (use the name in your prompt):',
-        soraCharactersChanged: (count) =>
-            count > 0
-                ? `Characters for generation: <b>${count}</b>`
-                : 'No characters selected',
         soraExtendButton: '➕ Extend video',
         soraExtendHint:
             'You can extend this clip — tap the button below and describe the continuation.',
@@ -806,11 +795,6 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             '<b>Sora extend</b> mode. Describe how the scene should continue (4–20 sec).',
         soraFaceWarning:
             '⚠️ Photos with human faces may be rejected by OpenAI Sora.',
-        soraNeedCharacterVideo:
-            'Send a 2–4 sec clip: animal, toy, or mascot. Humans and famous characters are not accepted.',
-        soraNeedCharacterName: 'Enter the character name:',
-        soraCharacterCreated: (name) =>
-            `Character <b>${name}</b> created and saved.`,
         selectExtendDurationTitle: 'Extend duration (4–20 sec):',
     },
     voiceTool: {

@@ -23,7 +23,6 @@ import {
     ElevenLabsVoicePreviewService,
     ModelFailoverService,
 } from '@/common/services/ai';
-import { SoraCharactersService } from '@/common/services/ai/sora-characters.service';
 import { RedisService } from '@/common/services/redis';
 import { CryptoPayService } from '@/common/services/crypto-pay';
 import { AntilopayService } from '@/common/services/antilopay';
@@ -60,7 +59,6 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         private readonly cryptoPayService: CryptoPayService,
         private readonly antilopayService: AntilopayService,
         private readonly elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService,
-        private readonly soraCharactersService: SoraCharactersService,
     ) {
         const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
 
@@ -282,7 +280,6 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
             cryptoPayService: this.cryptoPayService,
             antilopayService: this.antilopayService,
             elevenLabsVoicePreviewService: this.elevenLabsVoicePreviewService,
-            soraCharactersService: this.soraCharactersService,
             redisService: this.redisService,
         });
     }

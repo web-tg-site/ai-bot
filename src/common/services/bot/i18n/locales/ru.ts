@@ -468,7 +468,7 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.VEO]:
                 'Прикрепите фото или видео-референсы (можно пропустить), настройте параметры и опишите сцену.',
             [AiToolId.SORA]:
-                'OpenAI Sora: 4/8/12 сек, одно фото или видео для редактирования, продление готового ролика, персонажи без лиц людей.',
+                'OpenAI Sora: 4/8/12 сек, одно фото или видео для редактирования, продление готового ролика.',
             [AiToolId.SEEDANCE]:
                 'Опишите сцену (до 30 сек). Можно прикрепить до 30 фото, до 10 видео и до 10 аудио-референсов.',
             [AiToolId.LUMA_RAY]:
@@ -796,17 +796,6 @@ ${getTariffIncludesText(type, plan, ru)}
                 : 'Результат будет отправлен <b>как видео</b>',
         deliveryLine: (asFile) =>
             asFile ? 'Отправка: <b>файлом</b>' : 'Отправка: <b>как видео</b>',
-        changeSoraCharactersButton: '👤 Персонажи Sora',
-        createSoraCharacterButton: '➕ Создать персонажа',
-        soraCharactersEmpty: 'Персонажей пока нет',
-        soraCharacterOption: (name) => name,
-        soraCharacterSelected: (name) => `✓ ${name}`,
-        selectSoraCharactersTitle:
-            'Выберите до 2 персонажей (имя должно быть в промпте):',
-        soraCharactersChanged: (count) =>
-            count > 0
-                ? `Персонажи для генерации: <b>${count}</b>`
-                : 'Персонажи не выбраны',
         soraExtendButton: '➕ Продлить видео',
         soraExtendHint:
             'Можно продлить этот ролик — нажмите кнопку ниже и опишите продолжение.',
@@ -814,11 +803,6 @@ ${getTariffIncludesText(type, plan, ru)}
             'Режим <b>продления Sora</b>. Опишите, как продолжить сцену (4–20 сек).',
         soraFaceWarning:
             '⚠️ Фото с лицами людей могут быть отклонены OpenAI Sora.',
-        soraNeedCharacterVideo:
-            'Отправьте клип 2–4 сек: животное, игрушка или маскот. Люди и известные герои не принимаются.',
-        soraNeedCharacterName: 'Введите имя персонажа (латиница или кириллица):',
-        soraCharacterCreated: (name) =>
-            `Персонаж <b>${name}</b> создан и сохранён.`,
         selectExtendDurationTitle: 'Длительность продления (4–20 сек):',
     },
     voiceTool: {
