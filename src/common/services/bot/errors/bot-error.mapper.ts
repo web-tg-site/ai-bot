@@ -171,6 +171,12 @@ function localizeActionableProviderDetail(
             : `Video duration must be at least ${sec}s. Upload a longer clip.`;
     }
 
+    if (/unsupported video format|accepted inputs:\s*mp4|h\.?264|video\/quicktime/i.test(detail)) {
+        return ru
+            ? 'Формат видео не подходит. Загрузите короткий клип 2–4 сек в MP4 или MOV (без лиц людей).'
+            : 'Unsupported video format. Upload a short 2–4s MP4 or MOV clip (no human faces).';
+    }
+
     // Keep other actionable details, but never leak provider brand names.
     return stripProviderPrefix(detail);
 }
