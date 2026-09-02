@@ -56,8 +56,8 @@ import { ModuleRef } from '@nestjs/core';
 import { BotService } from '@/common/services/bot';
 import { SoraCharactersService } from '@/common/services/ai/sora-characters.service';
 import { AiJobService } from '@/common/services/ai/jobs/ai-job.service';
-import { compressReferenceImage } from '@/common/utils/compress-reference-image';
 import { normalizeUploadMime } from '@/common/utils/normalize-upload-mime';
+import { prepareUploadMedia } from '@/common/utils/prepare-upload-media';
 import { getI18n } from '@/common/services/bot/i18n';
 import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
 import {
@@ -597,13 +597,11 @@ export class AiController {
         const fileInputs: AiFileInput[] | undefined = files?.length
             ? await Promise.all(
                   files.map(async (file) =>
-                      compressReferenceImage(
-                          normalizeUploadMime({
-                              buffer: file.buffer,
-                              mimeType: file.mimetype,
-                              fileName: file.originalname,
-                          }),
-                      ),
+                      prepareUploadMedia({
+                          buffer: file.buffer,
+                          mimeType: file.mimetype,
+                          fileName: file.originalname,
+                      }),
                   ),
               )
             : undefined;

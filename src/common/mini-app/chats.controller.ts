@@ -21,6 +21,8 @@ import { GptConversationModelService } from '@/common/models/gpt-conversation';
 import { AiToolId } from '@/common/services/ai/types';
 import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
 import { parseGptMediaMessage, toDataUrl } from '@/common/utils/gpt-message-content';
+import { isImageMedia } from '@/common/utils/media-kind';
+import { prepareUploadMediaList } from '@/common/utils/prepare-upload-media';
 import { PrismaService } from '@/common/services/prisma';
 import { GenerationFacade } from './generation.facade';
 
@@ -147,7 +149,9 @@ export class ChatsController {
             items: rows.map((msg) => {
                 const parsed = parseGptMediaMessage(msg.content);
                 const images = parsed.files
-                    ?.filter((file) => file.mimeType.startsWith('image/'))
+                    ?.filter((file) =>
+                        isImageMedia(file.mimeType, file.fileName),
+                    )
                     .map((file) => toDataUrl(file));
 
                 return {
@@ -186,6 +190,14 @@ export class ChatsController {
 
         this.assertChatTool(conversation.toolId);
 
+        const preparedFiles = await prepareUploadMediaList(
+            files?.map((file) => ({
+                buffer: file.buffer,
+                mimeType: file.mimetype,
+                fileName: file.originalname,
+            })),
+        );
+
         return this.generationFacade.generate({
             userId: current.id,
             telegramId: current.telegramId,
@@ -194,11 +206,7 @@ export class ChatsController {
             promptText: body.prompt,
             input: {
                 prompt: body.prompt,
-                files: files?.map((file) => ({
-                    buffer: file.buffer,
-                    mimeType: file.mimetype,
-                    fileName: file.originalname,
-                })),
+                files: preparedFiles,
                 gptWebSearch: true,
                 gptReplyMode: body.gptReplyMode,
             },

@@ -1,4 +1,9 @@
 import { AiFileInput } from '@/common/services/ai/types';
+import {
+    isAudioMedia,
+    isImageMedia,
+    isVideoMedia,
+} from '@/common/utils/media-kind';
 
 const GPT_MEDIA_MARKER = '"_gptMedia":true';
 const MAX_STORED_GPT_IMAGES = 2;
@@ -23,7 +28,9 @@ export function serializeGptUserMessage(
 ): string {
     const trimmed = text?.trim();
     const imageFiles =
-        files?.filter((file) => file.mimeType.startsWith('image/')) ?? [];
+        files?.filter((file) =>
+            isImageMedia(file.mimeType, file.fileName),
+        ) ?? [];
     const mediaNotes = describeNonImageAttachments(files);
     const combinedText = [trimmed, mediaNotes].filter(Boolean).join('\n');
 
@@ -45,7 +52,9 @@ export function serializeGptAssistantMessage(
 ): string {
     const trimmed = text?.trim();
     const imageFiles =
-        files?.filter((file) => file.mimeType.startsWith('image/')) ?? [];
+        files?.filter((file) =>
+            isImageMedia(file.mimeType, file.fileName),
+        ) ?? [];
 
     if (!imageFiles.length) {
         return trimmed || '';
@@ -86,16 +95,13 @@ function describeNonImageAttachments(files?: AiFileInput[]): string {
 
     const lines: string[] = [];
     for (const file of files) {
-        if (file.mimeType.startsWith('image/')) {
+        if (isImageMedia(file.mimeType, file.fileName)) {
             continue;
         }
         const name = file.fileName ?? 'file';
-        if (file.mimeType.startsWith('video/')) {
+        if (isVideoMedia(file.mimeType, file.fileName)) {
             lines.push(`[video: ${name}]`);
-        } else if (
-            file.mimeType.startsWith('audio/') ||
-            file.mimeType.startsWith('voice/')
-        ) {
+        } else if (isAudioMedia(file.mimeType, file.fileName)) {
             lines.push(`[audio: ${name}]`);
         } else {
             lines.push(`[file: ${name}]`);

@@ -1,19 +1,18 @@
 import { randomUUID } from 'crypto';
 import { AiFileInput } from '@/common/services/ai/types';
 import { StoredReference } from '@/common/services/ai/types/ai-session-state.type';
-import { compressReferenceImage } from '@/common/utils/compress-reference-image';
-import { normalizeUploadMime } from '@/common/utils/normalize-upload-mime';
+import { prepareUploadMedia } from '@/common/utils/prepare-upload-media';
 
 export async function serializeReference(
     file: AiFileInput,
 ): Promise<StoredReference> {
-    const compressed = await compressReferenceImage(normalizeUploadMime(file));
+    const prepared = await prepareUploadMedia(file);
 
     return {
         id: randomUUID(),
-        data: compressed.buffer.toString('base64'),
-        mimeType: compressed.mimeType,
-        fileName: compressed.fileName,
+        data: prepared.buffer.toString('base64'),
+        mimeType: prepared.mimeType,
+        fileName: prepared.fileName,
     };
 }
 

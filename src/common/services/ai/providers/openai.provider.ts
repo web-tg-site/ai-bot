@@ -25,6 +25,7 @@ import {
     isImageMedia,
     isVideoMedia,
 } from '@/common/utils/media-kind';
+import { transcodeVideoToH264 } from '@/common/utils/transcode-video-h264';
 import { OpenRouterProvider } from './openrouter.provider';
 
 const GPT_IMAGE_MODEL = 'gpt-image-1-mini';
@@ -885,10 +886,13 @@ export class OpenAiProvider {
         }
 
         const client = this.requireClient();
+        const prepared = await transcodeVideoToH264(videos[0].buffer, {
+            force: true,
+        });
         const videoFile = await toFile(
-            videos[0].buffer,
-            videos[0].fileName ?? 'source.mp4',
-            { type: videos[0].mimeType || 'video/mp4' },
+            prepared,
+            videos[0].fileName?.replace(/\.\w+$/i, '.mp4') ?? 'source.mp4',
+            { type: 'video/mp4' },
         );
 
         const video = await client.videos.edit({

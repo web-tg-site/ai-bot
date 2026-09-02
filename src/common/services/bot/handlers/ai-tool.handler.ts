@@ -60,9 +60,11 @@ import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
 import {
     fileMatchesToolAccepts,
     isAudioMedia,
+    isImageMedia,
     isVideoMedia,
     isVisualMedia,
 } from '@/common/utils/media-kind';
+import { prepareUploadMediaList } from '@/common/utils/prepare-upload-media';
 import { replyHtmlChunks } from '../utils/telegram-html-reply';
 import { markdownToTelegramHtml } from '@/common/utils/markdown-to-telegram-html';
 import { getToolsByCategory } from '@/common/config/ai-tools.registry';
@@ -708,7 +710,7 @@ async function processImageReferencesStep(
     i18n: ReturnType<typeof getI18nForUser>,
 ) {
     const imageFiles = files.filter((file) =>
-        file.mimeType.startsWith('image/'),
+        isImageMedia(file.mimeType, file.fileName),
     );
 
     if (!imageFiles.length) {
@@ -834,7 +836,7 @@ async function appendImageReferences(
     }
 
     const imageFiles = files.filter((file) =>
-        file.mimeType.startsWith('image/'),
+        isImageMedia(file.mimeType, file.fileName),
     );
     if (!imageFiles.length) {
         await ctx.reply(i18n.imageTool.needPhotoOnRefStep, {
@@ -1652,7 +1654,7 @@ async function appendVideoReferences(
 
     if (
         toolId === AiToolId.SORA &&
-        addedRefs.some((ref) => ref.mimeType.startsWith('image/'))
+        addedRefs.some((ref) => isImageMedia(ref.mimeType, ref.fileName))
     ) {
         await ctx.reply(i18n.videoTool.soraFaceWarning, {
             parse_mode: 'HTML',
@@ -3585,6 +3587,8 @@ async function buildAiGenerationInput(
     tool: NonNullable<ReturnType<typeof getToolById>>,
     i18n: ReturnType<typeof getI18nForUser>,
 ): Promise<AiGenerationInput> {
+    const preparedFiles = (await prepareUploadMediaList(files)) ?? [];
+
     let chatHistory: AiGenerationInput['chatHistory'];
 
     if (isChatAssistantTool(toolId) && session.ai?.activeConversationId) {
@@ -3595,8 +3599,8 @@ async function buildAiGenerationInput(
 
     const settings = session.ai?.toolSettings;
     const voiceSettingsFromSession = session.ai?.voiceToolSettings;
-    const referenceCount = files.filter((file) =>
-        file.mimeType.startsWith('image/'),
+    const referenceCount = preparedFiles.filter((file) =>
+        isImageMedia(file.mimeType, file.fileName),
     ).length;
     let promptText = text?.trim() ?? '';
 
@@ -3647,7 +3651,7 @@ async function buildAiGenerationInput(
 
     return {
         prompt,
-        files: files.length ? files : undefined,
+        files: preparedFiles.length ? preparedFiles : undefined,
         durationSeconds:
             videoSettings?.durationSeconds ??
             (audioToolSupportsDuration(toolId)
