@@ -18,7 +18,8 @@ import {
     SUNO_MODEL_VERSIONS,
     type SunoModelVersion,
 } from '@/common/config/apiframe.config';
-import { midjourneyQualityToQParam } from '@/common/config/image-editor-capabilities.config';
+import { midjourneyQualityToQParam, MIDJOURNEY_MAX_REFERENCES } from '@/common/config/image-editor-capabilities.config';
+import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
 import {
     AiGenerationInput,
     AiGenerationResult,
@@ -26,7 +27,9 @@ import {
     AiJobStatusResult,
     AiProviderId,
     AiToolId,
+    AiFileInput,
 } from '../types';
+import { TempPublicMediaService } from '../temp-public-media.service';
 
 type ApiframeSubmitResponse = {
     jobId?: string;
@@ -78,10 +81,12 @@ export function isApiframeMidjourneyGenericFailure(message: string): boolean {
 export class ApiframeProvider {
     private readonly apiKey: string;
     private readonly baseUrl: string;
+    private readonly publicBaseUrl: string;
 
     constructor(
         private readonly httpService: HttpService,
         configService: ConfigService,
+        private readonly tempPublicMedia: TempPublicMediaService,
         @InjectPinoLogger(ApiframeProvider.name)
         private readonly logger: PinoLogger,
     ) {
@@ -89,6 +94,9 @@ export class ApiframeProvider {
         this.baseUrl =
             configService.get<string>('APIFRAME_API_URL') ??
             'https://api.apiframe.ai';
+        this.publicBaseUrl =
+            configService.get<string>('PUBLIC_BASE_URL')?.replace(/\/$/, '') ??
+            '';
     }
 
     async createJob(
@@ -184,16 +192,24 @@ export class ApiframeProvider {
     private async createMidjourneyJob(
         input: AiGenerationInput,
     ): Promise<AiJobCreateResult> {
+        const { images } = splitMediaFiles(input.files);
+        const imageUrls = images
+            .slice(0, MIDJOURNEY_MAX_REFERENCES)
+            .map((file) => this.publishTempUrl(file));
+
         const rawPrompt = input.prompt?.trim();
-        if (!rawPrompt) {
+        if (!rawPrompt && !imageUrls.length) {
             throw new Error('Midjourney requires a prompt');
         }
 
         const q = midjourneyQualityToQParam(input.quality);
-        const promptWithoutQ = rawPrompt
+        const promptWithoutQ = (rawPrompt ?? '')
             .replace(/\s--q\s+[\d.]+/gi, '')
             .trim();
-        const prompt = `${promptWithoutQ} --q ${q}`;
+        const textPart =
+            promptWithoutQ ||
+            'Create an image consistent with the attached reference photos.';
+        const prompt = `${[...imageUrls, textPart].join(' ')} --q ${q}`;
 
         const body: Record<string, unknown> = {
             prompt,
@@ -216,6 +232,18 @@ export class ApiframeProvider {
         }
 
         return { providerJobId: jobId, estimatedTokenCost: 0 };
+    }
+
+    private publishTempUrl(file: AiFileInput): string {
+        if (!this.publicBaseUrl) {
+            throw new Error('PUBLIC_BASE_URL is not configured');
+        }
+        const id = this.tempPublicMedia.put({
+            buffer: file.buffer,
+            mimeType: file.mimeType,
+            fileName: file.fileName,
+        });
+        return `${this.publicBaseUrl}/api/public/tmp/${id}`;
     }
 
     private async createSunoJob(
@@ -501,7 +529,8 @@ export class ApiframeProvider {
                 return null;
             }
 
-            const isGrid = images.length >= 4 && Boolean(result.gridUrl);
+            // Initial imagine / variation return 4 tiles — always a grid, even without gridUrl.
+            const isGrid = images.length >= 4;
             const kind = isGrid ? 'midjourney_grid' : 'midjourney_single';
             const resultJson: ApiframeResultJson = {
                 kind,

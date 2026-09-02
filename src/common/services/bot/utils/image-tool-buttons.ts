@@ -4,6 +4,7 @@ import { ImageCapabilitiesService } from '@/common/services/ai/image-capabilitie
 import {
     calculateTopazTokenCost,
     formatImageQualityLabel,
+    formatImageResolutionLabel,
     isImageToolWithAspectSettings,
     isTopazTool,
 } from '@/common/config/image-editor-capabilities.config';
@@ -97,6 +98,7 @@ export function resolveImageToolButtonAction(
     if (options.keyboardMode === 'resolution') {
         const tool = getToolById(options.toolId);
         for (const resolution of options.resolutions) {
+            const label = formatImageResolutionLabel(resolution);
             const tokens = tool
                 ? calculateToolTokenCost(tool, {
                       resolution,
@@ -105,9 +107,9 @@ export function resolveImageToolButtonAction(
                 : 0;
             if (
                 text ===
-                    i18n.imageTool.resolutionPickerOption(resolution, tokens) ||
+                    i18n.imageTool.resolutionPickerOption(label, tokens) ||
                 text ===
-                    i18n.imageTool.resolutionPickerSelected(resolution, tokens)
+                    i18n.imageTool.resolutionPickerSelected(label, tokens)
             ) {
                 return { type: 'set_resolution', value: resolution };
             }

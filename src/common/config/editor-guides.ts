@@ -52,18 +52,15 @@ const RU: Partial<Record<AiToolId, string>> = {
 Рисует картинки по описанию — сначала показывает сетку из 4 вариантов.
 
 - ✍️ Опиши, что хочешь увидеть — получишь 4 картинки сразу
-- ⬆️ U1–U4 — выбрать и увеличить одну из четырёх
-- 🔀 V1–V4 — сделать похожие варианты выбранной
-- ↔️ Можно сдвинуть кадр в сторону или отдалить
-- 🖌️ Можно закрасить кусок и перерисовать только его
+- 📸 Можно прикрепить до 10 фото-референсов
 - 📐 Качество: 720p, 1080p или 4K
 
 Как пользоваться
 1. Опиши картинку простыми словами.
-2. Выбери формат и качество.
-3. Запусти генерацию и подожди сетку.
-4. Нажми U, чтобы взять одну картинку, или V, чтобы сделать похожие.
-5. Хочешь доработать? Используй pan, zoom или inpaint.`,
+2. При необходимости прикрепи фото.
+3. Выбери формат и качество.
+4. Запусти генерацию и подожди сетку.
+5. Нажми #1, #2, #3 или #4 — выбери один кадр.`,
 
     [AiToolId.NANO_BANANA]: `🍌 Nano Banana
 Создавай и редактируй изображения с помощью Nano Banana.
@@ -72,7 +69,7 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 📸 Добавь своё фото — можно изменить изображение, заменить детали или полностью преобразовать его
 - 🖼️ Добавь до 14 изображений в качестве примеров или референсов
 - 🎥 Прикрепи короткое видео — модель поймёт его содержание и создаст изображение на его основе
-- 📐 Выбери разрешение: 512, 1K, 2K или 4K
+- 📐 Выбери разрешение: 512p, 1K, 2K или 4K
 - 🌐 Поиск в интернете включён автоматически — Nano Banana может использовать актуальную информацию, например новости, погоду, логотипы и другие данные
 - 🔄 Продолжай редактирование — после генерации просто напиши, что нужно изменить. Если не добавлять новые файлы, модель продолжит работать с предыдущим изображением
 
@@ -89,10 +86,10 @@ const RU: Partial<Record<AiToolId, string>> = {
 - ✍️ Опиши идею — Seedream создаст картинку по тексту
 - 📸 Добавь своё фото — можно изменить или доработать изображение
 - 🖼️ Прикрепи примеры для более точного результата
-- 📐 Выбери размер: 2K или 4K
+- 📐 Выбери качество: 2K или 4K
 
 Как пользоваться
-1. Выбери размер картинки.
+1. Выбери качество картинки.
 2. При желании добавь своё фото или примеры.
 3. Напиши, что хочешь получить.
 4. Запусти генерацию.`,
@@ -373,6 +370,7 @@ How to use
 Draws images from descriptions — first shows a grid of 4 variants.
 
 - ✍️ Describe what you want to see — get 4 images at once
+- 📸 Add up to 10 photo references — the model will use them in generation
 - ⬆️ U1–U4 — pick and upscale one of the four
 - 🔀 V1–V4 — create similar variants of the selected one
 - ↔️ You can pan the frame or zoom out
@@ -381,10 +379,11 @@ Draws images from descriptions — first shows a grid of 4 variants.
 
 How to use
 1. Describe the image in simple words.
-2. Choose format and quality.
-3. Run generation and wait for the grid.
-4. Tap U to pick one image, or V for similar variants.
-5. Want to refine? Use pan, zoom or inpaint.`,
+2. Optionally attach photo references.
+3. Choose format and quality.
+4. Run generation and wait for the grid.
+5. Tap U to pick one image, or V for similar variants.
+6. Want to refine? Use pan, zoom or inpaint.`,
 
     [AiToolId.NANO_BANANA]: `🍌 Nano Banana
 Create and edit images with Nano Banana.
@@ -393,7 +392,7 @@ Create and edit images with Nano Banana.
 - 📸 Add your photo — change the image, replace details or fully transform it
 - 🖼️ Add up to 14 images as examples or references
 - 🎥 Attach a short video — the model understands its content and creates an image based on it
-- 📐 Choose resolution: 512, 1K, 2K or 4K
+- 📐 Choose resolution: 512p, 1K, 2K or 4K
 - 🌐 Web search is on automatically — Nano Banana can use up-to-date info like news, weather, logos and more
 - 🔄 Keep editing — after generation, just write what to change. Without new files, the model continues with the previous image
 
@@ -410,10 +409,10 @@ Create and edit images — great for ads, products and beautiful photos.
 - ✍️ Describe your idea — Seedream creates an image from text
 - 📸 Add your photo — change or refine the image
 - 🖼️ Attach references for a more accurate result
-- 📐 Choose size: 2K or 4K
+- 📐 Choose quality: 2K or 4K
 
 How to use
-1. Choose image size.
+1. Choose image quality.
 2. Optionally add your photo or references.
 3. Write what you want to get.
 4. Run generation.`,

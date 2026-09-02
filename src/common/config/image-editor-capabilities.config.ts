@@ -19,7 +19,13 @@ export const MIDJOURNEY_ASPECT_RATIOS = [
 export const DEFAULT_RESOLUTIONS = ['1K', '2K', '4K'];
 
 /** Gemini Nano Banana 2 (gemini-3.1-flash-image) output tiers. */
-export const NANO_BANANA_RESOLUTIONS = ['1K', '2K', '4K', '512'] as const;
+export const NANO_BANANA_RESOLUTIONS = ['512', '1K', '2K', '4K'] as const;
+
+export function formatImageResolutionLabel(resolution: string): string {
+    if (resolution === '512') return '512p';
+    if (resolution.toLowerCase() === '4k') return '4K';
+    return resolution;
+}
 
 /** Ultra-wide / ultra-tall ratios supported by Gemini 3.1 Flash Image. */
 export const NANO_BANANA_EXTRA_ASPECT_RATIOS = [
@@ -36,6 +42,8 @@ export const NANO_BANANA_ASPECT_RATIOS = [
 ] as const;
 
 export const NANO_BANANA_MAX_REFERENCES = 14;
+
+export const MIDJOURNEY_MAX_REFERENCES = 10;
 
 /** Seedream 4.5 rejects 1K (below ~3.7M pixels); keep 2K/4K only. */
 export const SEEDREAM_RESOLUTIONS = ['2K', '4K'] as const;
@@ -79,6 +87,7 @@ export const IMAGE_TOOLS_WITH_REFERENCES: AiToolId[] = [
     AiToolId.FLUX,
     AiToolId.NANO_BANANA,
     AiToolId.SEEDREAM,
+    AiToolId.MIDJOURNEY,
 ];
 
 export const IMAGE_TOOLS_WITH_ASPECT_SETTINGS: AiToolId[] = [
@@ -116,6 +125,9 @@ export function getImageMaxReferences(toolId: AiToolId): number {
     }
     if (toolId === AiToolId.FLUX) {
         return BFL_MAX_REFERENCES;
+    }
+    if (toolId === AiToolId.MIDJOURNEY) {
+        return MIDJOURNEY_MAX_REFERENCES;
     }
     return 10;
 }

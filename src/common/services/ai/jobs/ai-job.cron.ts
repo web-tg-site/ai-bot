@@ -363,7 +363,7 @@ export class AiJobCron {
                     const hint =
                         job.toolId === AiToolId.MIDJOURNEY
                             ? (i18n.aiResult.midjourneyActionsHint ??
-                              'Выберите действие:')
+                              'Выберите кадр:')
                             : job.toolId === AiToolId.SUNO
                               ? (i18n.aiResult.sunoActionsHint ??
                                 'Выберите действие:')
@@ -422,7 +422,7 @@ export class AiJobCron {
                     'image',
                     { url: resultJson.gridUrl },
                     sendAsFile,
-                    `${caption} (grid)`,
+                    `${caption} (сетка)`,
                 );
             }
             for (let i = 0; i < Math.min(resultJson.images.length, 4); i++) {

@@ -6,6 +6,8 @@ import { ImageToolSettings } from '@/common/types/image-tool-settings.type';
 import { resolveImageSendAsFile } from '@/common/utils/resolve-send-as-file';
 import {
     calculateTopazTokenCost,
+    formatImageQualityLabel,
+    formatImageResolutionLabel,
     isImageToolWithAspectSettings,
     isTopazTool,
 } from '@/common/config/image-editor-capabilities.config';
@@ -15,7 +17,6 @@ import {
     getFluxImageModeLabel,
 } from '@/common/config/flux-image-modes.config';
 import { orderAspectRatios } from '@/common/config/aspect-ratio.config';
-import { formatImageQualityLabel } from '@/common/config/image-editor-capabilities.config';
 import {
     getToolById,
     calculateToolTokenCost,
@@ -208,6 +209,7 @@ function generateResolutionPickerKeyboard(
     const tool = getToolById(toolId);
     const rows = chunkKeyboardRow(resolutions).map((chunk) =>
         chunk.map((resolution) => {
+            const label = formatImageResolutionLabel(resolution);
             const tokens = tool
                 ? calculateToolTokenCost(tool, {
                       resolution,
@@ -215,8 +217,8 @@ function generateResolutionPickerKeyboard(
                   })
                 : 0;
             return resolution === current
-                ? i18n.imageTool.resolutionPickerSelected(resolution, tokens)
-                : i18n.imageTool.resolutionPickerOption(resolution, tokens);
+                ? i18n.imageTool.resolutionPickerSelected(label, tokens)
+                : i18n.imageTool.resolutionPickerOption(label, tokens);
         }),
     );
 

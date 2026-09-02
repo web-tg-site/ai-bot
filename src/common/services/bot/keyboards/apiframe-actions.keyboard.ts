@@ -2,39 +2,13 @@ import type { ApiframeResultJson } from '@/common/config/apiframe.config';
 
 type InlineButton = { text: string; callback_data: string };
 
-/** Midjourney grid: U1–U4 / V1–V4 */
+/** Midjourney grid: выбор кадра #1–#4 */
 export function buildMjGridActionKeyboard(jobId: string): InlineButton[][] {
     return [
         [1, 2, 3, 4].map((i) => ({
-            text: `U${i}`,
+            text: `#${i}`,
             callback_data: `ai:mj:upsample:${i}:${jobId}`,
         })),
-        [1, 2, 3, 4].map((i) => ({
-            text: `V${i}`,
-            callback_data: `ai:mj:variation:${i}:${jobId}`,
-        })),
-    ];
-}
-
-/** Midjourney single (after upsample): pan / zoom / inpaint */
-export function buildMjSingleActionKeyboard(jobId: string): InlineButton[][] {
-    return [
-        [
-            { text: '⬅️', callback_data: `ai:mj:pan:left:${jobId}` },
-            { text: '⬆️', callback_data: `ai:mj:pan:up:${jobId}` },
-            { text: '⬇️', callback_data: `ai:mj:pan:down:${jobId}` },
-            { text: '➡️', callback_data: `ai:mj:pan:right:${jobId}` },
-        ],
-        [
-            {
-                text: 'Zoom out',
-                callback_data: `ai:mj:outpaint:${jobId}`,
-            },
-            {
-                text: 'Vary Region',
-                callback_data: `ai:mj:inpaint:${jobId}`,
-            },
-        ],
     ];
 }
 
@@ -89,7 +63,7 @@ export function buildApiframeResultKeyboard(
         case 'midjourney_grid':
             return buildMjGridActionKeyboard(jobId);
         case 'midjourney_single':
-            return buildMjSingleActionKeyboard(jobId);
+            return [];
         case 'suno_tracks':
             return buildSunoActionKeyboard(
                 jobId,

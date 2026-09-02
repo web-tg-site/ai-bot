@@ -48,9 +48,9 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         provider: AiProviderId.OPENROUTER,
         model: 'anthropic/claude-sonnet-4.6',
         baseTokenCost: 3,
-        accepts: ['text', 'photo', 'document', 'video'],
+        accepts: ['text', 'photo', 'document'],
         isAsync: false,
-        instruction: 'Отправьте текст, фото, файл или видео.',
+        instruction: 'Отправьте текст, фото или файл.',
     },
     {
         id: AiToolId.GPT_IMAGES,
@@ -109,10 +109,10 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         provider: AiProviderId.APIFRAME,
         model: 'midjourney',
         baseTokenCost: 30,
-        accepts: ['text'],
+        accepts: ['text', 'photo'],
         isAsync: true,
         instruction:
-            'Опишите изображение. После генерации можно выбрать U1–U4, вариации, pan, zoom и inpaint.',
+            'Опишите изображение. Можно прикрепить до 10 фото. После генерации нажмите #1–#4, чтобы выбрать кадр из сетки.',
     },
     {
         id: AiToolId.KLING,

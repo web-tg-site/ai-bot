@@ -6,6 +6,7 @@ import {
     isImageToolWithReferences,
     isTopazTool,
     formatImageQualityLabel,
+    formatImageResolutionLabel,
 } from '@/common/config/image-editor-capabilities.config';
 import { ImageCapabilitiesService } from '@/common/services/ai/image-capabilities.service';
 import { UserAiToolSettingsModelService } from '@/common/models/user-ai-tool-settings';
@@ -54,9 +55,6 @@ export function getInitialImageToolStep(toolId: AiToolId): AiSessionStep {
     if (isImageToolWithReferences(toolId)) {
         return 'awaiting_image_references';
     }
-    if (toolId === AiToolId.MIDJOURNEY) {
-        return 'awaiting_image_prompt';
-    }
     return 'awaiting_input';
 }
 
@@ -81,7 +79,9 @@ export function buildImageToolMainScreenText(
             i18n.imageTool.formatLine(
                 settings.aspectRatio ?? caps.aspectRatios[0],
                 caps.resolutions.length
-                    ? (settings.resolution ?? caps.resolutions[0])
+                    ? formatImageResolutionLabel(
+                          settings.resolution ?? caps.resolutions[0],
+                      )
                     : undefined,
                 caps.qualities.length && settings.quality
                     ? formatImageQualityLabel(

@@ -21,6 +21,7 @@ import {
     isTopazTool,
     calculateTopazTokenCost,
     formatImageQualityLabel,
+    formatImageResolutionLabel,
     getImageMaxReferences,
 } from '@/common/config/image-editor-capabilities.config';
 import {
@@ -1032,7 +1033,9 @@ async function handleImageToolButtonPress(
                 i18n.imageTool.formatLine(
                     imageSettings.aspectRatio ?? caps.aspectRatios[0],
                     caps.resolutions.length
-                        ? (imageSettings.resolution ?? caps.resolutions[0])
+                        ? formatImageResolutionLabel(
+                              imageSettings.resolution ?? caps.resolutions[0],
+                          )
                         : undefined,
                     caps.qualities.length && imageSettings.quality
                         ? formatImageQualityLabel(
@@ -1160,7 +1163,10 @@ async function handleImageToolButtonPress(
               })
             : 0;
         await ctx.reply(
-            i18n.imageTool.resolutionChanged(action.value, tokens),
+            i18n.imageTool.resolutionChanged(
+                formatImageResolutionLabel(action.value),
+                tokens,
+            ),
             {
                 ...replyKeyboard('resolution', nextSettings),
                 parse_mode: 'HTML',
@@ -3407,15 +3413,53 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
             ? String(message.media_group_id)
             : undefined;
 
+    let inputFiles = files;
+    if (isChatAssistantTool(toolId) && !(tool.accepts ?? []).includes('video')) {
+        const withoutVideo = files.filter(
+            (file) => !isVideoMedia(file.mimeType, file.fileName),
+        );
+        if (withoutVideo.length < files.length) {
+            // Single message: reject video-only uploads for Claude.
+            // Media albums: keep collecting other items; drop videos only.
+            if (!mediaGroupId && !text?.trim() && withoutVideo.length === 0) {
+                await ctx.reply(
+                    i18n.localeTag === 'en-US'
+                        ? 'Claude does not support video. Send text, a photo, or a file.'
+                        : 'Claude не умеет работать с видео. Отправьте текст, фото или файл.',
+                    { parse_mode: 'HTML' },
+                );
+                return;
+            }
+            if (!mediaGroupId) {
+                await ctx.reply(
+                    i18n.localeTag === 'en-US'
+                        ? 'Video was skipped — Claude does not support video analysis.'
+                        : 'Видео пропущено — Claude не поддерживает анализ видео.',
+                    { parse_mode: 'HTML' },
+                );
+            }
+            inputFiles = withoutVideo;
+        }
+    }
+
     if (mediaGroupId && files.length > 0) {
         const messageId = getMessageId(ctx);
         if (messageId === undefined) {
+            if (!text?.trim() && inputFiles.length === 0) {
+                await ctx.reply(
+                    i18n.localeTag === 'en-US'
+                        ? 'Claude does not support video. Send text, a photo, or a file.'
+                        : 'Claude не умеет работать с видео. Отправьте текст, фото или файл.',
+                    { parse_mode: 'HTML' },
+                );
+                return;
+            }
             const input = await buildAiGenerationInput(
                 deps,
                 session,
                 toolId,
                 text,
-                files,
+                inputFiles,
                 tool,
                 i18n,
             );
@@ -3437,19 +3481,51 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
         collectMediaGroupMessage({
             mediaGroupId,
             messageId,
-            files,
+            files: inputFiles,
             prompt: text,
             finalize: async (batch) => {
                 await withPersistedSession(
                     deps.redisService.getClient(),
                     ctx,
                     async (freshSession) => {
+                        const batchFiles =
+                            isChatAssistantTool(toolId) &&
+                            !(tool.accepts ?? []).includes('video')
+                                ? batch.files.filter(
+                                      (file) =>
+                                          !isVideoMedia(
+                                              file.mimeType,
+                                              file.fileName,
+                                          ),
+                                  )
+                                : batch.files;
+                        if (
+                            !batch.prompt?.trim() &&
+                            batchFiles.length === 0
+                        ) {
+                            await ctx.reply(
+                                i18n.localeTag === 'en-US'
+                                    ? 'Claude does not support video. Send text, a photo, or a file.'
+                                    : 'Claude не умеет работать с видео. Отправьте текст, фото или файл.',
+                                { parse_mode: 'HTML' },
+                            );
+                            return;
+                        }
+                        if (batchFiles.length < batch.files.length) {
+                            await ctx.reply(
+                                i18n.localeTag === 'en-US'
+                                    ? 'Video was skipped — Claude does not support video analysis.'
+                                    : 'Видео пропущено — Claude не поддерживает анализ видео.',
+                                { parse_mode: 'HTML' },
+                            );
+                        }
+
                         const batchInput = await buildAiGenerationInput(
                             deps,
                             freshSession,
                             toolId,
                             batch.prompt,
-                            batch.files,
+                            batchFiles,
                             tool,
                             i18n,
                         );
@@ -3482,7 +3558,7 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
         session,
         toolId,
         text,
-        files,
+        inputFiles,
         tool,
         i18n,
     );

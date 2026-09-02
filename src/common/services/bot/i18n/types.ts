@@ -70,6 +70,7 @@ export type I18nBundle = {
             settingsUrl: string | null,
         ) => string;
         midjourneyActionsHint: string;
+        midjourneySingleActionsHint: string;
         sunoActionsHint: string;
         midjourneyInpaintPrompt: string;
         sunoExtendPrompt: string;

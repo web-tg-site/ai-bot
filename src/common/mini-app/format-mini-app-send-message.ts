@@ -1,4 +1,4 @@
-import { formatImageQualityLabel } from '@/common/config/image-editor-capabilities.config';
+import { formatImageQualityLabel, formatImageResolutionLabel } from '@/common/config/image-editor-capabilities.config';
 import { getVideoQualityLabel } from '@/common/config/video-editor-capabilities.config';
 import { AiGenerationInput, AiToolId } from '@/common/services/ai/types';
 import { getToolLabel } from '@/common/services/bot/i18n';
@@ -56,7 +56,9 @@ export function formatGenerationSettingsLines(
         case AiToolId.NANO_BANANA:
         case AiToolId.SEEDREAM:
             if (input.resolution) {
-                lines.push(`✨ Качество: ${escapeHtml(input.resolution)}`);
+                lines.push(
+                    `✨ Качество: ${escapeHtml(formatImageResolutionLabel(input.resolution))}`,
+                );
             }
             break;
         case AiToolId.GPT_IMAGES:

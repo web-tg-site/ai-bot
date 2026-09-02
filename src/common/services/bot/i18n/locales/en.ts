@@ -176,7 +176,9 @@ Select a tool below.`,
             );
         },
         midjourneyActionsHint:
-            '🖼 Choose an action: U1–U4 upscale, V1–V4 variations.',
+            '🖼 Tap «Pick #1–#4» to upscale the frame you want from the grid.',
+        midjourneySingleActionsHint:
+            '🖼 You can pan, zoom out, or repaint a region.',
         sunoActionsHint:
             '🎵 Choose a track and action: Extend, Cover, Vocals, or Stems.',
         midjourneyInpaintPrompt:
@@ -448,7 +450,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
         },
         instructions: {
             [AiToolId.GPT]: 'Send text, a photo, file, or video.',
-            [AiToolId.CLAUDE_SONNET]: 'Send text, a photo, file, or video.',
+            [AiToolId.CLAUDE_SONNET]: 'Send text, a photo, or a file.',
             [AiToolId.GPT_IMAGES]:
                 "Describe the task and optionally add references (up to 10 images). The more precisely you specify each image's role, the more predictable the result.",
             [AiToolId.FLUX]:
