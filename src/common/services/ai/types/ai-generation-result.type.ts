@@ -80,7 +80,7 @@ export type AiGenerationInput = {
     outpaintOffsetX?: number;
     outpaintOffsetY?: number;
     fluxVideoMode?: 't2v' | 'i2v' | 'v2v' | 'draft_enhance';
-    fluxImageMode?: 'generate' | 'deblur' | 'erase' | 'try_on' | 'outpaint';
+    fluxImageMode?: 'generate' | 'deblur' | 'try_on' | 'outpaint';
     attachmentRoles?: (
         | 'source'
         | 'mask'

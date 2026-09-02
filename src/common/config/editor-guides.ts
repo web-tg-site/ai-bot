@@ -99,7 +99,6 @@ const RU: Partial<Record<AiToolId, string>> = {
 
 - 🎨 «Генерация» — обычная картинка по тексту (можно с фото)
 - 🔍 «Резкость» — сделать размытое фото чётче (текст не нужен)
-- ✂️ «Удалить» — убрать объект: нужно фото + маска (чёрным закрась лишнее)
 - 👗 «Примерка» — человек + фото одежды
 - 🖼️ «Расширить» — добавить место вокруг фото
 - 📐 Можно выбрать формат и качество
@@ -413,7 +412,6 @@ Creates realistic images with several modes for different tasks.
 
 - 🎨 "Generate" — regular image from text (photo optional)
 - 🔍 "Sharpen" — make a blurry photo sharper (no text needed)
-- ✂️ "Remove" — remove an object: photo + mask (paint unwanted areas black)
 - 👗 "Try-on" — person + clothing photo
 - 🖼️ "Expand" — add space around the photo
 - 📐 Choose format and quality

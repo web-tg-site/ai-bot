@@ -16,12 +16,11 @@ import { isImageMedia } from '@/common/utils/media-kind';
 const BFL_BASE_URL = 'https://api.bfl.ai';
 export const BFL_JOB_PREFIX = 'bfl|';
 
-type FluxOperation = 'pro' | 'outpaint' | 'erase' | 'deblur' | 'vto';
+type FluxOperation = 'pro' | 'outpaint' | 'deblur' | 'vto';
 
 const FLUX_ENDPOINTS: Record<FluxOperation, string> = {
     pro: '/v1/flux-2-pro',
     outpaint: '/v1/flux-tools/outpainting-v1',
-    erase: '/v1/flux-tools/erase-v1',
     deblur: '/v1/flux-tools/deblur-v1',
     vto: '/v1/flux-tools/vto-v2',
 };
@@ -126,7 +125,6 @@ export class BflProvider {
     private resolveFluxOperation(input: AiGenerationInput): FluxOperation {
         const explicit = input.fluxImageMode;
         if (explicit === 'outpaint') return 'outpaint';
-        if (explicit === 'erase') return 'erase';
         if (explicit === 'deblur') return 'deblur';
         if (explicit === 'try_on') return 'vto';
         if (explicit === 'generate') return 'pro';
@@ -139,10 +137,6 @@ export class BflProvider {
 
         if (input.outpaintWidth && input.outpaintHeight) {
             return 'outpaint';
-        }
-
-        if (roles.includes('mask') || (roles.includes('source') && images.length >= 2)) {
-            return 'erase';
         }
 
         if (
@@ -167,8 +161,6 @@ export class BflProvider {
         switch (operation) {
             case 'outpaint':
                 return this.buildOutpaintBody(input);
-            case 'erase':
-                return this.buildEraseBody(input);
             case 'deblur':
                 return this.buildDeblurBody(input);
             case 'vto':
@@ -243,33 +235,6 @@ export class BflProvider {
         }
 
         return body;
-    }
-
-    private buildEraseBody(input: AiGenerationInput): Record<string, unknown> {
-        const images = input.files?.filter((file) =>
-            isImageMedia(file.mimeType, file.fileName),
-        );
-        if ((images?.length ?? 0) < 2) {
-            throw new Error(
-                'Загрузите изображение и маску (второе фото) для удаления объекта',
-            );
-        }
-
-        const roles = input.attachmentRoles ?? [];
-        let source = images![0];
-        let mask = images![1];
-
-        const sourceIdx = roles.findIndex((role) => role === 'source');
-        const maskIdx = roles.findIndex((role) => role === 'mask');
-        if (sourceIdx >= 0) source = images![sourceIdx];
-        if (maskIdx >= 0) mask = images![maskIdx];
-
-        // BFL erase expects `image` + `mask` (not input_image / mask_image).
-        return {
-            image: fileToBase64(source),
-            mask: fileToBase64(mask),
-            output_format: 'png',
-        };
     }
 
     private buildDeblurBody(input: AiGenerationInput): Record<string, unknown> {

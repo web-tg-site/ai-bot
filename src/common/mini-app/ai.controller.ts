@@ -59,6 +59,7 @@ import { AiJobService } from '@/common/services/ai/jobs/ai-job.service';
 import { normalizeUploadMime } from '@/common/utils/normalize-upload-mime';
 import { prepareUploadMedia } from '@/common/utils/prepare-upload-media';
 import { getI18n } from '@/common/services/bot/i18n';
+import { normalizeFluxImageMode } from '@/common/config/flux-image-modes.config';
 import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
 import {
     formatMiniAppSendMessage,
@@ -206,8 +207,8 @@ class GenerateBodyDto {
     fluxVideoMode?: 't2v' | 'i2v' | 'v2v' | 'draft_enhance';
 
     @IsOptional()
-    @IsIn(['generate', 'deblur', 'erase', 'try_on', 'outpaint'])
-    fluxImageMode?: 'generate' | 'deblur' | 'erase' | 'try_on' | 'outpaint';
+    @IsIn(['generate', 'deblur', 'try_on', 'outpaint'])
+    fluxImageMode?: 'generate' | 'deblur' | 'try_on' | 'outpaint';
 
     @IsOptional()
     @IsIn(['auto', 'manga'])
@@ -703,7 +704,9 @@ export class AiController {
                         ? Number(body.outpaintOffsetY)
                         : undefined,
                     fluxVideoMode: body.fluxVideoMode,
-                    fluxImageMode: body.fluxImageMode,
+                    fluxImageMode: body.fluxImageMode
+                        ? normalizeFluxImageMode(body.fluxImageMode)
+                        : undefined,
                     lumaStyle: body.lumaStyle,
                     lumaWebSearch:
                         body.lumaWebSearch === 'true' ||

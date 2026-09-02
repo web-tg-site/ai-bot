@@ -20,6 +20,7 @@ import {
     generateImageEditorReplyKeyboard,
     ImageKeyboardMode,
 } from '../keyboards/image.keyboard';
+import { normalizeFluxImageMode } from '@/common/config/flux-image-modes.config';
 
 type BotContext = Context & { session: BotSession };
 
@@ -43,7 +44,7 @@ export async function loadImageToolSettings(
         topazScale: capabilitiesService.normalizeTopazScale(stored.topazScale),
         fluxImageMode:
             toolId === AiToolId.FLUX
-                ? (stored.fluxImageMode ?? 'generate')
+                ? normalizeFluxImageMode(stored.fluxImageMode)
                 : undefined,
     };
 }

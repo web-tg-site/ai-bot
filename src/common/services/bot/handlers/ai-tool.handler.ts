@@ -36,6 +36,7 @@ import {
     buildFluxImageAttachmentRoles,
     FLUX_OUTPAINT_CANVAS,
     getFluxImageModeLabel,
+    normalizeFluxImageMode,
 } from '@/common/config/flux-image-modes.config';
 import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
 import { SubscribeType } from '@/generated/prisma/enums';
@@ -3649,6 +3650,11 @@ async function buildAiGenerationInput(
               )
             : undefined;
 
+    const fluxMode =
+        toolId === AiToolId.FLUX
+            ? normalizeFluxImageMode(imageSettings?.fluxImageMode)
+            : undefined;
+
     return {
         prompt,
         files: preparedFiles.length ? preparedFiles : undefined,
@@ -3754,24 +3760,13 @@ async function buildAiGenerationInput(
             toolId === AiToolId.SUNO
                 ? voiceSettings?.sunoLyrics?.trim() || undefined
                 : undefined,
-        fluxImageMode:
-            toolId === AiToolId.FLUX
-                ? (imageSettings?.fluxImageMode ?? 'generate')
-                : undefined,
+        fluxImageMode: fluxMode,
         attachmentRoles:
-            toolId === AiToolId.FLUX && imageSettings?.fluxImageMode
-                ? buildFluxImageAttachmentRoles(imageSettings.fluxImageMode)
-                : undefined,
+            fluxMode ? buildFluxImageAttachmentRoles(fluxMode) : undefined,
         outpaintWidth:
-            toolId === AiToolId.FLUX &&
-            imageSettings?.fluxImageMode === 'outpaint'
-                ? FLUX_OUTPAINT_CANVAS.width
-                : undefined,
+            fluxMode === 'outpaint' ? FLUX_OUTPAINT_CANVAS.width : undefined,
         outpaintHeight:
-            toolId === AiToolId.FLUX &&
-            imageSettings?.fluxImageMode === 'outpaint'
-                ? FLUX_OUTPAINT_CANVAS.height
-                : undefined,
+            fluxMode === 'outpaint' ? FLUX_OUTPAINT_CANVAS.height : undefined,
         ...buildSoraGenerationFields(session, files.length ? files : []),
     };
 }

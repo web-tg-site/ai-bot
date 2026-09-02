@@ -454,7 +454,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             [AiToolId.GPT_IMAGES]:
                 "Describe the task and optionally add references (up to 10 images). The more precisely you specify each image's role, the more predictable the result.",
             [AiToolId.FLUX]:
-                'Flux 2 Pro: generate or edit with a prompt (up to 8 references). One photo without text — sharpen/deblur. Two photos (source + mask) — erase object. Person + garment — virtual try-on. Outpaint canvas size in settings.',
+                'Flux 2 Pro: generate or edit with a prompt (up to 8 references). One photo without text — sharpen/deblur. Person + garment — virtual try-on. Outpaint canvas size in settings.',
             [AiToolId.NANO_BANANA]:
                 "Describe the task and optionally add references (up to 10 images). The more precisely you specify each image's role, the more predictable the result.",
             [AiToolId.SEEDREAM]:

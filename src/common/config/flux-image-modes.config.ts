@@ -1,7 +1,6 @@
 export type FluxImageMode =
     | 'generate'
     | 'deblur'
-    | 'erase'
     | 'try_on'
     | 'outpaint';
 
@@ -27,13 +26,6 @@ export const FLUX_IMAGE_MODE_OPTIONS: FluxImageModeOption[] = [
         labelEn: 'Deblur',
         chipRu: 'Резкость',
         chipEn: 'Deblur',
-    },
-    {
-        id: 'erase',
-        labelRu: 'Удалить объект',
-        labelEn: 'Erase object',
-        chipRu: 'Удалить',
-        chipEn: 'Erase',
     },
     {
         id: 'try_on',
@@ -86,14 +78,28 @@ export function fluxImageModeRequiresPrompt(mode: FluxImageMode): boolean {
 
 export function getFluxImageModeMaxPhotos(mode: FluxImageMode): number {
     if (mode === 'deblur' || mode === 'outpaint') return 1;
-    if (mode === 'erase' || mode === 'try_on') return 2;
+    if (mode === 'try_on') return 2;
     return 8;
 }
 
 export function buildFluxImageAttachmentRoles(
     mode: FluxImageMode,
-): Array<'source' | 'mask' | 'person' | 'garment'> | undefined {
-    if (mode === 'erase') return ['source', 'mask'];
+): Array<'person' | 'garment'> | undefined {
     if (mode === 'try_on') return ['person', 'garment'];
     return undefined;
+}
+
+/** Legacy saved settings may still contain removed modes (e.g. erase). */
+export function normalizeFluxImageMode(
+    mode: string | undefined,
+): FluxImageMode {
+    if (
+        mode === 'generate' ||
+        mode === 'deblur' ||
+        mode === 'try_on' ||
+        mode === 'outpaint'
+    ) {
+        return mode;
+    }
+    return DEFAULT_FLUX_IMAGE_MODE;
 }

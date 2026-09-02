@@ -114,7 +114,7 @@ export function isBflFluxTool(toolId: AiToolId): boolean {
     return toolId === AiToolId.FLUX;
 }
 
-/** Flux accepts prompt-less requests when attachments imply deblur/erase/vto. */
+/** Flux accepts prompt-less requests when attachments imply deblur/vto. */
 export function imageToolRequiresPrompt(toolId: AiToolId): boolean {
     return toolId !== AiToolId.FLUX;
 }

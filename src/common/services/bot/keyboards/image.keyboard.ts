@@ -15,6 +15,7 @@ import {
     FLUX_IMAGE_MODE_OPTIONS,
     FluxImageMode,
     getFluxImageModeLabel,
+    normalizeFluxImageMode,
 } from '@/common/config/flux-image-modes.config';
 import { orderAspectRatios } from '@/common/config/aspect-ratio.config';
 import {
@@ -97,7 +98,7 @@ export function generateImageEditorReplyKeyboard(
     if (options.keyboardMode === 'flux_mode') {
         return generateFluxModePickerKeyboard(
             i18n,
-            options.settings.fluxImageMode ?? 'generate',
+            normalizeFluxImageMode(options.settings.fluxImageMode),
             options.localeTag,
         );
     }
