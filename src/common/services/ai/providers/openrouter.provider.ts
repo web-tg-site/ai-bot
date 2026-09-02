@@ -864,7 +864,7 @@ export class OpenRouterProvider {
             const response = await firstValueFrom(
                 this.httpService.post<T>(`${this.baseUrl}${path}`, data, {
                     headers: this.getHeaders(),
-                    timeout: 120000,
+                    timeout: 300000,
                     maxBodyLength: Infinity,
                     maxContentLength: Infinity,
                 }),

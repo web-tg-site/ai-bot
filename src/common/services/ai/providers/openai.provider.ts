@@ -78,7 +78,7 @@ export class OpenAiProvider {
         this.client = this.apiKey
             ? new OpenAI({
                   apiKey: this.apiKey,
-                  timeout: 240_000,
+                  timeout: 300_000,
                   maxRetries: 1,
               })
             : null;
