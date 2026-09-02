@@ -11,7 +11,15 @@ export const SORA_EXTEND_DURATIONS = [4, 8, 12, 16, 20] as const;
 
 const PORTRAIT_ASPECT_RATIOS = new Set(['4:5', '3:4', '2:3', '9:16']);
 
-export function isPortraitAspectRatio(aspectRatio?: string): boolean {
+export type SoraReferenceImage = {
+    width: number;
+    height: number;
+};
+
+export function isPortraitAspectRatio(
+    aspectRatio?: string,
+    referenceImage?: SoraReferenceImage,
+): boolean {
     if (!aspectRatio) {
         return false;
     }
@@ -19,14 +27,36 @@ export function isPortraitAspectRatio(aspectRatio?: string): boolean {
         return true;
     }
     const [w, h] = aspectRatio.split(':').map(Number);
-    return Boolean(w && h && h > w);
+    if (w && h) {
+        if (h > w) {
+            return true;
+        }
+        if (w > h) {
+            return false;
+        }
+        if (referenceImage) {
+            return referenceImage.height >= referenceImage.width;
+        }
+        return true;
+    }
+    return false;
+}
+
+export function resolveSoraOutputAspectRatio(
+    aspectRatio?: string,
+    referenceImage?: SoraReferenceImage,
+): '9:16' | '16:9' {
+    return isPortraitAspectRatio(aspectRatio, referenceImage)
+        ? '9:16'
+        : '16:9';
 }
 
 export function resolveSoraVideoSize(
     aspectRatio?: string,
     resolution?: string,
+    referenceImage?: SoraReferenceImage,
 ): SoraVideoSize {
-    const portrait = isPortraitAspectRatio(aspectRatio);
+    const portrait = isPortraitAspectRatio(aspectRatio, referenceImage);
     const is1080 = resolution === '1080p';
 
     if (portrait) {

@@ -11,7 +11,10 @@ import {
     AiToolId,
 } from '../types';
 import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
-import { resizeImageForSora } from '@/common/utils/resize-image-for-sora';
+import {
+    readSoraReferenceImageDimensions,
+    resizeImageForSora,
+} from '@/common/utils/resize-image-for-sora';
 import {
     resolveSoraModel,
     resolveSoraVideoSize,
@@ -791,14 +794,21 @@ export class OpenAiProvider {
         input: AiGenerationInput,
     ): Promise<AiJobCreateResult> {
         const prompt = this.resolveSoraPrompt(input);
-        const size = resolveSoraVideoSize(input.aspectRatio, input.resolution);
-        const seconds = toSoraCreateSeconds(input.durationSeconds);
-        const model = resolveSoraModel(input.quality, input.resolution);
-
         const { images } = splitMediaFiles(input.files);
         if (images.length > 1) {
             throw new Error('Sora принимает только одно фото-референс');
         }
+
+        const referenceImage = images[0]
+            ? await readSoraReferenceImageDimensions(images[0].buffer)
+            : undefined;
+        const size = resolveSoraVideoSize(
+            input.aspectRatio,
+            input.resolution,
+            referenceImage,
+        );
+        const seconds = toSoraCreateSeconds(input.durationSeconds);
+        const model = resolveSoraModel(input.quality, input.resolution);
 
         const client = this.requireClient();
         const body: Record<string, unknown> = {
