@@ -172,6 +172,16 @@ function localizeActionableProviderDetail(
     }
 
     if (
+            /copyright|trademark|intellectual property|\bip\b|third[- ]party|franchis|licensed character|real person|public figure|famous/i.test(
+                detail,
+            )
+        ) {
+            return ru
+                ? 'Sora не принимает известных персонажей из фильмов и игр. Используйте свой оригинальный персонаж или объект.'
+                : 'Sora rejects well-known film/game characters. Use your own original character or object.';
+        }
+
+    if (
         /unsupported video format|accepted inputs:\s*mp4|h\.?264|hevc|h\.?265|video\/quicktime|codec not supported/i.test(
             detail,
         )

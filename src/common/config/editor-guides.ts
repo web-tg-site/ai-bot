@@ -118,7 +118,7 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 🆕 «Создать» — новое видео с нуля
 - ⏩ «Продлить» — продолжить уже готовый ролик Sora
 - ✏️ «Редактировать» — изменить готовое видео по тексту
-- 🎭 Можно добавить персонажей из короткого клипа (без лиц людей)
+- 🎭 Можно добавить персонажей из короткого клипа (без лиц людей и без известных IP вроде Шрека/Диснея)
 - ⚠️ Лица людей на фото иногда отклоняются
 
 Как пользоваться
@@ -432,7 +432,7 @@ Create short videos from text with Sora.
 - 🆕 "Create" — new video from scratch
 - ⏩ "Extend" — continue an existing Sora clip
 - ✏️ "Edit" — change a finished video with a prompt
-- 🎭 Add characters from a short clip (no human faces)
+- 🎭 Add characters from a short clip (no human faces, no famous IP like Shrek/Disney)
 - ⚠️ Human faces in photos may be rejected
 
 How to use

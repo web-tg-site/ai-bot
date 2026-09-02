@@ -155,6 +155,14 @@ export class SoraCharactersService {
                   ? error.message
                   : 'Character create failed';
 
+        if (
+            /copyright|trademark|intellectual property|\bip\b|third[- ]party|franchis|licensed character|real person|public figure|famous/i.test(
+                raw,
+            )
+        ) {
+            return 'Sora не принимает известных персонажей из фильмов и игр (Шрек, Дисней и т.п.). Нужен свой оригинальный персонаж или объект без чужого IP.';
+        }
+
         if (/unsupported video format|accepted inputs|h\.?264|hevc|quicktime/i.test(raw)) {
             return 'Формат видео не подошёл для персонажа Sora. Загрузите другой клип 2–4 сек (MP4/MOV), без людей в кадре.';
         }
@@ -167,8 +175,8 @@ export class SoraCharactersService {
             return 'Для персонажа нужно короткое видео 2–4 секунды. Обрежьте клип и попробуйте снова.';
         }
 
-        if (/moderation|content policy|blocked/i.test(raw)) {
-            return 'Sora заблокировала клип по правилам модерации. Попробуйте другое видео.';
+        if (/moderation|content policy|blocked|safety|rejected|not allowed|violat/i.test(raw)) {
+            return 'Sora отклонила клип. Нельзя: лица людей и известные персонажи (мультфильмы, игры, бренды). Попробуйте свой оригинальный объект или персонаж.';
         }
 
         if (/[а-яА-ЯёЁ]/.test(raw)) {
@@ -176,6 +184,6 @@ export class SoraCharactersService {
         }
 
         this.logger.warn({ err: raw }, 'Sora createCharacter failed');
-        return 'Не удалось создать персонажа Sora. Проверьте клип (2–4 сек, без лиц людей) и попробуйте снова.';
+        return 'Не удалось создать персонажа Sora. Нужен свой оригинальный клип 2–4 сек без лиц людей и без известных персонажей из фильмов/игр.';
     }
 }
