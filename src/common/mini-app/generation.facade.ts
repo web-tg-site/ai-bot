@@ -5,7 +5,10 @@ import { GptConversationModelService } from '@/common/models/gpt-conversation';
 import { getToolById } from '@/common/config/ai-tools.registry';
 import { isVideoFlowTool } from '@/common/config/video-editor-capabilities.config';
 import { compressGptHistoryImage } from '@/common/utils/compress-reference-image';
-import { serializeGptUserMessage } from '@/common/utils/gpt-message-content';
+import {
+    serializeGptAssistantMessage,
+    serializeGptUserMessage,
+} from '@/common/utils/gpt-message-content';
 import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
 import { SubscribeType } from '@/generated/prisma/enums';
 import {
@@ -350,51 +353,20 @@ export class GenerationFacade {
                 );
             }
 
-            if (
-                isChatAssistantTool(effectiveToolId) &&
-                conversationId &&
-                (generationResult.text || generationResult.images?.length)
-            ) {
-                const storedFiles = input.files
-                    ? await Promise.all(
-                          input.files.map((file) =>
-                              compressGptHistoryImage(file),
-                          ),
-                      )
-                    : undefined;
-                const userContent = serializeGptUserMessage(
-                    params.promptText ?? input.prompt,
-                    storedFiles,
-                );
-                await this.gptConversationModelService.appendMessages(
-                    conversationId,
-                    userContent,
-                    generationResult.text || '[image]',
-                );
-
-                const prompt = params.promptText ?? input.prompt;
-                if (prompt?.trim()) {
-                    await this.gptConversationModelService.setTitleIfDefault(
-                        conversationId,
-                        this.gptConversationModelService.buildTitleFromPrompt(
-                            prompt,
-                        ),
-                    );
-                }
-
-                await this.gptConversationModelService.trimOldConversations(
-                    params.userId,
-                    effectiveToolId,
-                );
-            }
-
             const serialized = this.serializeResult(generationResult);
             let jobId: string | undefined;
 
-            // Media/audio sync tools previously left no DB trail — history only
-            // existed for GPT chats and async jobs.
-            if (!isChatAssistantTool(effectiveToolId)) {
-                const resultUrl = serialized.url ?? serialized.dataUrl ?? null;
+            // Persist media jobs for history / Telegram send. Chat assistants also
+            // get a job when they return generated images.
+            const chatImage =
+                isChatAssistantTool(effectiveToolId) &&
+                Boolean(generationResult.images?.length);
+            if (!isChatAssistantTool(effectiveToolId) || chatImage) {
+                const resultUrl =
+                    serialized.url ??
+                    serialized.dataUrl ??
+                    serialized.images?.[0] ??
+                    null;
                 if (resultUrl) {
                     const recorded = await this.aiJobService.recordCompletedJob({
                         userId: params.userId,
@@ -412,6 +384,60 @@ export class GenerationFacade {
                         resultUrl,
                     );
                 }
+            }
+
+            if (
+                isChatAssistantTool(effectiveToolId) &&
+                conversationId &&
+                (generationResult.text || generationResult.images?.length)
+            ) {
+                const storedFiles = input.files
+                    ? await Promise.all(
+                          input.files.map((file) =>
+                              compressGptHistoryImage(file),
+                          ),
+                      )
+                    : undefined;
+                const userContent = serializeGptUserMessage(
+                    params.promptText ?? input.prompt,
+                    storedFiles,
+                );
+                const assistantImages = generationResult.images?.length
+                    ? await Promise.all(
+                          generationResult.images.map((image, index) =>
+                              compressGptHistoryImage({
+                                  buffer: image.buffer,
+                                  mimeType: image.mimeType || 'image/png',
+                                  fileName: `assistant-${index + 1}.jpg`,
+                              }),
+                          ),
+                      )
+                    : undefined;
+                const assistantContent = serializeGptAssistantMessage(
+                    generationResult.text,
+                    assistantImages,
+                    jobId,
+                );
+                await this.gptConversationModelService.appendMessages(
+                    conversationId,
+                    userContent,
+                    assistantContent,
+                );
+
+                const prompt = params.promptText ?? input.prompt;
+                if (prompt?.trim()) {
+                    await this.gptConversationModelService.setTitleIfDefault(
+                        conversationId,
+                        this.gptConversationModelService.buildTitleFromPrompt(
+                            prompt,
+                        ),
+                    );
+                }
+
+                await this.gptConversationModelService.trimOldConversations(
+                    params.userId,
+                    effectiveToolId,
+                );
             }
 
             return {
@@ -573,6 +599,16 @@ export class GenerationFacade {
             this.tempPublicMedia.put({
                 buffer: result.buffer,
                 mimeType: result.mimeType ?? 'application/octet-stream',
+                fileName: `job-${jobId.slice(0, 8)}`,
+                jobId,
+            });
+            return;
+        }
+        if (result.images?.[0]?.buffer?.length) {
+            const image = result.images[0];
+            this.tempPublicMedia.put({
+                buffer: image.buffer,
+                mimeType: image.mimeType || 'image/png',
                 fileName: `job-${jobId.slice(0, 8)}`,
                 jobId,
             });

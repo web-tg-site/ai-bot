@@ -20,7 +20,7 @@ import type { CurrentUserPayload } from '@/common/auth';
 import { GptConversationModelService } from '@/common/models/gpt-conversation';
 import { AiToolId } from '@/common/services/ai/types';
 import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
-import { parseGptUserMessage } from '@/common/utils/gpt-message-content';
+import { parseGptMediaMessage, toDataUrl } from '@/common/utils/gpt-message-content';
 import { PrismaService } from '@/common/services/prisma';
 import { GenerationFacade } from './generation.facade';
 
@@ -145,20 +145,19 @@ export class ChatsController {
 
         return {
             items: rows.map((msg) => {
-                if (msg.role === 'user') {
-                    const parsed = parseGptUserMessage(msg.content);
-                    return {
-                        id: msg.id,
-                        role: 'user' as const,
-                        content: parsed.text,
-                        createdAt: msg.createdAt,
-                    };
-                }
+                const parsed = parseGptMediaMessage(msg.content);
+                const images = parsed.files
+                    ?.filter((file) => file.mimeType.startsWith('image/'))
+                    .map((file) => toDataUrl(file));
 
                 return {
                     id: msg.id,
                     role: msg.role,
-                    content: msg.content,
+                    content:
+                        parsed.text ||
+                        (msg.role === 'user' && images?.length ? '[image]' : ''),
+                    images: images?.length ? images : undefined,
+                    jobId: parsed.jobId,
                     createdAt: msg.createdAt,
                 };
             }),

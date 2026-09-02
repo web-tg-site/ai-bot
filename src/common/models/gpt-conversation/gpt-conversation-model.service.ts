@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/services/prisma';
 import { AiChatMessage, AiToolId } from '@/common/services/ai/types';
-import { parseGptUserMessage } from '@/common/utils/gpt-message-content';
+import { parseGptMediaMessage } from '@/common/utils/gpt-message-content';
 
 const DEFAULT_TITLE = 'Новый чат';
 const MAX_CONTEXT_MESSAGES = 20;
@@ -96,17 +96,21 @@ export class GptConversationModelService {
 
         return messages.map((msg) => {
             if (msg.role === 'user') {
-                const parsed = parseGptUserMessage(msg.content);
+                const parsed = parseGptMediaMessage(msg.content);
                 return {
                     role: 'user' as const,
-                    content: parsed.text,
+                    content: parsed.text || (parsed.files?.length ? '[image]' : ''),
                     files: parsed.files,
                 };
             }
 
+            const parsed = parseGptMediaMessage(msg.content);
             return {
                 role: msg.role as AiChatMessage['role'],
-                content: msg.content,
+                // Never feed raw _gptMedia JSON to the model.
+                content:
+                    parsed.text ||
+                    (parsed.files?.length ? '[image]' : msg.content),
             };
         });
     }

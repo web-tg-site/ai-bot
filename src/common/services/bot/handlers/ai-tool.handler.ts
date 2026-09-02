@@ -54,7 +54,7 @@ import { SORA_EXTEND_DURATIONS } from '@/common/config/video-editor-capabilities
 import { withPersistedSession } from '../utils/bot-session-store';
 import { collectMediaGroupMessage } from '../utils/media-group-collector';
 import { mimeTypeToExtension } from '@/common/utils/parse-data-url';
-import { serializeGptUserMessage } from '@/common/utils/gpt-message-content';
+import { serializeGptAssistantMessage, serializeGptUserMessage } from '@/common/utils/gpt-message-content';
 import { compressGptHistoryImage } from '@/common/utils/compress-reference-image';
 import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
 import {
@@ -4146,10 +4146,25 @@ async function runGeneration(
                   )
                 : undefined;
             const userContent = serializeGptUserMessage(text, storedFiles);
+            const assistantImages = generationResult.images?.length
+                ? await Promise.all(
+                      generationResult.images.map((image, index) =>
+                          compressGptHistoryImage({
+                              buffer: image.buffer,
+                              mimeType: image.mimeType || 'image/png',
+                              fileName: `assistant-${index + 1}.jpg`,
+                          }),
+                      ),
+                  )
+                : undefined;
+            const assistantContent = serializeGptAssistantMessage(
+                generationResult.text,
+                assistantImages,
+            );
             await deps.gptConversationModelService.appendMessages(
                 session.ai.activeConversationId,
                 userContent,
-                generationResult.text || '[image]',
+                assistantContent,
             );
 
             if (text?.trim()) {

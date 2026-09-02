@@ -121,12 +121,6 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 🎭 Можно добавить персонажей из короткого клипа (без лиц людей)
 - ⚠️ Лица людей на фото иногда отклоняются
 
-Сколько стоит примерно
-- 4 сек — 600 кредитов
-- 8 сек — 1 200
-- 12 сек — 1 800
-- 1080p (Pro) дороже в 1.5 раза
-
 Как пользоваться
 1. Выбери режим: создать, продлить или редактировать.
 2. Напиши, что происходит в сцене.
@@ -143,7 +137,7 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 🖼️ До 4 фото — несколько примеров сразу
 - 📐 Разрешение: 720p или 1080p (1080p дороже)
 - 🔊 «Звук: вкл» — модель сама добавит звук
-- 🚫 Поле «Чего не должно быть» — напиши, чего избегать
+- 🚫 Негативный промпт — напиши, чего избегать при генерации видео
 
 Как пользоваться
 1. При желании добавь до 4 фото.
@@ -177,16 +171,13 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 📸 Одно фото — видео начнётся с этого кадра
 - 🔄 Два фото — плавный переход от первого ко второму
 - 🖼️ До 3 фото-примеров — «как должно выглядеть»
-- 🆕 «Новое видео» — с нуля
-- ⏩ «Продолжить +7 сек» — дописать ещё 7 секунд к прошлому ролику Veo
-- 🚫 Поле «Чего не должно быть» — напиши, чего избегать
+- 🚫 Негативный промпт — напиши, чего избегать при генерации видео
 
 Как пользоваться
-1. Выбери «Новое видео» или «Продолжить +7 сек».
-2. Выбери формат и качество.
-3. При желании прикрепи фото или прошлое видео.
-4. Напиши, что происходит в ролике.
-5. Запусти генерацию и подожди.`,
+1. Выбери формат и качество.
+2. При желании прикрепи фото.
+3. Напиши, что происходит в ролике.
+4. Запусти генерацию и подожди.`,
 
     [AiToolId.HIGGSFIELD]: `🎞️ Higgsfield
 Создавай видео с красивым движением камеры — как снято режиссёром.
@@ -444,12 +435,6 @@ Create short videos from text with Sora.
 - 🎭 Add characters from a short clip (no human faces)
 - ⚠️ Human faces in photos may be rejected
 
-Approximate cost
-- 4 sec — 600 credits
-- 8 sec — 1,200
-- 12 sec — 1,800
-- 1080p (Pro) costs 1.5× more
-
 How to use
 1. Choose mode: create, extend or edit.
 2. Describe what happens in the scene.
@@ -466,7 +451,7 @@ Create short videos from text or photos with Kling.
 - 🖼️ Up to 4 photos — multiple references at once
 - 📐 Resolution: 720p or 1080p (1080p costs more)
 - 🔊 "Sound: on" — the model adds audio
-- 🚫 "What to avoid" field — write what you don't want
+- 🚫 Negative prompt — write what to avoid when generating the video
 
 How to use
 1. Optionally add up to 4 photos.
@@ -500,16 +485,13 @@ Create short videos from text — audio is included in the clip.
 - 📸 One photo — video starts from that frame
 - 🔄 Two photos — smooth transition from first to second
 - 🖼️ Up to 3 reference photos — "how it should look"
-- 🆕 "New video" — from scratch
-- ⏩ "Continue +7 sec" — add 7 more seconds to a previous Veo clip
-- 🚫 "What to avoid" field — write what you don't want
+- 🚫 Negative prompt — write what to avoid when generating the video
 
 How to use
-1. Choose "New video" or "Continue +7 sec".
-2. Choose format and quality.
-3. Optionally attach photos or a previous video.
-4. Describe what happens in the clip.
-5. Run generation and wait.`,
+1. Choose format and quality.
+2. Optionally attach photos.
+3. Describe what happens in the clip.
+4. Run generation and wait.`,
 
     [AiToolId.HIGGSFIELD]: `🎞️ Higgsfield
 Create videos with beautiful camera movement — like a director shot it.

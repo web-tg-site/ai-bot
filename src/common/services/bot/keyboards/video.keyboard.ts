@@ -330,11 +330,11 @@ function generateSettingsMenuKeyboard(
         settingButtons.push(i18n.videoTool.changeFormatButton);
     }
 
-    if (options.resolutions.length) {
+    if (options.resolutions.length > 1) {
         settingButtons.push(i18n.videoTool.changeResolutionButton);
     }
 
-    if (options.qualities.length) {
+    if (options.qualities.length > 1) {
         settingButtons.push(i18n.videoTool.changeQualityButton);
     }
 

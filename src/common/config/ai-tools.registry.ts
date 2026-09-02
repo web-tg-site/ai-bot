@@ -154,7 +154,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         accepts: ['text', 'photo', 'video'],
         isAsync: true,
         instruction:
-            'Veo 3.1: 16:9 или 9:16, 720p/1080p/4K (звук всегда). 1–2 фото — first/last frame; до 3 reference images; режим Extend — +7с к своему Veo-ролику (только 720p).',
+            'Veo 3.1: 16:9 или 9:16, 720p/1080p/4K (звук всегда). 1–2 фото — first/last frame; до 3 reference images.',
     },
     {
         id: AiToolId.SORA,
