@@ -281,10 +281,6 @@ function localizeActionableProviderDetail(
 function isUserFriendlyMessage(message: string): boolean {
     const stripped = stripTechnicalErrorDetails(message);
 
-    if (containsProviderLeak(stripped)) {
-        return false;
-    }
-
     if (
         /^(AxiosError|Error:|TypeError|SyntaxError|HTTP \d+|Unknown error|Неизвестная ошибка|generation failed|Video generation failed|Dubbing failed)$/i.test(
             stripped,
@@ -293,8 +289,22 @@ function isUserFriendlyMessage(message: string): boolean {
         return false;
     }
 
+    // Cyrillic tips we throw ourselves — show even if the text names the tool
+    // ("Фото для Kling…"). Block only clearly technical dumps with a brand leak.
     if (/[а-яА-ЯёЁ]/.test(stripped) && stripped.length > 15) {
+        if (
+            containsProviderLeak(stripped) &&
+            /HTTP \d+|AxiosError|ECONNREFUSED|ETIMEDOUT|stack trace|at\s+\w+\s+\(/i.test(
+                stripped,
+            )
+        ) {
+            return false;
+        }
         return true;
+    }
+
+    if (containsProviderLeak(stripped)) {
+        return false;
     }
 
     if (
@@ -417,6 +427,17 @@ export function toUserFacingError(
     const known = matchKnownFallback(stripped, i18n);
     if (known) {
         return known;
+    }
+
+    // Our own validation tips are already written for humans (often in Russian and
+    // may mention the tool). Never replace them with the generic "something went
+    // wrong" just because the brand name trips the provider-leak filter.
+    // English provider constraint dumps still go through localization.
+    if (isUserInputValidationError(stripped)) {
+        return localizeActionableProviderDetail(
+            stripProviderPrefix(stripped),
+            i18n,
+        );
     }
 
     if (isUserFriendlyMessage(stripped)) {

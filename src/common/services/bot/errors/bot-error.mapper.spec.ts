@@ -136,6 +136,13 @@ describe('bot-error.mapper', () => {
             ).toMatch(/не смог прочитать видео/i);
         });
 
+        it('keeps Russian user validation tips that mention the tool name', () => {
+            const msg =
+                'Фото для Kling должно быть не меньше 300×300 пикселей.';
+            expect(toUserFacingError(msg, ru)).toBe(msg);
+            expect(isFailoverEligibleError(msg)).toBe(false);
+        });
+
         it.each([
             'Kling: generation failed',
             'HTTP 500 internal',

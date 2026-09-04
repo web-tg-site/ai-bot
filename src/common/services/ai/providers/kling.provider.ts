@@ -17,7 +17,6 @@ import { compressReferenceImage } from '@/common/utils/compress-reference-image'
 import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
 import { probeVideoMetadata } from '@/common/utils/probe-video-metadata';
 import { transcodeVideoToH264 } from '@/common/utils/transcode-video-h264';
-import imageSize from 'image-size';
 import { TempPublicMediaService } from '../temp-public-media.service';
 
 const DEFAULT_KLING_API_URL = 'https://api-singapore.klingai.com';
@@ -439,6 +438,8 @@ export class KlingProvider {
     /**
      * Omni image_list wants JPEG/PNG ≥300px. Sending a data-URL avoids
      * third-party hosts returning WebP/HTML that Kling rejects as invalid pixels.
+     * Tiny uploads are upscaled to the minimum rather than failing with a cryptic
+     * provider error after the user already sees a normal-looking thumbnail.
      */
     private async toOmniImageDataUrl(file: AiFileInput): Promise<string> {
         const prepared = await compressReferenceImage(file);
@@ -446,61 +447,35 @@ export class KlingProvider {
             throw new Error('Изображение для Kling не больше 10 МБ');
         }
 
-        let jpeg = prepared;
-        if (
-            !/^image\/(jpeg|png)$/i.test(prepared.mimeType) ||
-            prepared.fileName?.toLowerCase().endsWith('.webp')
-        ) {
-            const sharp = (await import('sharp')).default;
-            const buffer = await sharp(prepared.buffer)
-                .rotate()
-                .jpeg({ quality: 90, mozjpeg: true })
-                .toBuffer();
-            jpeg = {
-                buffer,
-                mimeType: 'image/jpeg',
-                fileName:
-                    prepared.fileName?.replace(/\.\w+$/i, '.jpg') ??
-                    'reference.jpg',
-            };
-        }
+        const sharp = (await import('sharp')).default;
+        const rotated = sharp(prepared.buffer).rotate();
+        const meta = await rotated.metadata();
+        const width = meta.width ?? 0;
+        const height = meta.height ?? 0;
 
-        await this.validateOmniReferenceImage(jpeg);
-
-        const mime = jpeg.mimeType.includes('png')
-            ? 'image/png'
-            : 'image/jpeg';
-        return `data:${mime};base64,${jpeg.buffer.toString('base64')}`;
-    }
-
-    private async validateOmniReferenceImage(file: AiFileInput) {
-        try {
-            const size = imageSize(file.buffer);
-            const width = size.width ?? 0;
-            const height = size.height ?? 0;
-            if (width < OMNI_IMAGE_MIN_SIDE || height < OMNI_IMAGE_MIN_SIDE) {
-                throw new Error(
-                    `Фото для Kling должно быть не меньше ${OMNI_IMAGE_MIN_SIDE}×${OMNI_IMAGE_MIN_SIDE} пикселей.`,
-                );
-            }
+        let pipeline = sharp(prepared.buffer).rotate();
+        if (width > 0 && height > 0) {
             const aspect = Math.max(width, height) / Math.min(width, height);
             if (aspect > OMNI_IMAGE_MAX_ASPECT + 0.01) {
                 throw new Error(
-                    'Слишком вытянутое фото для Kling. Используйте кадр ближе к обычному (не уже чем ~2.5:1).',
+                    'Слишком вытянутое фото. Используйте кадр ближе к обычному (не уже чем примерно 2.5:1).',
                 );
             }
-        } catch (error) {
-            if (
-                error instanceof Error &&
-                /Фото для Kling|Слишком вытянутое/.test(error.message)
-            ) {
-                throw error;
+            if (width < OMNI_IMAGE_MIN_SIDE || height < OMNI_IMAGE_MIN_SIDE) {
+                pipeline = pipeline.resize({
+                    width: Math.max(width, OMNI_IMAGE_MIN_SIDE),
+                    height: Math.max(height, OMNI_IMAGE_MIN_SIDE),
+                    fit: 'inside',
+                    withoutEnlargement: false,
+                });
             }
-            this.logger.warn(
-                { err: error instanceof Error ? error.message : error },
-                'Kling Omni: could not read image size, sending anyway',
-            );
         }
+
+        const buffer = await pipeline
+            .jpeg({ quality: 90, mozjpeg: true })
+            .toBuffer();
+
+        return `data:image/jpeg;base64,${buffer.toString('base64')}`;
     }
 
     /**
