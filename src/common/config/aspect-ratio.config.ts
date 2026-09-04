@@ -19,9 +19,6 @@ export const STANDARD_ASPECT_RATIOS = [
 /** Единый список форматов для пикера в боте (изображения и видео). */
 export const UI_ASPECT_RATIOS = [...STANDARD_ASPECT_RATIOS] as const;
 
-/** OpenAI Sora video API: только landscape и portrait. */
-export const SORA_VIDEO_ASPECT_RATIOS = ['16:9', '9:16'] as const;
-
 export type StandardAspectRatio = (typeof STANDARD_ASPECT_RATIOS)[number];
 
 const ASPECT_RATIO_LABELS_RU: Record<string, string> = {
@@ -90,7 +87,8 @@ export function orderAspectRatios(allowed: string[]): string[] {
         allowedSet.has(ratio),
     );
     const extras = allowed.filter(
-        (ratio) => !STANDARD_ASPECT_RATIOS.includes(ratio as StandardAspectRatio),
+        (ratio) =>
+            !STANDARD_ASPECT_RATIOS.includes(ratio as StandardAspectRatio),
     );
     return [...ordered, ...extras];
 }

@@ -86,7 +86,7 @@ function isContentPolicyMessage(message: string): boolean {
 }
 
 const PROVIDER_NAME_PREFIX =
-    /^(?:Kling(?:\s+API)?|BytePlus|Sharpii|Apiframe|Topaz|Midjourney|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|BFL|Luma|OpenAI(?:\s+Sora)?)\s*:\s*/i;
+    /^(?:Kling(?:\s+API)?|BytePlus|Sharpii|Apiframe|Topaz|Midjourney|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|BFL|Luma|OpenAI)\s*:\s*/i;
 
 const PROVIDER_NAME_LEAK =
     /Sharpii|Apiframe|Topaz|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|Google|BFL|Luma|Kling|BytePlus|openrouter|sharpii|apiframe|elevenlabs|kling|generativelanguage/i;
@@ -117,7 +117,11 @@ function isActionableProviderDetail(detail: string): boolean {
         return false;
     }
 
-    if (/ECONNREFUSED|ETIMEDOUT|ENOTFOUND|stack trace|at\s+\w+\s+\(/i.test(detail)) {
+    if (
+        /ECONNREFUSED|ETIMEDOUT|ENOTFOUND|stack trace|at\s+\w+\s+\(/i.test(
+            detail,
+        )
+    ) {
         return false;
     }
 
@@ -140,13 +144,11 @@ function localizeActionableProviderDetail(
 ): string {
     const ru = isRussianI18n(i18n);
 
-    const maxMatch = detail.match(
-        /(?:duration[^\d]{0,40})?(?:can\s*not|cannot|can't|must\s+not|not\s+(?:be\s+)?(?:longer|greater|more)|exceed(?:s|ed)?|max(?:imum)?(?:\s+of)?)\s*([\d.]+)\s*s(?:ec(?:onds?)?)?/i,
-    ) ?? detail.match(/longer than\s*([\d.]+)\s*s/i);
-    if (
-        maxMatch?.[1] &&
-        /duration|longer|exceed|max|video/i.test(detail)
-    ) {
+    const maxMatch =
+        detail.match(
+            /(?:duration[^\d]{0,40})?(?:can\s*not|cannot|can't|must\s+not|not\s+(?:be\s+)?(?:longer|greater|more)|exceed(?:s|ed)?|max(?:imum)?(?:\s+of)?)\s*([\d.]+)\s*s(?:ec(?:onds?)?)?/i,
+        ) ?? detail.match(/longer than\s*([\d.]+)\s*s/i);
+    if (maxMatch?.[1] && /duration|longer|exceed|max|video/i.test(detail)) {
         const sec = maxMatch[1].replace(/\.0$/, '');
         if (sec === '10') {
             return ru
@@ -158,13 +160,11 @@ function localizeActionableProviderDetail(
             : `Video duration must not exceed ${sec}s. Shorten the clip and try again.`;
     }
 
-    const minMatch = detail.match(
-        /(?:duration[^\d]{0,40})?(?:can\s*not|cannot|can't|must\s+not|not\s+(?:be\s+)?(?:shorter|less)|at\s+least|min(?:imum)?(?:\s+of)?)\s*([\d.]+)\s*s(?:ec(?:onds?)?)?/i,
-    ) ?? detail.match(/shorter than\s*([\d.]+)\s*s/i);
-    if (
-        minMatch?.[1] &&
-        /duration|shorter|least|min|video/i.test(detail)
-    ) {
+    const minMatch =
+        detail.match(
+            /(?:duration[^\d]{0,40})?(?:can\s*not|cannot|can't|must\s+not|not\s+(?:be\s+)?(?:shorter|less)|at\s+least|min(?:imum)?(?:\s+of)?)\s*([\d.]+)\s*s(?:ec(?:onds?)?)?/i,
+        ) ?? detail.match(/shorter than\s*([\d.]+)\s*s/i);
+    if (minMatch?.[1] && /duration|shorter|least|min|video/i.test(detail)) {
         const sec = minMatch[1].replace(/\.0$/, '');
         return ru
             ? `Длительность видео должна быть не меньше ${sec} с. Загрузите более длинный клип.`
@@ -172,14 +172,14 @@ function localizeActionableProviderDetail(
     }
 
     if (
-            /copyright|trademark|intellectual property|\bip\b|third[- ]party|franchis|licensed character|real person|public figure|famous/i.test(
-                detail,
-            )
-        ) {
-            return ru
-                ? 'Sora не принимает известных персонажей из фильмов и игр. Используйте свой оригинальный персонаж или объект.'
-                : 'Sora rejects well-known film/game characters. Use your own original character or object.';
-        }
+        /copyright|trademark|intellectual property|\bip\b|third[- ]party|franchis|licensed character|real person|public figure|famous/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'Нейросеть не принимает известных персонажей из фильмов и игр. Используйте свой оригинальный персонаж или объект.'
+            : 'The model rejects well-known film/game characters. Use your own original character or object.';
+    }
 
     if (
         /unsupported video format|accepted inputs:\s*mp4|h\.?264|hevc|h\.?265|video\/quicktime|codec not supported/i.test(
@@ -227,7 +227,7 @@ function isUserFriendlyMessage(message: string): boolean {
     }
 
     if (
-        /try again|please try|Попробуйте|Недостаточно|недоступен|недоступна|стороне провайдера|Sora отклонила|OpenAI Sora/i.test(
+        /try again|please try|Попробуйте|Недостаточно|недоступен|недоступна|стороне провайдера/i.test(
             stripped,
         )
     ) {
@@ -305,7 +305,11 @@ function matchKnownFallback(
         return i18n.aiResult.userErrors.checkoutFailed;
     }
 
-    if (/Request failed with status code|status code 422|HTTP 422/i.test(message)) {
+    if (
+        /Request failed with status code|status code 422|HTTP 422/i.test(
+            message,
+        )
+    ) {
         return i18n.aiResult.userErrors.generationFailed;
     }
 

@@ -40,18 +40,21 @@ export function registerApiframeActionHandlers(
         },
     );
 
-    bot.action(/^ai:mj:pan:(up|down|left|right):([a-f0-9-]+)$/i, async (ctx) => {
-        const direction = ctx.match[1].toLowerCase() as
-            | 'up'
-            | 'down'
-            | 'left'
-            | 'right';
-        await runImmediateMjAction(asBotContext(ctx), deps, {
-            action: 'pan',
-            actionDirection: direction,
-            parentJobId: ctx.match[2],
-        });
-    });
+    bot.action(
+        /^ai:mj:pan:(up|down|left|right):([a-f0-9-]+)$/i,
+        async (ctx) => {
+            const direction = ctx.match[1].toLowerCase() as
+                | 'up'
+                | 'down'
+                | 'left'
+                | 'right';
+            await runImmediateMjAction(asBotContext(ctx), deps, {
+                action: 'pan',
+                actionDirection: direction,
+                parentJobId: ctx.match[2],
+            });
+        },
+    );
 
     bot.action(/^ai:mj:outpaint:([a-f0-9-]+)$/i, async (ctx) => {
         await runImmediateMjAction(asBotContext(ctx), deps, {
@@ -352,9 +355,7 @@ export async function tryHandlePendingApiframeFollowUp(
 
     if (session.ai.awaitingMjInpaint) {
         const pending = session.ai.awaitingMjInpaint;
-        const mask = params.files?.find((f) =>
-            f.mimeType.startsWith('image/'),
-        );
+        const mask = params.files?.find((f) => f.mimeType.startsWith('image/'));
         if (!mask) {
             await ctx.reply(i18n.aiResult.midjourneyInpaintPrompt, {
                 parse_mode: 'HTML',

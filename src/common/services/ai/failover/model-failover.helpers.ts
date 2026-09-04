@@ -10,11 +10,7 @@ import {
 } from '@/common/services/bot/errors/bot-error.mapper';
 import { getI18n, getToolLabel } from '@/common/services/bot/i18n';
 import { UserLanguage } from '@/generated/prisma/enums';
-import {
-    AiGenerationInput,
-    AiInputType,
-    AiToolId,
-} from '../types';
+import { AiGenerationInput, AiInputType, AiToolId } from '../types';
 
 /** Tools that must never participate in auto-failover (source or target). */
 export const FAILOVER_EXCLUDED_TOOL_IDS = new Set<AiToolId>([
@@ -88,9 +84,7 @@ export function reviveGenerationInput(raw: unknown): AiGenerationInput {
     };
 }
 
-export function getRequiredInputTypes(
-    input: AiGenerationInput,
-): AiInputType[] {
+export function getRequiredInputTypes(input: AiGenerationInput): AiInputType[] {
     const types = new Set<AiInputType>();
     if (input.prompt?.trim()) {
         types.add('text');

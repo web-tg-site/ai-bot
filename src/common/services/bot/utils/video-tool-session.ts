@@ -113,7 +113,6 @@ export function buildVideoEditorReplyKeyboard(
         options.toolId,
         options.capabilitiesService,
         options.localeTag,
-        options.session,
     );
 
     return generateVideoEditorReplyKeyboard(i18n, {

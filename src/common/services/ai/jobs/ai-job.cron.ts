@@ -12,8 +12,7 @@ import {
 } from '@/common/config/ai-job.config';
 import { AiService } from '../ai.service';
 import { AiJobService } from './ai-job.service';
-import { AiGenerationInput, AiGenerationResult, AiToolId } from '../types';
-import { buildOpenAiVideoResultUrl } from '../providers/openai.provider';
+import { AiGenerationResult, AiToolId } from '../types';
 import { AI_JOB_STALE_REMINDER_TEXT } from '@/common/services/bot/texts';
 import { getI18n, getToolLabel } from '@/common/services/bot/i18n';
 import {
@@ -289,18 +288,9 @@ export class AiJobCron {
                 result,
             );
 
-            let resultUrl = resolved.url ?? result.url;
-            if (
-                !resultUrl &&
-                job.toolId === AiToolId.SORA &&
-                job.providerJobId
-            ) {
-                resultUrl = buildOpenAiVideoResultUrl(job.providerJobId);
-            }
+            const resultUrl = resolved.url ?? result.url;
 
-            const resultJson =
-                (resolved.resultJson as ApiframeResultJson | undefined) ??
-                (result.resultJson as ApiframeResultJson | undefined);
+            const resultJson = resolved.resultJson ?? result.resultJson;
 
             await this.ensureJobMediaCached(job.id, resolved, resultUrl);
 
@@ -325,34 +315,6 @@ export class AiJobCron {
                     resolved,
                     resultJson,
                 );
-
-                if (
-                    job.toolId === AiToolId.SORA &&
-                    job.providerJobId &&
-                    job.inputJson &&
-                    (job.inputJson as AiGenerationInput).soraVideoMode !==
-                        'extend'
-                ) {
-                    const i18n = getI18n(job.user.language);
-                    await botService.sendMessage(
-                        job.user.telegramId,
-                        i18n.videoTool.soraExtendHint,
-                        {
-                            parse_mode: 'HTML',
-                            reply_markup: {
-                                inline_keyboard: [
-                                    [
-                                        {
-                                            text: i18n.videoTool
-                                                .soraExtendButton,
-                                            callback_data: `ai:sora:extend:${job.providerJobId}`,
-                                        },
-                                    ],
-                                ],
-                            },
-                        },
-                    );
-                }
 
                 const actionKeyboard = buildApiframeResultKeyboard(
                     job.id,
@@ -405,10 +367,7 @@ export class AiJobCron {
             job.userId,
             job.toolId as AiToolId,
         );
-        const caption = getToolLabel(
-            job.toolId as AiToolId,
-            job.user.language,
-        );
+        const caption = getToolLabel(job.toolId as AiToolId, job.user.language);
 
         if (
             resultJson?.kind === 'midjourney_grid' &&

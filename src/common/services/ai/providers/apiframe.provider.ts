@@ -18,7 +18,10 @@ import {
     SUNO_MODEL_VERSIONS,
     type SunoModelVersion,
 } from '@/common/config/apiframe.config';
-import { midjourneyQualityToQParam, MIDJOURNEY_MAX_REFERENCES } from '@/common/config/image-editor-capabilities.config';
+import {
+    midjourneyQualityToQParam,
+    MIDJOURNEY_MAX_REFERENCES,
+} from '@/common/config/image-editor-capabilities.config';
 import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
 import {
     AiGenerationInput,
@@ -180,9 +183,7 @@ export class ApiframeProvider {
                 return status.result;
             }
             if (status.status === 'failed') {
-                throw new Error(
-                    status.errorMessage ?? 'Generation failed',
-                );
+                throw new Error(status.errorMessage ?? 'Generation failed');
             }
         }
 
@@ -280,10 +281,7 @@ export class ApiframeProvider {
 
         if (instrumental) {
             customMode = false;
-            prompt =
-                description ||
-                style ||
-                'instrumental track';
+            prompt = description || style || 'instrumental track';
         } else if (lyrics) {
             customMode = true;
             prompt = lyrics;
@@ -306,9 +304,7 @@ export class ApiframeProvider {
         const sunoParams: Record<string, unknown> = {
             custom_mode: customMode,
             instrumental,
-            model_version: this.resolveSunoModelVersion(
-                input.sunoModelVersion,
-            ),
+            model_version: this.resolveSunoModelVersion(input.sunoModelVersion),
         };
 
         if (style) {
@@ -472,7 +468,9 @@ export class ApiframeProvider {
                 body.style = style.slice(0, 1000);
             }
             if (input.sunoNegativeTags?.trim()) {
-                body.negative_tags = input.sunoNegativeTags.trim().slice(0, 500);
+                body.negative_tags = input.sunoNegativeTags
+                    .trim()
+                    .slice(0, 500);
             }
         }
 
@@ -493,7 +491,9 @@ export class ApiframeProvider {
                 body.style = style.slice(0, 1000);
             }
             if (input.sunoNegativeTags?.trim()) {
-                body.negative_tags = input.sunoNegativeTags.trim().slice(0, 500);
+                body.negative_tags = input.sunoNegativeTags
+                    .trim()
+                    .slice(0, 500);
             }
             if (
                 action === 'cover' &&
@@ -594,18 +594,16 @@ export class ApiframeProvider {
         return raw
             .filter((t) => t?.audioUrl)
             .map((t) => ({
-                id: String(t!.id ?? ''),
-                audioUrl: String(t!.audioUrl),
-                imageUrl: t!.imageUrl ?? null,
-                title: t!.title ?? null,
-                tags: t!.tags ?? null,
-                duration: t!.duration ?? null,
+                id: String(t.id ?? ''),
+                audioUrl: String(t.audioUrl),
+                imageUrl: t.imageUrl ?? null,
+                title: t.title ?? null,
+                tags: t.tags ?? null,
+                duration: t.duration ?? null,
             }));
     }
 
-    private resolveSunoModelVersion(
-        value?: string,
-    ): SunoModelVersion {
+    private resolveSunoModelVersion(value?: string): SunoModelVersion {
         if (
             value &&
             (SUNO_MODEL_VERSIONS as readonly string[]).includes(value)
@@ -685,9 +683,7 @@ export class ApiframeProvider {
             const message =
                 typeof data === 'string'
                     ? data
-                    : (data?.message ??
-                      data?.error ??
-                      error.message);
+                    : (data?.message ?? data?.error ?? error.message);
             this.logger.warn(
                 {
                     path,

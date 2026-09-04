@@ -257,7 +257,9 @@ export function generateVideoEditorReplyKeyboard(
                 id: String(speed),
                 label: `${speed}x`,
             })),
-            String(options.settings.heygenVoiceSpeed ?? DEFAULT_HEYGEN_VOICE_SPEED),
+            String(
+                options.settings.heygenVoiceSpeed ?? DEFAULT_HEYGEN_VOICE_SPEED,
+            ),
         );
     }
 
@@ -269,7 +271,9 @@ export function generateVideoEditorReplyKeyboard(
                 id: String(pitch),
                 label: String(pitch),
             })),
-            String(options.settings.heygenVoicePitch ?? DEFAULT_HEYGEN_VOICE_PITCH),
+            String(
+                options.settings.heygenVoicePitch ?? DEFAULT_HEYGEN_VOICE_PITCH,
+            ),
         );
     }
 

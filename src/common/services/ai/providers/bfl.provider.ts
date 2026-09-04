@@ -10,11 +10,20 @@ import {
     AiJobStatusResult,
 } from '../types';
 import { AiToolId } from '../types';
+import imageSize from 'image-size';
 import { downloadRemoteFile } from '@/common/utils/download-remote-file';
 import { isImageMedia } from '@/common/utils/media-kind';
+import { FLUX_OUTPAINT_CANVAS } from '@/common/config/flux-image-modes.config';
 
 const BFL_BASE_URL = 'https://api.bfl.ai';
 export const BFL_JOB_PREFIX = 'bfl|';
+
+/** BFL rejects an outpaint canvas above 4 MP (2048×2048) with a 422. */
+const OUTPAINT_MAX_PIXELS = 2048 * 2048;
+/** Room left around the source for the model to paint into. */
+const OUTPAINT_EXPAND_FACTOR = 1.35;
+const OUTPAINT_CANVAS_STEP = 32;
+const OUTPAINT_MIN_SIDE = 64;
 
 type FluxOperation = 'pro' | 'outpaint' | 'deblur' | 'vto';
 
@@ -62,7 +71,7 @@ export class BflProvider {
 
         const operation = this.resolveFluxOperation(input);
         const endpoint = FLUX_ENDPOINTS[operation];
-        const body = this.buildFluxBody(operation, input);
+        const body = await this.buildFluxBody(operation, input);
         const response = await this.post<BflSubmitResponse>(endpoint, body);
 
         if (!response.polling_url) {
@@ -88,7 +97,8 @@ export class BflProvider {
         if (status === 'completed' && result.result?.sample) {
             const sampleUrl = result.result.sample;
             try {
-                const { buffer, mimeType } = await downloadRemoteFile(sampleUrl);
+                const { buffer, mimeType } =
+                    await downloadRemoteFile(sampleUrl);
                 return {
                     status,
                     result: {
@@ -114,8 +124,7 @@ export class BflProvider {
             return {
                 status,
                 errorMessage:
-                    result.error ??
-                    `BFL generation failed (${result.status})`,
+                    result.error ?? `BFL generation failed (${result.status})`,
             };
         }
 
@@ -154,10 +163,10 @@ export class BflProvider {
         return 'pro';
     }
 
-    private buildFluxBody(
+    private async buildFluxBody(
         operation: FluxOperation,
         input: AiGenerationInput,
-    ): Record<string, unknown> {
+    ): Promise<Record<string, unknown>> {
         switch (operation) {
             case 'outpaint':
                 return this.buildOutpaintBody(input);
@@ -207,9 +216,16 @@ export class BflProvider {
         return body;
     }
 
-    private buildOutpaintBody(
+    /**
+     * The canvas has to be built from the real source size: a fixed 1024×1024
+     * frame is smaller than the 1600px uploads the mini-app sends, so BFL
+     * centred the reference out of bounds and answered 422. Here the canvas is
+     * grown around the source under the requested aspect ratio, and the source
+     * is downscaled when the 4 MP canvas budget cannot hold it.
+     */
+    private async buildOutpaintBody(
         input: AiGenerationInput,
-    ): Record<string, unknown> {
+    ): Promise<Record<string, unknown>> {
         const image = input.files?.find((file) =>
             isImageMedia(file.mimeType, file.fileName),
         );
@@ -217,24 +233,146 @@ export class BflProvider {
             throw new Error('Загрузите изображение для расширения кадра');
         }
 
+        const source = this.readImageSize(image);
+        const canvas = source
+            ? this.resolveOutpaintCanvas(source, input.aspectRatio)
+            : {
+                  width: input.outpaintWidth ?? FLUX_OUTPAINT_CANVAS.width,
+                  height: input.outpaintHeight ?? FLUX_OUTPAINT_CANVAS.height,
+              };
+
+        const reference = source
+            ? await this.fitReferenceIntoCanvas(image, source, canvas)
+            : { file: image, width: null, height: null };
+
         const body: Record<string, unknown> = {
-            input_image: fileToBase64(image),
-            width: input.outpaintWidth ?? 1024,
-            height: input.outpaintHeight ?? 1024,
+            input_image: fileToBase64(reference.file),
+            width: canvas.width,
+            height: canvas.height,
+            // Cheap insurance: rounding may leave the reference a pixel over the
+            // edge, and without auto_crop that is a 422 instead of a result.
+            auto_crop: true,
             output_format: 'png',
         };
 
-        if (input.outpaintOffsetX !== undefined) {
-            body.reference_offset_x = input.outpaintOffsetX;
+        if (reference.width != null && reference.height != null) {
+            body.reference_offset_x = Math.max(
+                0,
+                Math.floor((canvas.width - reference.width) / 2),
+            );
+            body.reference_offset_y = Math.max(
+                0,
+                Math.floor((canvas.height - reference.height) / 2),
+            );
         }
-        if (input.outpaintOffsetY !== undefined) {
-            body.reference_offset_y = input.outpaintOffsetY;
-        }
+
         if (input.prompt?.trim()) {
             body.prompt = input.prompt.trim();
         }
 
         return body;
+    }
+
+    private readImageSize(
+        file: AiFileInput,
+    ): { width: number; height: number } | null {
+        try {
+            const size = imageSize(file.buffer);
+            if (!size.width || !size.height) return null;
+            return { width: size.width, height: size.height };
+        } catch (error) {
+            this.logger.warn(
+                { err: error instanceof Error ? error.message : error },
+                'BFL outpaint: could not read source size, falling back to preset canvas',
+            );
+            return null;
+        }
+    }
+
+    /**
+     * Grows the canvas around the source: at least `OUTPAINT_EXPAND_FACTOR` on
+     * the tighter side, more on the other when the target ratio asks for it.
+     * Sides are floored to a multiple of 32 so the result stays under 4 MP.
+     */
+    private resolveOutpaintCanvas(
+        source: { width: number; height: number },
+        aspectRatio: string | undefined,
+    ): { width: number; height: number } {
+        const ratio =
+            this.resolveOutpaintRatio(aspectRatio) ??
+            source.width / source.height;
+
+        let height = Math.max(
+            source.height * OUTPAINT_EXPAND_FACTOR,
+            (source.width * OUTPAINT_EXPAND_FACTOR) / ratio,
+        );
+        let width = height * ratio;
+
+        const pixels = width * height;
+        if (pixels > OUTPAINT_MAX_PIXELS) {
+            const scale = Math.sqrt(OUTPAINT_MAX_PIXELS / pixels);
+            width *= scale;
+            height *= scale;
+        }
+
+        return {
+            width: floorToCanvasStep(width),
+            height: floorToCanvasStep(height),
+        };
+    }
+
+    private resolveOutpaintRatio(
+        aspectRatio: string | undefined,
+    ): number | null {
+        if (!aspectRatio) return null;
+        const [wRaw, hRaw] = aspectRatio.split(':');
+        const w = Number(wRaw);
+        const h = Number(hRaw);
+        if (!w || !h) return null;
+        return w / h;
+    }
+
+    /**
+     * A 4 MP canvas can end up smaller than the upload. Shrinking the reference
+     * keeps the whole frame visible instead of letting `auto_crop` cut it.
+     */
+    private async fitReferenceIntoCanvas(
+        file: AiFileInput,
+        source: { width: number; height: number },
+        canvas: { width: number; height: number },
+    ): Promise<{ file: AiFileInput; width: number; height: number }> {
+        const scale = Math.min(
+            canvas.width / source.width,
+            canvas.height / source.height,
+            1,
+        );
+        if (scale >= 1) {
+            return { file, width: source.width, height: source.height };
+        }
+
+        const width = Math.max(1, Math.floor(source.width * scale));
+        const height = Math.max(1, Math.floor(source.height * scale));
+
+        try {
+            const sharp = (await import('sharp')).default;
+            const buffer = await sharp(file.buffer)
+                .rotate()
+                .resize({ width, height, fit: 'inside' })
+                .png()
+                .toBuffer();
+            const resized = this.readImageSize({ ...file, buffer });
+            return {
+                file: { ...file, buffer, mimeType: 'image/png' },
+                width: resized?.width ?? width,
+                height: resized?.height ?? height,
+            };
+        } catch (error) {
+            this.logger.warn(
+                { err: error instanceof Error ? error.message : error },
+                'BFL outpaint: source downscale failed, relying on auto_crop',
+            );
+            return { file, width: source.width, height: source.height };
+        }
     }
 
     private buildDeblurBody(input: AiGenerationInput): Record<string, unknown> {
@@ -286,9 +424,12 @@ export class BflProvider {
         const normalized = status.toLowerCase();
         if (normalized === 'ready') return 'completed';
         if (
-            ['error', 'failed', 'request moderated', 'content moderated'].includes(
-                normalized,
-            )
+            [
+                'error',
+                'failed',
+                'request moderated',
+                'content moderated',
+            ].includes(normalized)
         ) {
             return 'failed';
         }
@@ -296,10 +437,7 @@ export class BflProvider {
         return 'processing';
     }
 
-    private inferResultType(
-        url: string,
-        mimeType: string,
-    ): 'image' | 'video' {
+    private inferResultType(url: string, mimeType: string): 'image' | 'video' {
         if (
             mimeType.startsWith('video/') ||
             url.includes('.mp4') ||
@@ -481,4 +619,11 @@ export function aspectRatioToDimensions(
 
 function roundToMultiple(value: number, multiple: number): number {
     return Math.round(value / multiple) * multiple;
+}
+
+/** Floors, never rounds up: rounding up could push the canvas over 4 MP. */
+function floorToCanvasStep(value: number): number {
+    const stepped =
+        Math.floor(value / OUTPAINT_CANVAS_STEP) * OUTPAINT_CANVAS_STEP;
+    return Math.max(OUTPAINT_MIN_SIDE, stepped);
 }

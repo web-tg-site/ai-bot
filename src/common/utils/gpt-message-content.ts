@@ -28,9 +28,8 @@ export function serializeGptUserMessage(
 ): string {
     const trimmed = text?.trim();
     const imageFiles =
-        files?.filter((file) =>
-            isImageMedia(file.mimeType, file.fileName),
-        ) ?? [];
+        files?.filter((file) => isImageMedia(file.mimeType, file.fileName)) ??
+        [];
     const mediaNotes = describeNonImageAttachments(files);
     const combinedText = [trimmed, mediaNotes].filter(Boolean).join('\n');
 
@@ -52,9 +51,8 @@ export function serializeGptAssistantMessage(
 ): string {
     const trimmed = text?.trim();
     const imageFiles =
-        files?.filter((file) =>
-            isImageMedia(file.mimeType, file.fileName),
-        ) ?? [];
+        files?.filter((file) => isImageMedia(file.mimeType, file.fileName)) ??
+        [];
 
     if (!imageFiles.length) {
         return trimmed || '';
@@ -72,11 +70,13 @@ function stringifyGptMediaMessage(params: {
     files: AiFileInput[];
     jobId?: string;
 }): string {
-    const attachments = params.files.slice(0, MAX_STORED_GPT_IMAGES).map((file) => ({
-        mimeType: file.mimeType,
-        data: file.buffer.toString('base64'),
-        fileName: file.fileName,
-    }));
+    const attachments = params.files
+        .slice(0, MAX_STORED_GPT_IMAGES)
+        .map((file) => ({
+            mimeType: file.mimeType,
+            data: file.buffer.toString('base64'),
+            fileName: file.fileName,
+        }));
 
     const payload: StoredGptMediaMessage = {
         _gptMedia: true,

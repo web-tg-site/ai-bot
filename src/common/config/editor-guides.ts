@@ -8,12 +8,13 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 💡 Объяснит сложное простыми словами
 - 📄 Разберёт документ, таблицу или код
 - 📷 Посмотрит на фото и расскажет, что на нём
+- 🎬 Разберёт короткое видео
 - 🔄 Продолжай диалог — «сделай короче», «перепиши мягче» и другие правки
 
 Как пользоваться
 1. Напиши задачу своими словами.
 2. Чем подробнее — тем лучше ответ.
-3. При желании прикрепи файл или фото.
+3. При желании прикрепи фото, видео или файл («Фото, видео, файлы»).
 4. Отправь.
 5. Нужно поправить? Просто напиши, что изменить — GPT продолжит диалог.`,
 
@@ -23,12 +24,12 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 📚 Хорошо читает большие документы
 - ✍️ Помогает писать и править тексты
 - 💻 Разбирает код и сложные задачи
-- 📎 Можно прикрепить файл или фото
+- 📎 Можно прикрепить фото и документы (видео Claude не читает)
 - 🎯 Отвечает спокойно и по делу
 
 Как пользоваться
 1. Напиши, что нужно.
-2. Добавь файл или фото, если они важны.
+2. Добавь фото или документ, если они важны («Фото и документы»).
 3. Скажи, в каком виде хочешь ответ (список, план, коротко).
 4. Отправь.
 5. Нужно уточнить? Просто продолжай диалог в чате.`,
@@ -39,7 +40,8 @@ const RU: Partial<Record<AiToolId, string>> = {
 - ✍️ Опиши идею — Sora создаст новую картинку
 - 📸 Добавь до 10 фото в качестве примеров или референсов
 - 🔤 Хорошо пишет текст на картинке (вывески, надписи)
-- 📐 Выбери качество: 1K, 2K или 4K
+- ✨ Качество: базовое, стандартное или высокое (насколько тщательно рисует)
+- 📐 Размер задаётся форматом кадра
 
 Как пользоваться
 1. Опиши, что нужно на картинке.
@@ -53,7 +55,8 @@ const RU: Partial<Record<AiToolId, string>> = {
 
 - ✍️ Опиши, что хочешь увидеть — получишь 4 картинки сразу
 - 📸 Можно прикрепить до 10 фото-референсов
-- 📐 Качество: 720p, 1080p или 4K
+- ✨ Качество: черновик, стандартное или детальное (насколько тщательно рисует)
+- 📐 Размер задаётся форматом кадра — отдельного выбора разрешения у Midjourney нет
 
 Как пользоваться
 1. Опиши картинку простыми словами.
@@ -86,10 +89,10 @@ const RU: Partial<Record<AiToolId, string>> = {
 - ✍️ Опиши идею — Seedream создаст картинку по тексту
 - 📸 Добавь своё фото — можно изменить или доработать изображение
 - 🖼️ Прикрепи примеры для более точного результата
-- 📐 Выбери качество: 2K или 4K
+- 📐 Выбери размер: 2K или 4K
 
 Как пользоваться
-1. Выбери качество картинки.
+1. Выбери размер картинки.
 2. При желании добавь своё фото или примеры.
 3. Напиши, что хочешь получить.
 4. Запусти генерацию.`,
@@ -101,31 +104,14 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 🔍 «Резкость» — сделать размытое фото чётче (текст не нужен)
 - 👗 «Примерка» — человек + фото одежды
 - 🖼️ «Расширить» — добавить место вокруг фото
-- 📐 Можно выбрать формат и качество
+- ✨ Качество: базовое, стандартное или высокое
+- 📐 Размер задаётся форматом кадра
 
 Как пользоваться
 1. Выбери режим.
 2. Добавь нужные фото (кнопка подскажет, какие).
 3. Если режим просит — напиши текст.
-4. Выбери качество и запусти генерацию.`,
-
-    [AiToolId.SORA]: `🎬 Sora
-Создавай короткие видео по тексту с помощью Sora.
-
-- ✍️ Опиши сцену — получишь ролик на 4, 8 или 12 секунд
-- 📸 Прикрепи одно фото — видео начнётся с него
-- 🆕 «Создать» — новое видео с нуля
-- ⏩ «Продлить» — продолжить уже готовый ролик Sora
-- ✏️ «Редактировать» — изменить готовое видео по тексту
-- 📐 Формат: широкий (16:9) или вертикальный сторис (9:16)
-- ⚠️ Лица людей на фото иногда отклоняются
-
-Как пользоваться
-1. Выбери режим: создать, продлить или редактировать.
-2. Напиши, что происходит в сцене.
-3. При желании добавь одно фото или готовое видео.
-4. Выбери формат, разрешение и длительность.
-5. Запусти и подожди. Чтобы продлить — нажми «Продлить видео» под готовым роликом.`,
+4. Выбери формат и качество и запусти генерацию.`,
 
     [AiToolId.KLING]: `🎥 Kling
 Создавай короткие видео по тексту или фото с помощью Kling.
@@ -134,12 +120,19 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 📸 1 фото — видео начнётся с него
 - 🔄 2 фото — плавный переход от первого кадра ко второму
 - 🖼️ До 4 фото — несколько примеров сразу
+- 🎬 1 видео — референс стиля, движения и работы камеры: получишь новый ролик, снятый «как этот»
 - 📐 Разрешение: 720p или 1080p (1080p дороже)
 - 🔊 «Звук: вкл» — модель сама добавит звук
 - 🚫 Негативный промпт — напиши, чего избегать при генерации видео
 
+Видео-референс: что нужно знать
+- Ровно один клип, 3–10 секунд, до 200 МБ, 700–2160 px по стороне
+- Промпт обязателен — опиши, что должно быть в новом ролике
+- Звук с видео-референсом не генерируется (ограничение Kling)
+- Длительность результата — 5 или 10 секунд
+
 Как пользоваться
-1. При желании добавь до 4 фото.
+1. При желании добавь до 4 фото или одно видео.
 2. Напиши, что происходит в ролике.
 3. Выбери формат, длительность, 720p/1080p и звук.
 4. Запусти генерацию.`,
@@ -230,18 +223,18 @@ const RU: Partial<Record<AiToolId, string>> = {
 1. Выбери формат и длительность.
 2. При желании добавь фото, видео или звук.
 3. Напиши, что должно получиться.
-4. Выбери качество и запусти.`,
+4. Выбери разрешение и запусти.`,
 
     [AiToolId.LUMA_RAY]: `🎥 Luma Ray
-Оживляет картинку в короткое кинематографичное видео.
+Оживляет картинку или видео-референс в короткое кинематографичное видео.
 
 - 📸 Можно начать с одного фото
+- 🎬 Можно прикрепить фото или видео-референс
 - 🔄 Можно задать начало и конец (два кадра)
-- 🎬 Хорошо получается движение камеры и атмосфера
 - ✍️ Опиши, куда едет камера и что делает объект
 
 Как пользоваться
-1. При желании добавь фото начала (и конца).
+1. При желании добавь фото или видео.
 2. Напиши движение объекта и камеры.
 3. Выбери формат, длительность и стиль.
 4. Запусти генерацию.`,
@@ -316,12 +309,13 @@ A smart chat assistant — answers questions and helps with any task.
 - 💡 Explains complex things in simple words
 - 📄 Parses documents, spreadsheets or code
 - 📷 Looks at a photo and tells you what's in it
+- 🎬 Can review a short video
 - 🔄 Continue the dialogue — "make it shorter", "rewrite more gently" and other edits
 
 How to use
 1. Describe your task in your own words.
 2. The more detail you provide, the better the answer.
-3. Optionally attach a file or photo.
+3. Optionally attach a photo, video or file ("Photos, video, files").
 4. Send.
 5. Need changes? Just say what to fix — GPT will continue the conversation.`,
 
@@ -331,12 +325,12 @@ A smart chat assistant — especially good for long texts and complex analysis.
 - 📚 Reads large documents well
 - ✍️ Helps write and edit texts
 - 💻 Breaks down code and complex tasks
-- 📎 You can attach a file or photo
+- 📎 You can attach photos and documents (Claude cannot read video)
 - 🎯 Responds calmly and to the point
 
 How to use
 1. Write what you need.
-2. Add a file or photo if they matter.
+2. Add a photo or document if they matter ("Photos and documents").
 3. Say what format you want (list, plan, brief).
 4. Send.
 5. Need to clarify? Just continue the chat.`,
@@ -347,7 +341,8 @@ Create and edit images from text with Sora.
 - ✍️ Describe your idea — Sora will create a new image
 - 📸 Add up to 10 photos as examples or references
 - 🔤 Great at text on images (signs, labels)
-- 📐 Choose quality: 1K, 2K or 4K
+- ✨ Quality: basic, standard or high (how carefully it renders)
+- 📐 Size follows the frame aspect ratio
 
 How to use
 1. Describe what should be in the image.
@@ -365,7 +360,8 @@ Draws images from descriptions — first shows a grid of 4 variants.
 - 🔀 V1–V4 — create similar variants of the selected one
 - ↔️ You can pan the frame or zoom out
 - 🖌️ You can mask an area and repaint only that part
-- 📐 Quality: 720p, 1080p or 4K
+- ✨ Quality: draft, standard or detailed (render effort)
+- 📐 Size follows the frame aspect ratio — Midjourney has no separate resolution picker
 
 How to use
 1. Describe the image in simple words.
@@ -399,10 +395,10 @@ Create and edit images — great for ads, products and beautiful photos.
 - ✍️ Describe your idea — Seedream creates an image from text
 - 📸 Add your photo — change or refine the image
 - 🖼️ Attach references for a more accurate result
-- 📐 Choose quality: 2K or 4K
+- 📐 Choose size: 2K or 4K
 
 How to use
-1. Choose image quality.
+1. Choose image size.
 2. Optionally add your photo or references.
 3. Write what you want to get.
 4. Run generation.`,
@@ -414,31 +410,14 @@ Creates realistic images with several modes for different tasks.
 - 🔍 "Sharpen" — make a blurry photo sharper (no text needed)
 - 👗 "Try-on" — person + clothing photo
 - 🖼️ "Expand" — add space around the photo
-- 📐 Choose format and quality
+- ✨ Quality: basic, standard or high
+- 📐 Size follows the frame aspect ratio
 
 How to use
 1. Choose a mode.
 2. Add the required photos (the button will hint which ones).
 3. If the mode asks — write a prompt.
-4. Choose quality and run generation.`,
-
-    [AiToolId.SORA]: `🎬 Sora
-Create short videos from text with Sora.
-
-- ✍️ Describe the scene — get a 4, 8 or 12 second clip
-- 📸 Attach one photo — the video starts from it
-- 🆕 "Create" — new video from scratch
-- ⏩ "Extend" — continue an existing Sora clip
-- ✏️ "Edit" — change a finished video with a prompt
-- 📐 Format: widescreen (16:9) or vertical stories (9:16)
-- ⚠️ Human faces in photos may be rejected
-
-How to use
-1. Choose mode: create, extend or edit.
-2. Describe what happens in the scene.
-3. Optionally add one photo or a finished video.
-4. Choose format, resolution and duration.
-5. Run and wait. To extend — tap "Extend video" under a finished clip.`,
+4. Choose format and quality and run generation.`,
 
     [AiToolId.KLING]: `🎥 Kling
 Create short videos from text or photos with Kling.
@@ -447,12 +426,19 @@ Create short videos from text or photos with Kling.
 - 📸 1 photo — video starts from it
 - 🔄 2 photos — smooth transition from first to last frame
 - 🖼️ Up to 4 photos — multiple references at once
+- 🎬 1 video — a style, motion and camera reference: you get a new clip shot "like this one"
 - 📐 Resolution: 720p or 1080p (1080p costs more)
 - 🔊 "Sound: on" — the model adds audio
 - 🚫 Negative prompt — write what to avoid when generating the video
 
+Reference video: what to know
+- Exactly one clip, 3–10 seconds, up to 200 MB, 700–2160 px per side
+- A prompt is required — describe what the new clip should show
+- Sound is not generated with a reference video (Kling limitation)
+- Output duration is 5 or 10 seconds
+
 How to use
-1. Optionally add up to 4 photos.
+1. Optionally add up to 4 photos or one video.
 2. Describe what happens in the clip.
 3. Choose format, duration, 720p/1080p and sound.
 4. Run generation.`,
@@ -543,18 +529,18 @@ How to use
 1. Choose format and duration.
 2. Optionally add photos, video or audio.
 3. Describe what you want to get.
-4. Choose quality and run.`,
+4. Choose resolution and run.`,
 
     [AiToolId.LUMA_RAY]: `🎥 Luma Ray
-Animates an image into a short cinematic video.
+Animates a photo or video reference into a short cinematic clip.
 
 - 📸 You can start from one photo
+- 🎬 You can attach a photo or video reference
 - 🔄 You can set start and end frames (two images)
-- 🎬 Great camera movement and atmosphere
 - ✍️ Describe where the camera moves and what the subject does
 
 How to use
-1. Optionally add start (and end) photos.
+1. Optionally add a photo or video.
 2. Describe object and camera motion.
 3. Choose format, duration and style.
 4. Run generation.`,

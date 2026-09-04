@@ -20,7 +20,10 @@ import type { CurrentUserPayload } from '@/common/auth';
 import { GptConversationModelService } from '@/common/models/gpt-conversation';
 import { AiToolId } from '@/common/services/ai/types';
 import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
-import { parseGptMediaMessage, toDataUrl } from '@/common/utils/gpt-message-content';
+import {
+    parseGptMediaMessage,
+    toDataUrl,
+} from '@/common/utils/gpt-message-content';
 import { isImageMedia } from '@/common/utils/media-kind';
 import { prepareUploadMediaList } from '@/common/utils/prepare-upload-media';
 import { PrismaService } from '@/common/services/prisma';
@@ -159,7 +162,9 @@ export class ChatsController {
                     role: msg.role,
                     content:
                         parsed.text ||
-                        (msg.role === 'user' && images?.length ? '[image]' : ''),
+                        (msg.role === 'user' && images?.length
+                            ? '[image]'
+                            : ''),
                     images: images?.length ? images : undefined,
                     jobId: parsed.jobId,
                     createdAt: msg.createdAt,

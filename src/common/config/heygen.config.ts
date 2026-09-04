@@ -78,9 +78,7 @@ export function getHeyGenExpressivenessLabel(
     localeTag: 'ru-RU' | 'en-US',
 ): string {
     const id = value ?? DEFAULT_HEYGEN_EXPRESSIVENESS;
-    const option = HEYGEN_EXPRESSIVENESS_OPTIONS.find(
-        (item) => item.id === id,
-    );
+    const option = HEYGEN_EXPRESSIVENESS_OPTIONS.find((item) => item.id === id);
     if (!option) return id;
     return localeTag === 'ru-RU' ? option.labelRu : option.labelEn;
 }

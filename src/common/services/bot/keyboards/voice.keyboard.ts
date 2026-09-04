@@ -34,7 +34,10 @@ export function generateElevenLabsVoiceReplyKeyboard(
 
     if (options.keyboardMode === 'gender') {
         return Markup.keyboard([
-            [i18n.voiceTool.genderFemaleButton, i18n.voiceTool.genderMaleButton],
+            [
+                i18n.voiceTool.genderFemaleButton,
+                i18n.voiceTool.genderMaleButton,
+            ],
             [i18n.voiceTool.backToEditor],
         ]).resize();
     }
@@ -65,8 +68,7 @@ function generateVoicePickerKeyboard(
     const currentVoiceId = options.settings.elevenLabsVoiceId;
     const filtered = options.genderFilter
         ? options.voices.filter(
-              (voice) =>
-                  voice.gender === options.genderFilter || !voice.gender,
+              (voice) => voice.gender === options.genderFilter || !voice.gender,
           )
         : options.voices;
     const labels = filtered.map((voice) => {

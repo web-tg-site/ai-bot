@@ -105,11 +105,7 @@ export class VideoCapabilitiesService implements OnModuleInit {
         }
 
         // Resolution picker already exposes 720p/1080p — no separate quality UI.
-        if (
-            toolId === AiToolId.SORA ||
-            toolId === AiToolId.KLING ||
-            toolId === AiToolId.KLING_MOTION
-        ) {
+        if (toolId === AiToolId.KLING || toolId === AiToolId.KLING_MOTION) {
             return [];
         }
 
@@ -288,13 +284,6 @@ export class VideoCapabilitiesService implements OnModuleInit {
             return Math.min(30, Math.max(3, durationSeconds));
         }
 
-        if (toolId === AiToolId.SORA) {
-            if (![4, 8, 12].includes(durationSeconds)) {
-                throw new Error('Длительность Sora: только 4, 8 или 12 секунд');
-            }
-            return durationSeconds;
-        }
-
         if (toolId === AiToolId.SEEDANCE) {
             return Math.min(30, Math.max(4, durationSeconds));
         }
@@ -320,10 +309,6 @@ export class VideoCapabilitiesService implements OnModuleInit {
 
         if (toolId === AiToolId.SEEDANCE) {
             return 30;
-        }
-
-        if (toolId === AiToolId.SORA) {
-            return 12;
         }
 
         if (toolId === AiToolId.LUMA_RAY) {
@@ -370,10 +355,6 @@ export class VideoCapabilitiesService implements OnModuleInit {
 
         if (toolId === AiToolId.VEO && modelDurations.length) {
             return modelDurations.some((value) => Math.abs(value - tier) <= 1);
-        }
-
-        if (toolId === AiToolId.SORA) {
-            return tier === 4 || tier === 8 || tier === 12;
         }
 
         if (toolId === AiToolId.SEEDANCE) {

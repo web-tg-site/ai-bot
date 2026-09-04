@@ -43,16 +43,6 @@ const tests = [
         },
     ],
     [
-        'Sora video',
-        '/v1/videos/generate',
-        {
-            model: 'sora-2',
-            prompt: 'ocean waves',
-            aspect_ratio: '16:9',
-            duration: 10,
-        },
-    ],
-    [
         'Suno music',
         '/v1/audio/music',
         { model: 'suno-v5', prompt: 'short cinematic whoosh', duration: 5 },

@@ -6,7 +6,7 @@ import { join } from 'path';
 const DEFAULT_TIMEOUT_MS = 120_000;
 
 export type TranscodeVideoToH264Options = {
-    /** Truncate output to at most N seconds (e.g. Sora characters). */
+    /** Truncate output to at most N seconds (provider duration limits). */
     maxSeconds?: number;
     /** On ffmpeg failure return the original buffer instead of throwing. */
     softFail?: boolean;

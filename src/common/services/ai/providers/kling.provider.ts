@@ -14,6 +14,7 @@ import {
 } from '../types';
 import { downloadRemoteFile } from '@/common/utils/download-remote-file';
 import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
+import { probeVideoMetadata } from '@/common/utils/probe-video-metadata';
 import { TempPublicMediaService } from '../temp-public-media.service';
 
 const DEFAULT_KLING_API_URL = 'https://api-singapore.klingai.com';
@@ -22,10 +23,29 @@ const MAX_IMAGE_REFS = 4;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
+/**
+ * Video references only work through the Omni model — text2video / image2video /
+ * multi-image2video reject video input entirely.
+ */
+const OMNI_MODEL = 'kling-v3-omni';
+/** Omni accepts exactly one reference video. */
+const MAX_VIDEO_REFS = 1;
+const OMNI_VIDEO_MAX_BYTES = 200 * 1024 * 1024;
+/** `refer_type: feature` supports a 3–10 s source clip. */
+const OMNI_VIDEO_MIN_SECONDS = 3;
+const OMNI_VIDEO_MAX_SECONDS = 10;
+const OMNI_VIDEO_MIN_SIDE = 700;
+const OMNI_VIDEO_MAX_SIDE = 2160;
+const OMNI_VIDEO_MIN_FPS = 24;
+const OMNI_VIDEO_MAX_FPS = 60;
+/** Output durations Omni allows with a `feature` video reference. */
+const OMNI_OUTPUT_DURATIONS = [5, 10] as const;
+
 type KlingEndpoint =
     | '/v1/videos/text2video'
     | '/v1/videos/image2video'
     | '/v1/videos/multi-image2video'
+    | '/v1/videos/omni-video'
     | '/v1/videos/motion-control';
 
 type KlingCreateResponse = {
@@ -236,13 +256,17 @@ export class KlingProvider {
         model: string,
         input: AiGenerationInput,
     ): Promise<{ endpoint: KlingEndpoint; body: Record<string, unknown> }> {
-        const { images } = splitMediaFiles(input.files);
+        const { images, videos } = splitMediaFiles(input.files);
         if (images.length > MAX_IMAGE_REFS) {
             throw new Error(
                 `Kling принимает не больше ${MAX_IMAGE_REFS} изображений`,
             );
         }
         this.validateImageSizes(images);
+
+        if (videos.length > 0) {
+            return this.buildOmniVideoBody(input, images, videos);
+        }
 
         const mode = this.resolveMode(input);
         const duration = this.resolveDuration(input.durationSeconds ?? 5);
@@ -302,33 +326,144 @@ export class KlingProvider {
         };
     }
 
+    /**
+     * Video reference via Omni (`refer_type: feature`): the clip supplies style,
+     * motion and camera work, and Kling renders a brand-new video from it.
+     * Omni forces `sound: off` whenever `video_list` is present.
+     */
+    private async buildOmniVideoBody(
+        input: AiGenerationInput,
+        images: AiFileInput[],
+        videos: AiFileInput[],
+    ): Promise<{ endpoint: KlingEndpoint; body: Record<string, unknown> }> {
+        if (videos.length > MAX_VIDEO_REFS) {
+            throw new Error(
+                'Kling принимает только одно видео-референс. Оставьте один клип.',
+            );
+        }
+
+        const prompt = input.prompt?.trim();
+        if (!prompt) {
+            throw new Error(
+                'С видео-референсом нужен промпт: опишите, какое видео сгенерировать.',
+            );
+        }
+
+        const video = videos[0];
+        await this.validateOmniReferenceVideo(video);
+
+        // Omni fetches media by URL; base64 is not accepted for video_list.
+        const videoUrl = await this.uploadTempPublicUrl(video, 'video');
+        const imageList = await Promise.all(
+            images.slice(0, MAX_IMAGE_REFS).map(async (file) => ({
+                image_url: await this.uploadTempPublicUrl(file, 'image'),
+            })),
+        );
+
+        const body: Record<string, unknown> = {
+            model_name: OMNI_MODEL,
+            prompt,
+            mode: this.resolveMode(input),
+            aspect_ratio: input.aspectRatio ?? '16:9',
+            duration: String(
+                this.resolveOmniDuration(input.durationSeconds ?? 5),
+            ),
+            video_list: [
+                {
+                    video_url: videoUrl,
+                    // Must be explicit: Omni defaults to `base` (video editing).
+                    refer_type: 'feature',
+                    keep_original_sound:
+                        input.klingKeepOriginalSound === false ? 'no' : 'yes',
+                },
+            ],
+            sound: 'off',
+            watermark_info: { enabled: false },
+        };
+
+        const negativePrompt = input.negativePrompt?.trim();
+        if (negativePrompt) {
+            body.negative_prompt = negativePrompt;
+        }
+        if (imageList.length) {
+            body.image_list = imageList;
+        }
+
+        return { endpoint: '/v1/videos/omni-video', body };
+    }
+
+    /**
+     * Omni rejects clips outside its input envelope with an opaque API error, so
+     * check up front. Unreadable metadata is not treated as a failure — ffprobe
+     * may be missing and Kling remains the source of truth.
+     */
+    private async validateOmniReferenceVideo(video: AiFileInput) {
+        if (video.buffer.length > OMNI_VIDEO_MAX_BYTES) {
+            throw new Error('Видео-референс для Kling не больше 200 МБ');
+        }
+
+        const meta = await probeVideoMetadata(video.buffer, video.fileName);
+
+        if (
+            meta.durationSeconds != null &&
+            (meta.durationSeconds < OMNI_VIDEO_MIN_SECONDS ||
+                meta.durationSeconds > OMNI_VIDEO_MAX_SECONDS)
+        ) {
+            throw new Error(
+                `Видео-референс должен быть от ${OMNI_VIDEO_MIN_SECONDS} до ${OMNI_VIDEO_MAX_SECONDS} секунд. Обрежьте клип и попробуйте снова.`,
+            );
+        }
+
+        const side =
+            meta.width != null && meta.height != null
+                ? { min: Math.min(meta.width, meta.height), max: Math.max(meta.width, meta.height) }
+                : null;
+        if (side && (side.min < OMNI_VIDEO_MIN_SIDE || side.max > OMNI_VIDEO_MAX_SIDE)) {
+            throw new Error(
+                `Разрешение видео-референса должно быть от ${OMNI_VIDEO_MIN_SIDE} до ${OMNI_VIDEO_MAX_SIDE} пикселей по стороне.`,
+            );
+        }
+
+        if (
+            meta.fps != null &&
+            (meta.fps < OMNI_VIDEO_MIN_FPS - 1 ||
+                meta.fps > OMNI_VIDEO_MAX_FPS + 1)
+        ) {
+            throw new Error(
+                `Частота кадров видео-референса должна быть от ${OMNI_VIDEO_MIN_FPS} до ${OMNI_VIDEO_MAX_FPS} fps.`,
+            );
+        }
+    }
+
+    /** Omni with a `feature` reference renders 5 or 10 seconds, never 15. */
+    private resolveOmniDuration(durationSeconds: number): number {
+        return OMNI_OUTPUT_DURATIONS.reduce((closest, value) =>
+            Math.abs(value - durationSeconds) < Math.abs(closest - durationSeconds)
+                ? value
+                : closest,
+        );
+    }
+
     private async buildMotionBody(
         model: string,
         input: AiGenerationInput,
     ): Promise<{ endpoint: KlingEndpoint; body: Record<string, unknown> }> {
         const { images, videos } = splitMediaFiles(input.files);
         if (images.length < 1) {
-            throw new Error(
-                'Kling Motion: загрузите фото персонажа',
-            );
+            throw new Error('Kling Motion: загрузите фото персонажа');
         }
         if (videos.length < 1) {
-            throw new Error(
-                'Kling Motion: загрузите видео с движением',
-            );
+            throw new Error('Kling Motion: загрузите видео с движением');
         }
         this.validateImageSizes(images.slice(0, 1));
         if (videos[0].buffer.length > MAX_VIDEO_BYTES) {
-            throw new Error(
-                'Видео для Motion не больше 100 МБ',
-            );
+            throw new Error('Видео для Motion не больше 100 МБ');
         }
 
         const mode = this.resolveMode(input);
         const orientation =
             input.klingCharacterOrientation === 'video' ? 'video' : 'image';
-        const keepSound =
-            input.klingKeepOriginalSound === false ? 'no' : 'yes';
+        const keepSound = input.klingKeepOriginalSound === false ? 'no' : 'yes';
 
         // Motion requires publicly reachable http(s) URLs for both image and video.
         // Base64 / ephemeral self-host often fails after Railway restart.
@@ -382,9 +517,7 @@ export class KlingProvider {
     private validateImageSizes(images: AiFileInput[]) {
         for (const image of images) {
             if (image.buffer.length > MAX_IMAGE_BYTES) {
-                throw new Error(
-                    'Изображение для Kling не больше 10 МБ',
-                );
+                throw new Error('Изображение для Kling не больше 10 МБ');
             }
         }
     }
@@ -405,7 +538,7 @@ export class KlingProvider {
     }
 
     /**
-     * Motion media must be public http(s) URLs that Kling can fetch.
+     * Motion and Omni media must be public http(s) URLs that Kling can fetch.
      * Prefer durable public hosts (catbox / 0x0) over in-memory PUBLIC_BASE_URL —
      * Railway restarts wipe TempPublicMediaService and Kling then gets 404.
      */
@@ -420,8 +553,14 @@ export class KlingProvider {
         try {
             const url = await this.uploadToCatbox(file, fileName);
             this.logger.info(
-                { kind, fileName, bytes: file.buffer.length, host: 'catbox', url },
-                `Kling motion ${label} uploaded to catbox`,
+                {
+                    kind,
+                    fileName,
+                    bytes: file.buffer.length,
+                    host: 'catbox',
+                    url,
+                },
+                `Kling ${label} uploaded to catbox`,
             );
             return url;
         } catch (error) {
@@ -432,7 +571,7 @@ export class KlingProvider {
             const url = await this.uploadTo0x0(file, fileName);
             this.logger.info(
                 { kind, fileName, bytes: file.buffer.length, host: '0x0', url },
-                `Kling motion ${label} uploaded to 0x0.st`,
+                `Kling ${label} uploaded to 0x0.st`,
             );
             return url;
         } catch (error) {
@@ -443,8 +582,14 @@ export class KlingProvider {
             try {
                 const url = this.publishTempUrl(file);
                 this.logger.warn(
-                    { kind, fileName, bytes: file.buffer.length, host: 'self', url },
-                    `Kling motion ${label} fallback to PUBLIC_BASE_URL (ephemeral)`,
+                    {
+                        kind,
+                        fileName,
+                        bytes: file.buffer.length,
+                        host: 'self',
+                        url,
+                    },
+                    `Kling ${label} fallback to PUBLIC_BASE_URL (ephemeral)`,
                 );
                 return url;
             } catch (error) {
@@ -454,11 +599,11 @@ export class KlingProvider {
             errors.push('self: PUBLIC_BASE_URL is not configured');
         }
 
-        this.logger.error({ kind, errors }, `Kling motion ${label} upload failed`);
+        this.logger.error({ kind, errors }, `Kling ${label} upload failed`);
         throw new Error(
             kind === 'image'
-                ? 'Kling Motion: не удалось опубликовать фото персонажа. Попробуйте другое фото или позже.'
-                : 'Kling Motion: не удалось опубликовать видео-референс. Попробуйте другое видео или позже.',
+                ? 'Kling: не удалось опубликовать фото. Попробуйте другое фото или позже.'
+                : 'Kling: не удалось опубликовать видео-референс. Попробуйте другое видео или позже.',
         );
     }
 
@@ -543,20 +688,20 @@ export class KlingProvider {
         }
         if (kind === 'image') {
             if (file.mimeType.includes('png')) {
-                return `kling-motion-${Date.now()}.png`;
+                return `kling-${Date.now()}.png`;
             }
             if (file.mimeType.includes('webp')) {
-                return `kling-motion-${Date.now()}.webp`;
+                return `kling-${Date.now()}.webp`;
             }
-            return `kling-motion-${Date.now()}.jpg`;
+            return `kling-${Date.now()}.jpg`;
         }
         if (
             file.mimeType.includes('quicktime') ||
             file.mimeType.includes('mov')
         ) {
-            return `kling-motion-${Date.now()}.mov`;
+            return `kling-${Date.now()}.mov`;
         }
-        return `kling-motion-${Date.now()}.mp4`;
+        return `kling-${Date.now()}.mp4`;
     }
 
     private formatError(error: unknown): string {
@@ -666,7 +811,7 @@ export class KlingProvider {
             data &&
             typeof data === 'object' &&
             'message' in data &&
-            typeof (data as { message: unknown }).message === 'string'
+            typeof data.message === 'string'
                 ? (data as { message: string }).message
                 : undefined;
 

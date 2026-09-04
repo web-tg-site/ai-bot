@@ -123,10 +123,10 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         baseTokenCost: 0,
         perSecondCost: 63,
         defaultDurationSeconds: 5,
-        accepts: ['text', 'photo'],
+        accepts: ['text', 'photo', 'video'],
         isAsync: true,
         instruction:
-            'Прикрепите до 4 фото-референсов (можно пропустить), настройте параметры и опишите сцену.',
+            'Прикрепите до 4 фото или одно видео-референс (можно пропустить), настройте параметры и опишите сцену. С видео-референсом звук не генерируется.',
     },
     {
         id: AiToolId.KLING_MOTION,
@@ -155,20 +155,6 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         isAsync: true,
         instruction:
             'Veo 3.1: 16:9 или 9:16, 720p/1080p/4K (звук всегда). 1–2 фото — first/last frame; до 3 reference images.',
-    },
-    {
-        id: AiToolId.SORA,
-        label: 'Sora',
-        category: 'video',
-        provider: AiProviderId.OPENAI,
-        model: 'sora-2',
-        baseTokenCost: 0,
-        perSecondCost: 150,
-        defaultDurationSeconds: 8,
-        accepts: ['text', 'photo', 'video'],
-        isAsync: true,
-        instruction:
-            'Опишите сцену. Можно прикрепить одно фото (первый кадр), видео для редактирования или продлить предыдущий ролик Sora.',
     },
     {
         id: AiToolId.SEEDANCE,

@@ -106,10 +106,8 @@ export function resolveImageToolButtonAction(
                   })
                 : 0;
             if (
-                text ===
-                    i18n.imageTool.resolutionPickerOption(label, tokens) ||
-                text ===
-                    i18n.imageTool.resolutionPickerSelected(label, tokens)
+                text === i18n.imageTool.resolutionPickerOption(label, tokens) ||
+                text === i18n.imageTool.resolutionPickerSelected(label, tokens)
             ) {
                 return { type: 'set_resolution', value: resolution };
             }
@@ -120,7 +118,11 @@ export function resolveImageToolButtonAction(
     if (options.keyboardMode === 'quality') {
         const tool = getToolById(options.toolId);
         for (const quality of options.qualities) {
-            const label = formatImageQualityLabel(quality, options.localeTag, options.toolId);
+            const label = formatImageQualityLabel(
+                quality,
+                options.localeTag,
+                options.toolId,
+            );
             const tokens = tool
                 ? calculateToolTokenCost(tool, {
                       resolution: options.currentSettings.resolution,
@@ -139,10 +141,7 @@ export function resolveImageToolButtonAction(
 
     if (options.keyboardMode === 'flux_mode') {
         for (const option of FLUX_IMAGE_MODE_OPTIONS) {
-            const label = getFluxImageModeLabel(
-                option.id,
-                options.localeTag,
-            );
+            const label = getFluxImageModeLabel(option.id, options.localeTag);
             if (
                 text === i18n.imageTool.fluxModePickerOption(label) ||
                 text === i18n.imageTool.fluxModePickerSelected(label)

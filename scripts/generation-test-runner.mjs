@@ -296,29 +296,6 @@ async function pollUntilDone(url, headers, timeoutMs, checkFn) {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // --- Tool registry ---
-// Sora (OpenAI async video)
-async function testSora(timeoutMs) {
-    const key = process.env.OPENAI_API_KEY;
-    if (!key) throw new Error('OPENAI_API_KEY not configured');
-    const createRes = await fetchJson('https://api.openai.com/v1/videos', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'sora-2', prompt: TEST_PROMPT, size: '1280x720', seconds: '8' }),
-    });
-    const jobId = createRes.id;
-    if (!jobId) throw new Error('No id from Sora: ' + JSON.stringify(createRes).slice(0, 200));
-    return pollUntilDone(
-        `https://api.openai.com/v1/videos/${jobId}`,
-        { 'Authorization': `Bearer ${key}` },
-        timeoutMs,
-        (data) => {
-            if (data.status === 'completed' || data.status === 'succeeded') return { done: true, url: data.url ?? '(completed)' };
-            if (data.status === 'failed') throw new Error(data.error?.message ?? 'Sora generation failed');
-            return { done: false };
-        },
-    );
-}
-
 // BytePlus Seedance 2.5 (async video)
 async function testBytePlusSeedance(timeoutMs) {
     const key = process.env.BYTEPLUS_API_KEY || process.env.ARK_API_KEY;
@@ -363,7 +340,6 @@ const TOOL_MAP = {
     midjourney:  { name: 'Midjourney', fn: (t) => testSharpiiImage(t) },
     kling:       { name: 'Kling', fn: (t) => testKling(t) },
     veo:         { name: 'Veo', fn: (t) => testOpenRouterVideo('google/veo-3.1-lite', t) },
-    sora:        { name: 'Sora', fn: (t) => testSora(t) },
     seedance:    { name: 'Seedance 2.5', fn: (t) => testBytePlusSeedance(t) },
     luma_ray:    { name: 'Luma Ray', fn: (t) => testLumaRay(t) },
     higgsfield:  { name: 'Higgsfield', fn: (t) => testHiggsfield(t) },

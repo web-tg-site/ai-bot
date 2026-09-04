@@ -99,7 +99,8 @@ export class GptConversationModelService {
                 const parsed = parseGptMediaMessage(msg.content);
                 return {
                     role: 'user' as const,
-                    content: parsed.text || (parsed.files?.length ? '[image]' : ''),
+                    content:
+                        parsed.text || (parsed.files?.length ? '[image]' : ''),
                     files: parsed.files,
                 };
             }

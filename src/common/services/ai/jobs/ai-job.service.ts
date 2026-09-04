@@ -10,7 +10,10 @@ import {
     AI_JOB_MAX_AGE_MS,
     AI_JOB_POLL_BATCH_SIZE,
 } from '@/common/config/ai-job.config';
-import { jobPromptForDb, toPersistedInputJson } from '../utils/persist-generation-input';
+import {
+    jobPromptForDb,
+    toPersistedInputJson,
+} from '../utils/persist-generation-input';
 
 export type JobListItem = {
     id: string;

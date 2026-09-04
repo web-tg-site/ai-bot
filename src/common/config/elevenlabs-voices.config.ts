@@ -391,7 +391,6 @@ const ELEVENLABS_VOICE_LABELS_RU: Record<string, string> = {
     michael: 'Майкл',
 };
 
-
 const ELEVENLABS_USE_CASE_LABELS: Record<
     ElevenLabsUseCaseId,
     { labelRu: string; labelEn: string }
@@ -439,7 +438,10 @@ const ELEVENLABS_AGE_LABELS: Record<
 export function mapElevenLabsAge(
     raw?: string | null,
 ): ElevenLabsAgeId | undefined {
-    const value = raw?.trim().toLowerCase().replace(/[\s-]+/g, '_');
+    const value = raw
+        ?.trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, '_');
     if (!value) return undefined;
     if (value in ELEVENLABS_AGE_LABELS) {
         return value as ElevenLabsAgeId;
@@ -470,7 +472,10 @@ export function getElevenLabsAgeLabel(
 export function mapElevenLabsUseCase(
     raw?: string | null,
 ): ElevenLabsUseCaseId | undefined {
-    const value = raw?.trim().toLowerCase().replace(/[\s-]+/g, '_');
+    const value = raw
+        ?.trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, '_');
     if (!value) return undefined;
     if (value in ELEVENLABS_USE_CASE_LABELS) {
         return value as ElevenLabsUseCaseId;

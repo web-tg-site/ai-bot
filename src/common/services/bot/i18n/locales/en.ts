@@ -67,9 +67,7 @@ export const en: I18nBundle = {
         autoFailoverOn: '✅ Auto-redirect: on',
         autoFailoverOff: '⬜️ Auto-redirect: off',
         autoFailoverToggled: (enabled) =>
-            enabled
-                ? '✅ Auto-redirect enabled'
-                : '⬜️ Auto-redirect disabled',
+            enabled ? '✅ Auto-redirect enabled' : '⬜️ Auto-redirect disabled',
         openButton: '⚙️ Settings',
     },
     languagePicker: {
@@ -167,12 +165,12 @@ Select a tool below.`,
             '⚠️ Midjourney is currently unavailable (provider issue). Generating with Flux…',
         failoverRedirect: (fromName, toName, settingsUrl) => {
             const settingsLabel = settingsUrl
-                ? `<a href="${settingsUrl}">settings</a>`
-                : 'settings';
+                ? `<a href="${settingsUrl}">BOT settings</a>`
+                : 'BOT settings';
             return (
                 `Unfortunately there is a long queue on <b>${fromName}</b>, ` +
                 `so for a faster generation we are redirecting your request to <b>${toName}</b>. ` +
-                `To disable auto-redirect, open ${settingsLabel}.`
+                `To turn redirects off, open ${settingsLabel} and disable the feature.`
             );
         },
         midjourneyActionsHint:
@@ -436,7 +434,6 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             [AiToolId.KLING]: 'Kling',
             [AiToolId.KLING_MOTION]: 'Kling Motion',
             [AiToolId.VEO]: 'Veo',
-            [AiToolId.SORA]: 'Sora',
             [AiToolId.SEEDANCE]: 'Seedance',
             [AiToolId.LUMA_RAY]: 'Luma Ray',
             [AiToolId.HIGGSFIELD]: 'Higgsfield',
@@ -462,13 +459,11 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             [AiToolId.MIDJOURNEY]:
                 'Describe the task and optionally add references (up to 10 images).',
             [AiToolId.KLING]:
-                'Attach up to 4 photos (optional), set STD/PRO and sound, then describe the scene.',
+                'Attach up to 4 photos or one reference video (optional), set STD/PRO and sound, then describe the scene. Sound is not generated when a reference video is attached.',
             [AiToolId.KLING_MOTION]:
                 'Upload a character photo and motion video. “Pose from photo” needs a clip under 10s; “Pose from video” allows up to 30s. Prompt is optional.',
             [AiToolId.VEO]:
                 'Attach photo or video references (optional), adjust settings, then describe the scene.',
-            [AiToolId.SORA]:
-                'OpenAI Sora: 4/8/12 sec, one photo or video edit, extend completed clips.',
             [AiToolId.SEEDANCE]:
                 'Describe the scene (up to 30s). You can attach up to 30 photos, 10 videos and 10 audio references.',
             [AiToolId.LUMA_RAY]:
@@ -490,6 +485,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             [AiToolId.SUNO]:
                 'Send a text description of the song — generation starts right away. Genre, mood, instrumental, and lyrics are under “⚙️ Settings”.',
         },
+        removedToolLabel: 'Retired editor',
     },
     gptChat: {
         newChat: '➕ New chat',
@@ -788,14 +784,6 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
                 : 'Results will be sent as a <b>video</b>',
         deliveryLine: (asFile) =>
             asFile ? 'Delivery: <b>file</b>' : 'Delivery: <b>video</b>',
-        soraExtendButton: '➕ Extend video',
-        soraExtendHint:
-            'You can extend this clip — tap the button below and describe the continuation.',
-        soraExtendPromptHint:
-            '<b>Sora extend</b> mode. Describe how the scene should continue (4–20 sec).',
-        soraFaceWarning:
-            '⚠️ Photos with human faces may be rejected by OpenAI Sora.',
-        selectExtendDurationTitle: 'Extend duration (4–20 sec):',
     },
     voiceTool: {
         selectVoiceButton: '🎙 Available voices',

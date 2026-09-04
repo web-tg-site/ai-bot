@@ -157,17 +157,25 @@ export const MIDJOURNEY_Q_VALUES: Record<
     high: '2',
 };
 
+/**
+ * Labels must describe what the parameter really does, otherwise the picker
+ * promises pixels it does not deliver:
+ * - GPT Images sends OpenAI `quality`; output stays 1024–1536 px either way.
+ * - Flux has no quality field — the tier picks the pixel base (768/1024/1440),
+ *   so it is a fidelity tier, not a promise of 1K/2K/4K.
+ * - Midjourney maps the tier to `--q`, i.e. render effort, not resolution.
+ */
 const IMAGE_QUALITY_LABELS: Record<string, { ru: string; en: string }> = {
     auto: { ru: 'Авто', en: 'Auto' },
-    low: { ru: '1K', en: '1K' },
-    medium: { ru: '2K', en: '2K' },
-    high: { ru: '4K', en: '4K' },
+    low: { ru: 'Базовое', en: 'Basic' },
+    medium: { ru: 'Стандартное', en: 'Standard' },
+    high: { ru: 'Высокое', en: 'High' },
 };
 
 const MIDJOURNEY_QUALITY_LABELS: Record<string, { ru: string; en: string }> = {
-    low: { ru: '720p', en: '720p' },
-    medium: { ru: '1080p', en: '1080p' },
-    high: { ru: '4K', en: '4K' },
+    low: { ru: 'Черновик', en: 'Draft' },
+    medium: { ru: 'Стандартное', en: 'Standard' },
+    high: { ru: 'Детальное', en: 'Detailed' },
 };
 
 export function formatImageQualityLabel(

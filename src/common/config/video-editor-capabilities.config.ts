@@ -1,6 +1,6 @@
 import { AiToolId } from '@/common/services/ai/types';
 import { getToolById } from '@/common/config/ai-tools.registry';
-import { SORA_VIDEO_ASPECT_RATIOS, UI_ASPECT_RATIOS } from '@/common/config/aspect-ratio.config';
+import { UI_ASPECT_RATIOS } from '@/common/config/aspect-ratio.config';
 
 export const VIDEO_DURATION_TIERS = [5, 10, 15, 30] as const;
 
@@ -166,14 +166,7 @@ export const MODEL_PASSTHROUGH_STYLE_ENUMS: Record<
             labelEn: string;
         }>
     >
-> = {
-    'openai/sora-2-pro': {
-        style: [
-            { value: 'natural', labelRu: 'Натуральный', labelEn: 'Natural' },
-            { value: 'vivid', labelRu: 'Яркий', labelEn: 'Vivid' },
-        ],
-    },
-};
+> = {};
 
 /** Passthrough param names treated as visual style (not quality/technical). */
 export const MODEL_STYLE_PASSTHROUGH_PARAMS = new Set(['style']);
@@ -191,22 +184,7 @@ export type VideoQualityOption = {
 export const MODEL_PASSTHROUGH_QUALITY_ENUMS: Record<
     string,
     Record<string, VideoQualityOption[]>
-> = {
-    'openai/sora-2-pro': {
-        quality: [
-            {
-                value: 'standard',
-                labelRu: '720p',
-                labelEn: '720p',
-            },
-            {
-                value: 'high',
-                labelRu: '1080p',
-                labelEn: '1080p',
-            },
-        ],
-    },
-};
+> = {};
 
 /** Passthrough param names treated as rendering quality. */
 export const MODEL_QUALITY_PASSTHROUGH_PARAMS = new Set(['quality']);
@@ -221,7 +199,6 @@ export const VIDEO_TOOLS_WITH_REFERENCES: AiToolId[] = [
     AiToolId.KLING,
     AiToolId.KLING_MOTION,
     AiToolId.VEO,
-    AiToolId.SORA,
     AiToolId.SEEDANCE,
     AiToolId.LUMA_RAY,
     AiToolId.HIGGSFIELD,
@@ -232,7 +209,6 @@ export const VIDEO_FLOW_TOOLS: AiToolId[] = [
     AiToolId.KLING,
     AiToolId.KLING_MOTION,
     AiToolId.VEO,
-    AiToolId.SORA,
     AiToolId.SEEDANCE,
     AiToolId.LUMA_RAY,
     AiToolId.HIGGSFIELD,
@@ -242,7 +218,6 @@ export const VIDEO_FLOW_TOOLS: AiToolId[] = [
 export const VIDEO_TOOLS_WITH_ASPECT_SETTINGS: AiToolId[] = [
     AiToolId.KLING,
     AiToolId.VEO,
-    AiToolId.SORA,
     AiToolId.SEEDANCE,
     AiToolId.LUMA_RAY,
     AiToolId.HIGGSFIELD,
@@ -253,7 +228,6 @@ export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
     [AiToolId.KLING]: 4,
     [AiToolId.KLING_MOTION]: 2,
     [AiToolId.VEO]: 3,
-    [AiToolId.SORA]: 1,
     [AiToolId.SEEDANCE]: 40,
     [AiToolId.LUMA_RAY]: 2,
     [AiToolId.HIGGSFIELD]: 1,
@@ -261,19 +235,17 @@ export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
 };
 
 /** Audio slots are counted separately from visual maxReferences. */
-export const VIDEO_TOOL_MAX_AUDIO_REFERENCES: Partial<Record<AiToolId, number>> =
-    {
-        [AiToolId.SEEDANCE]: 10,
-        [AiToolId.HEYGEN]: 1,
-    };
-
-export const SORA_EXTEND_DURATIONS = [4, 8, 12, 16, 20] as const;
+export const VIDEO_TOOL_MAX_AUDIO_REFERENCES: Partial<
+    Record<AiToolId, number>
+> = {
+    [AiToolId.SEEDANCE]: 10,
+    [AiToolId.HEYGEN]: 1,
+};
 
 export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
     [AiToolId.KLING]: [5, 10, 15],
     [AiToolId.KLING_MOTION]: [5, 10, 30],
     [AiToolId.VEO]: [4, 6, 8],
-    [AiToolId.SORA]: [4, 8, 12],
     [AiToolId.SEEDANCE]: [5, 10, 15, 30],
     [AiToolId.LUMA_RAY]: [5, 10],
     [AiToolId.HIGGSFIELD]: [5, 10, 15],
@@ -283,7 +255,6 @@ export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
 export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.KLING]: [...UI_ASPECT_RATIOS],
     [AiToolId.VEO]: ['16:9', '9:16'],
-    [AiToolId.SORA]: [...SORA_VIDEO_ASPECT_RATIOS],
     [AiToolId.SEEDANCE]: [...UI_ASPECT_RATIOS],
     [AiToolId.LUMA_RAY]: [...UI_ASPECT_RATIOS],
     [AiToolId.HIGGSFIELD]: [...UI_ASPECT_RATIOS],
@@ -294,7 +265,6 @@ export const STATIC_VIDEO_RESOLUTIONS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.KLING]: ['720p', '1080p'],
     [AiToolId.KLING_MOTION]: ['720p', '1080p'],
     [AiToolId.VEO]: ['720p', '1080p', '4k'],
-    [AiToolId.SORA]: ['720p', '1080p'],
     [AiToolId.SEEDANCE]: ['480p', '720p'],
     [AiToolId.LUMA_RAY]: ['1080p', '720p'],
     [AiToolId.HIGGSFIELD]: ['720p'],
@@ -321,28 +291,34 @@ export function getVideoMaxAudioReferences(toolId: AiToolId): number {
     return VIDEO_TOOL_MAX_AUDIO_REFERENCES[toolId] ?? 0;
 }
 
-/** Max video files among visual refs (Seedance 2.5: 10). */
-export const VIDEO_TOOL_MAX_VIDEO_REFERENCES: Partial<Record<AiToolId, number>> =
-    {
-        [AiToolId.SEEDANCE]: 10,
-        [AiToolId.KLING]: 0,
-        [AiToolId.KLING_MOTION]: 1,
-    };
+/** Max video files among visual refs (Seedance 2.5: 10; Kling Omni: exactly 1). */
+export const VIDEO_TOOL_MAX_VIDEO_REFERENCES: Partial<
+    Record<AiToolId, number>
+> = {
+    [AiToolId.SEEDANCE]: 10,
+    [AiToolId.KLING]: 1,
+    [AiToolId.KLING_MOTION]: 1,
+};
 
 /** Max image files among visual refs (Seedance 2.5: 30). */
-export const VIDEO_TOOL_MAX_IMAGE_REFERENCES: Partial<Record<AiToolId, number>> =
-    {
-        [AiToolId.SEEDANCE]: 30,
-        [AiToolId.KLING]: 4,
-        [AiToolId.KLING_MOTION]: 1,
-    };
+export const VIDEO_TOOL_MAX_IMAGE_REFERENCES: Partial<
+    Record<AiToolId, number>
+> = {
+    [AiToolId.SEEDANCE]: 30,
+    [AiToolId.KLING]: 4,
+    [AiToolId.KLING_MOTION]: 1,
+};
 
 export function getVideoMaxVideoReferences(toolId: AiToolId): number {
-    return VIDEO_TOOL_MAX_VIDEO_REFERENCES[toolId] ?? getVideoMaxReferences(toolId);
+    return (
+        VIDEO_TOOL_MAX_VIDEO_REFERENCES[toolId] ?? getVideoMaxReferences(toolId)
+    );
 }
 
 export function getVideoMaxImageReferences(toolId: AiToolId): number {
-    return VIDEO_TOOL_MAX_IMAGE_REFERENCES[toolId] ?? getVideoMaxReferences(toolId);
+    return (
+        VIDEO_TOOL_MAX_IMAGE_REFERENCES[toolId] ?? getVideoMaxReferences(toolId)
+    );
 }
 
 export function getOpenRouterVideoModelForTool(

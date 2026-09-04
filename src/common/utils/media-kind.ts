@@ -31,7 +31,11 @@ export function isAudioMedia(
     fileName?: string,
 ): boolean {
     const mime = mimeType?.toLowerCase() ?? '';
-    if (mime.startsWith('audio/') || mime === 'audio/ogg' || mime === 'application/ogg') {
+    if (
+        mime.startsWith('audio/') ||
+        mime === 'audio/ogg' ||
+        mime === 'application/ogg'
+    ) {
         return true;
     }
     if (mime === 'application/octet-stream' || !mime) {
@@ -51,10 +55,16 @@ export function fileMatchesToolAccepts(
     file: { mimeType: string; fileName?: string },
     accepts: readonly string[],
 ): boolean {
-    if (accepts.includes('photo') && isImageMedia(file.mimeType, file.fileName)) {
+    if (
+        accepts.includes('photo') &&
+        isImageMedia(file.mimeType, file.fileName)
+    ) {
         return true;
     }
-    if (accepts.includes('video') && isVideoMedia(file.mimeType, file.fileName)) {
+    if (
+        accepts.includes('video') &&
+        isVideoMedia(file.mimeType, file.fileName)
+    ) {
         return true;
     }
     if (

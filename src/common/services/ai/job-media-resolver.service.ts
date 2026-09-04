@@ -6,7 +6,6 @@ import {
     getAuthHeadersForUrl,
 } from '@/common/utils/download-remote-file';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
-import { isOpenAiVideoResultUrl, OpenAiProvider } from './providers/openai.provider';
 import {
     ELEVENLABS_DUBBING_RESULT_PREFIX,
     ElevenLabsProvider,
@@ -32,7 +31,6 @@ export class JobMediaResolverService {
     private mediaCacheBytes = 0;
 
     constructor(
-        private readonly openAiProvider: OpenAiProvider,
         private readonly bytePlusProvider: BytePlusProvider,
         private readonly elevenLabsProvider: ElevenLabsProvider,
         private readonly higgsfieldProvider: HiggsfieldProvider,
@@ -120,17 +118,6 @@ export class JobMediaResolverService {
         const dataUrl = parseDataUrl(resultUrl);
         if (dataUrl) {
             return { buffer: dataUrl.buffer, mimeType: dataUrl.mimeType };
-        }
-
-        if (isOpenAiVideoResultUrl(resultUrl) && providerJobId) {
-            const status = await this.openAiProvider.getJobStatus(providerJobId);
-            if (!status.result?.buffer || !status.result.mimeType) {
-                throw new Error('OpenAI video result is empty');
-            }
-            return {
-                buffer: status.result.buffer,
-                mimeType: status.result.mimeType,
-            };
         }
 
         if (

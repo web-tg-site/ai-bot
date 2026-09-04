@@ -169,6 +169,8 @@ export type I18nBundle = {
     tools: {
         labels: Record<AiToolId, string>;
         instructions: Record<AiToolId, string>;
+        /** Shown for history rows whose tool has since been removed. */
+        removedToolLabel: string;
     };
     gptChat: {
         newChat: string;
@@ -368,11 +370,6 @@ export type I18nBundle = {
         sendAsFileButton: (asFile: boolean) => string;
         sendAsFileChanged: (asFile: boolean) => string;
         deliveryLine: (asFile: boolean) => string;
-        soraExtendButton: string;
-        soraExtendHint: string;
-        soraExtendPromptHint: string;
-        soraFaceWarning: string;
-        selectExtendDurationTitle: string;
     };
     voiceTool: {
         selectVoiceButton: string;

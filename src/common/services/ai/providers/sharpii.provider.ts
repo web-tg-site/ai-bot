@@ -511,10 +511,7 @@ export class SharpiiProvider {
         }
 
         if (
-            [
-                AiToolId.LUMA_RAY,
-                AiToolId.VIDEO_TO_AUDIO,
-            ].includes(toolId) ||
+            [AiToolId.LUMA_RAY, AiToolId.VIDEO_TO_AUDIO].includes(toolId) ||
             outputType === 'video'
         ) {
             return 'video';
@@ -562,9 +559,7 @@ export class SharpiiProvider {
             }
 
             if (images.length >= 2) {
-                body.last_frame_url = this.toDataUrl(
-                    images[images.length - 1],
-                );
+                body.last_frame_url = this.toDataUrl(images[images.length - 1]);
             }
 
             if (input.videoStylePassthrough) {

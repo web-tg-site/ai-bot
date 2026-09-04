@@ -167,12 +167,12 @@ export const ru: I18nBundle = {
             '⚠️ Midjourney сейчас недоступен (сбой на стороне провайдера). Генерирую через Flux…',
         failoverRedirect: (fromName, toName, settingsUrl) => {
             const settingsLabel = settingsUrl
-                ? `<a href="${settingsUrl}">настройки</a>`
-                : 'настройки';
+                ? `<a href="${settingsUrl}">настройки БОТА</a>`
+                : 'настройки БОТА';
             return (
                 `К сожалению сейчас сильная очередь в <b>${fromName}</b>, ` +
                 `для более быстрой генерации мы переадресуем запрос в <b>${toName}</b>, ` +
-                `чтобы убрать функцию переадресации — перейдите в ${settingsLabel} для отключения.`
+                `чтобы убрать функцию переадресации — перейдите в ${settingsLabel} и отключите её.`
             );
         },
         midjourneyActionsHint:
@@ -436,7 +436,6 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.KLING]: 'Kling',
             [AiToolId.KLING_MOTION]: 'Kling Motion',
             [AiToolId.VEO]: 'Veo',
-            [AiToolId.SORA]: 'Sora',
             [AiToolId.SEEDANCE]: 'Seedance',
             [AiToolId.LUMA_RAY]: 'Luma Ray',
             [AiToolId.HIGGSFIELD]: 'Higgsfield',
@@ -462,13 +461,11 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.MIDJOURNEY]:
                 'Опишите задачу и при желании добавьте референсы (до 10 изображений).',
             [AiToolId.KLING]:
-                'Прикрепите до 4 фото (можно пропустить), настройте STD/PRO, звук и опишите сцену.',
+                'Прикрепите до 4 фото или одно видео-референс (можно пропустить), настройте STD/PRO, звук и опишите сцену. С видео-референсом звук не генерируется.',
             [AiToolId.KLING_MOTION]:
                 'Загрузите фото персонажа и видео движения. «Поза с фото» — клип короче 10 сек; «Поза из видео» — до 30 сек. Промпт необязателен.',
             [AiToolId.VEO]:
                 'Прикрепите фото или видео-референсы (можно пропустить), настройте параметры и опишите сцену.',
-            [AiToolId.SORA]:
-                'OpenAI Sora: 4/8/12 сек, одно фото или видео для редактирования, продление готового ролика.',
             [AiToolId.SEEDANCE]:
                 'Опишите сцену (до 30 сек). Можно прикрепить до 30 фото, до 10 видео и до 10 аудио-референсов.',
             [AiToolId.LUMA_RAY]:
@@ -490,6 +487,7 @@ ${getTariffIncludesText(type, plan, ru)}
             [AiToolId.SUNO]:
                 'Отправьте текстом описание песни — генерация начнётся сразу. Жанр, настроение, инструментал и текст песни — в «⚙️ Параметры».',
         },
+        removedToolLabel: 'Отключённый редактор',
     },
     gptChat: {
         newChat: '➕ Новый чат',
@@ -557,8 +555,7 @@ ${getTariffIncludesText(type, plan, ru)}
         changeFluxModeButton: '🎛 Режим Flux',
         nanoThinkingButton: (high) =>
             high ? '✨ Качество: лучше' : '⚡️ Качество: быстрее',
-        nanoSearchButton: (on) =>
-            on ? '🌐 Поиск: да' : '🌐 Поиск: нет',
+        nanoSearchButton: (on) => (on ? '🌐 Поиск: да' : '🌐 Поиск: нет'),
         nanoThinkingChanged: (high) =>
             high
                 ? 'Режим «лучше»: дольше, но аккуратнее'
@@ -796,14 +793,6 @@ ${getTariffIncludesText(type, plan, ru)}
                 : 'Результат будет отправлен <b>как видео</b>',
         deliveryLine: (asFile) =>
             asFile ? 'Отправка: <b>файлом</b>' : 'Отправка: <b>как видео</b>',
-        soraExtendButton: '➕ Продлить видео',
-        soraExtendHint:
-            'Можно продлить этот ролик — нажмите кнопку ниже и опишите продолжение.',
-        soraExtendPromptHint:
-            'Режим <b>продления Sora</b>. Опишите, как продолжить сцену (4–20 сек).',
-        soraFaceWarning:
-            '⚠️ Фото с лицами людей могут быть отклонены OpenAI Sora.',
-        selectExtendDurationTitle: 'Длительность продления (4–20 сек):',
     },
     voiceTool: {
         selectVoiceButton: '🎙 Доступные голоса',

@@ -118,10 +118,6 @@ export type BotSession = {
         }>;
         heygenVoicePage?: number;
         heygenAvatarPage?: number;
-        /** Sora: create | extend | edit */
-        soraVideoMode?: 'create' | 'extend' | 'edit';
-        /** OpenAI video_* id for extend */
-        soraExtendSourceId?: string;
         /** Veo: create | extend */
         veoMode?: 'create' | 'extend';
         /** Gemini interaction id for Nano Banana multi-turn */

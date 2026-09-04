@@ -1,4 +1,7 @@
-import { formatImageQualityLabel, formatImageResolutionLabel } from '@/common/config/image-editor-capabilities.config';
+import {
+    formatImageQualityLabel,
+    formatImageResolutionLabel,
+} from '@/common/config/image-editor-capabilities.config';
 import { getVideoQualityLabel } from '@/common/config/video-editor-capabilities.config';
 import { AiGenerationInput, AiToolId } from '@/common/services/ai/types';
 import { getToolLabel } from '@/common/services/bot/i18n';
@@ -77,7 +80,6 @@ export function formatGenerationSettingsLines(
             break;
         case AiToolId.KLING:
         case AiToolId.KLING_MOTION:
-        case AiToolId.SORA:
         case AiToolId.SEEDANCE:
         case AiToolId.VEO:
         case AiToolId.LUMA_RAY:
@@ -104,7 +106,9 @@ export function formatGenerationSettingsLines(
                 lines.push('🎵 Инструментал');
             }
             if (input.sunoTitle?.trim()) {
-                lines.push(`🎵 Название: ${escapeHtml(input.sunoTitle.trim())}`);
+                lines.push(
+                    `🎵 Название: ${escapeHtml(input.sunoTitle.trim())}`,
+                );
             }
             break;
         case AiToolId.ELEVENLABS_VOICE:
@@ -170,7 +174,11 @@ export function formatMiniAppSendMessage(params: {
         parts.push('');
     }
 
-    const settingsLines = formatGenerationSettingsLines(toolId, input, language);
+    const settingsLines = formatGenerationSettingsLines(
+        toolId,
+        input,
+        language,
+    );
     if (settingsLines.length > 0) {
         parts.push(...settingsLines);
     }
@@ -193,10 +201,7 @@ export function formatMiniAppSendMessage(params: {
     let message = parts.join('\n');
     if (message.length > TELEGRAM_MESSAGE_MAX) {
         const overhead = message.length - trimmedPrompt.length;
-        const maxPromptLen = Math.max(
-            0,
-            TELEGRAM_MESSAGE_MAX - overhead - 20,
-        );
+        const maxPromptLen = Math.max(0, TELEGRAM_MESSAGE_MAX - overhead - 20);
         if (trimmedPrompt && maxPromptLen < trimmedPrompt.length) {
             const truncated = `${trimmedPrompt.slice(0, maxPromptLen)}…`;
             return formatMiniAppSendMessage({

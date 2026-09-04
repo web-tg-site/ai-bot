@@ -87,7 +87,8 @@ export class HiggsfieldProvider {
         );
         const motionId = this.normalizeMotionId(input.higgsfieldMotionId);
         const strength =
-            input.higgsfieldMotionStrength ?? DEFAULT_HIGGSFIELD_MOTION_STRENGTH;
+            input.higgsfieldMotionStrength ??
+            DEFAULT_HIGGSFIELD_MOTION_STRENGTH;
 
         if (motionId) {
             if (!imageFile) {
@@ -472,7 +473,10 @@ export class HiggsfieldProvider {
                     status?: number;
                     data?: {
                         message?: string;
-                        detail?: string | { msg?: string } | Array<{ msg?: string }>;
+                        detail?:
+                            | string
+                            | { msg?: string }
+                            | Array<{ msg?: string }>;
                         error?: string;
                     };
                 };

@@ -6,11 +6,7 @@ import { getToolById } from '@/common/config/ai-tools.registry';
 import { TokenBillingService } from '../billing/token-billing.service';
 import { AiService } from '../ai.service';
 import { AiJobService } from '../jobs/ai-job.service';
-import {
-    AiGenerationInput,
-    AiGenerationResult,
-    AiToolId,
-} from '../types';
+import { AiGenerationInput, AiGenerationResult, AiToolId } from '../types';
 import {
     buildFailoverChain,
     calculateFailoverTokenCost,
@@ -65,7 +61,9 @@ export class ModelFailoverService {
         if (username) {
             return `https://t.me/${username}/app?startapp=settings`;
         }
-        const miniAppUrl = this.configService.get<string>('MINI_APP_URL')?.trim();
+        const miniAppUrl = this.configService
+            .get<string>('MINI_APP_URL')
+            ?.trim();
         if (!miniAppUrl) return null;
         try {
             const url = new URL(miniAppUrl);
@@ -135,24 +133,21 @@ export class ModelFailoverService {
                 errorMessage: params.errorMessage,
             })
         ) {
-                this.logger.warn(
-                    {
-                        failedToolId: params.failedToolId,
-                        autoModelFailover: params.autoModelFailover,
-                        eligibleTool: isFailoverEligibleTool(params.failedToolId),
-                        eligibleError: isFailoverEligibleError(params.errorMessage),
-                        errorMessage: params.errorMessage,
-                    },
-                    `Failover skipped [${params.failedToolId}]: ${params.errorMessage}`,
-                );
+            this.logger.warn(
+                {
+                    failedToolId: params.failedToolId,
+                    autoModelFailover: params.autoModelFailover,
+                    eligibleTool: isFailoverEligibleTool(params.failedToolId),
+                    eligibleError: isFailoverEligibleError(params.errorMessage),
+                    errorMessage: params.errorMessage,
+                },
+                `Failover skipped [${params.failedToolId}]: ${params.errorMessage}`,
+            );
             return { ok: false, reason: 'disabled' };
         }
 
         const input = reviveGenerationInput(params.input);
-        const tried = [
-            ...(params.triedToolIds ?? []),
-            params.failedToolId,
-        ];
+        const tried = [...(params.triedToolIds ?? []), params.failedToolId];
         const chain = this.getNextCandidates({
             failedToolId: params.failedToolId,
             input,
@@ -206,18 +201,19 @@ export class ModelFailoverService {
 
             try {
                 if (tool.isAsync && params.preferAsyncJob) {
-                    const created = await this.aiJobService.createJobWithoutCharge({
-                        userId: params.userId,
-                        telegramId: params.telegramId,
-                        toolId: nextToolId,
-                        input,
-                        tokenCost: nextCost,
-                        notifyTelegram: params.notifyTelegram,
-                        sessionId: params.sessionId,
-                        failoverNotice: notice,
-                        failoverFromToolId: fromToolId,
-                        failoverTriedToolIds: [...tried, nextToolId],
-                    });
+                    const created =
+                        await this.aiJobService.createJobWithoutCharge({
+                            userId: params.userId,
+                            telegramId: params.telegramId,
+                            toolId: nextToolId,
+                            input,
+                            tokenCost: nextCost,
+                            notifyTelegram: params.notifyTelegram,
+                            sessionId: params.sessionId,
+                            failoverNotice: notice,
+                            failoverFromToolId: fromToolId,
+                            failoverTriedToolIds: [...tried, nextToolId],
+                        });
                     return {
                         ok: true,
                         toolId: nextToolId,
@@ -422,14 +418,20 @@ export class ModelFailoverService {
         telegramId: string;
         alreadyCharged: number;
         nextCost: number;
-    }): Promise<{ ok: true; charged: number; balance: number } | { ok: false }> {
+    }): Promise<
+        { ok: true; charged: number; balance: number } | { ok: false }
+    > {
         const delta = params.nextCost - params.alreadyCharged;
         if (delta === 0) {
             const check = await this.tokenBillingService.checkBalance(
                 params.telegramId,
                 0,
             );
-            return { ok: true, charged: params.alreadyCharged, balance: check.balance };
+            return {
+                ok: true,
+                charged: params.alreadyCharged,
+                balance: check.balance,
+            };
         }
 
         if (delta > 0) {

@@ -159,7 +159,13 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
     public async sendPhoto(chatId: string, url: string, caption?: string) {
         const parsed = parseDataUrl(url);
         if (parsed) {
-            await this.sendPhotoBuffer(chatId, parsed.buffer, parsed.mimeType, false, caption);
+            await this.sendPhotoBuffer(
+                chatId,
+                parsed.buffer,
+                parsed.mimeType,
+                false,
+                caption,
+            );
             return;
         }
 
@@ -198,7 +204,13 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
     public async sendVideo(chatId: string, url: string, caption?: string) {
         const parsed = parseDataUrl(url);
         if (parsed) {
-            await this.sendVideoBuffer(chatId, parsed.buffer, parsed.mimeType, false, caption);
+            await this.sendVideoBuffer(
+                chatId,
+                parsed.buffer,
+                parsed.mimeType,
+                false,
+                caption,
+            );
             return;
         }
 
@@ -224,7 +236,11 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
                         ...(caption ? { caption } : {}),
                     }),
                 sendDocument: (file) =>
-                    this.bot.telegram.sendDocument(chatId, file, caption ? { caption } : undefined),
+                    this.bot.telegram.sendDocument(
+                        chatId,
+                        file,
+                        caption ? { caption } : undefined,
+                    ),
             },
             buffer,
             mimeType,

@@ -9,7 +9,6 @@ export enum AiToolId {
     KLING = 'kling',
     KLING_MOTION = 'kling_motion',
     VEO = 'veo',
-    SORA = 'sora',
     SEEDANCE = 'seedance',
     LUMA_RAY = 'luma_ray',
     HIGGSFIELD = 'higgsfield',

@@ -116,8 +116,7 @@ export class BytePlusProvider {
 
         if (!response.id) {
             throw new Error(
-                response.error?.message ??
-                    'BytePlus did not return task id',
+                response.error?.message ?? 'BytePlus did not return task id',
             );
         }
 
@@ -140,8 +139,7 @@ export class BytePlusProvider {
             if (!videoUrl) {
                 return {
                     status: 'failed',
-                    errorMessage:
-                        'BytePlus завершил задачу без URL видео',
+                    errorMessage: 'BytePlus завершил задачу без URL видео',
                 };
             }
 
@@ -203,8 +201,7 @@ export class BytePlusProvider {
             audios,
         );
 
-        const resolution =
-            input.resolution === '480p' ? '480p' : '720p';
+        const resolution = input.resolution === '480p' ? '480p' : '720p';
 
         const body: Record<string, unknown> = {
             model,
@@ -299,14 +296,10 @@ export class BytePlusProvider {
             );
         });
         videos.forEach((_, i) => {
-            lines.push(
-                `Video ${i + 1}: motion / timing / scene reference.`,
-            );
+            lines.push(`Video ${i + 1}: motion / timing / scene reference.`);
         });
         audios.forEach((_, i) => {
-            lines.push(
-                `Audio ${i + 1}: voice / ambience / music reference.`,
-            );
+            lines.push(`Audio ${i + 1}: voice / ambience / music reference.`);
         });
         return lines.join('\n');
     }
@@ -318,9 +311,7 @@ export class BytePlusProvider {
         videos: AiFileInput[],
         audios: AiFileInput[],
     ): Promise<BytePlusContentItem[]> {
-        const content: BytePlusContentItem[] = [
-            { type: 'text', text: prompt },
-        ];
+        const content: BytePlusContentItem[] = [{ type: 'text', text: prompt }];
 
         if (mode === 'first_last') {
             content.push({
@@ -415,10 +406,7 @@ export class BytePlusProvider {
             errors.push(`0x0: ${this.formatError(error)}`);
         }
 
-        this.logger.error(
-            { errors },
-            'Temp video upload failed on all hosts',
-        );
+        this.logger.error({ errors }, 'Temp video upload failed on all hosts');
         throw new Error(
             'Не удалось подготовить видео-референс для Seedance. Попробуйте другое видео или позже.',
         );

@@ -1,5 +1,5 @@
 import { AiToolId } from '@/common/services/ai/types';
-import { AiSessionStep, BotSession } from '@/common/services/ai/types/ai-session-state.type';
+import { AiSessionStep } from '@/common/services/ai/types/ai-session-state.type';
 import { VideoCapabilitiesService } from '@/common/services/ai/video-capabilities.service';
 import {
     getVideoQualityLabel,
@@ -30,7 +30,6 @@ import {
 } from '../keyboards/video.keyboard';
 import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
 import { resolveVideoSendAsFile } from '@/common/utils/resolve-send-as-file';
-import { resolveVideoDurationsForSession } from './sora-bot.helpers';
 
 export type VideoToolButtonAction =
     | { type: 'open_settings' }
@@ -270,9 +269,7 @@ export function resolveVideoToolButtonAction(
     if (options.keyboardMode === 'heygen_engine') {
         for (const option of HEYGEN_ENGINE_OPTIONS) {
             const label =
-                options.localeTag === 'ru-RU'
-                    ? option.labelRu
-                    : option.labelEn;
+                options.localeTag === 'ru-RU' ? option.labelRu : option.labelEn;
             if (
                 text === i18n.videoTool.heygenPickerOption(label) ||
                 text === i18n.videoTool.heygenPickerSelected(label)
@@ -285,8 +282,22 @@ export function resolveVideoToolButtonAction(
 
     if (options.keyboardMode === 'heygen_background') {
         const items = [
-            { id: 'default', label: getHeyGenBackgroundLabel('default', undefined, options.localeTag) },
-            { id: 'remove', label: getHeyGenBackgroundLabel('remove', undefined, options.localeTag) },
+            {
+                id: 'default',
+                label: getHeyGenBackgroundLabel(
+                    'default',
+                    undefined,
+                    options.localeTag,
+                ),
+            },
+            {
+                id: 'remove',
+                label: getHeyGenBackgroundLabel(
+                    'remove',
+                    undefined,
+                    options.localeTag,
+                ),
+            },
             ...HEYGEN_BACKGROUND_COLOR_PRESETS.map((preset) => ({
                 id: `color:${preset.id}`,
                 label:
@@ -309,9 +320,7 @@ export function resolveVideoToolButtonAction(
     if (options.keyboardMode === 'heygen_expressiveness') {
         for (const option of HEYGEN_EXPRESSIVENESS_OPTIONS) {
             const label =
-                options.localeTag === 'ru-RU'
-                    ? option.labelRu
-                    : option.labelEn;
+                options.localeTag === 'ru-RU' ? option.labelRu : option.labelEn;
             if (
                 text === i18n.videoTool.heygenPickerOption(label) ||
                 text === i18n.videoTool.heygenPickerSelected(label)
@@ -540,7 +549,6 @@ export function getVideoToolCapabilities(
     toolId: AiToolId,
     capabilitiesService: VideoCapabilitiesService,
     localeTag: 'ru-RU' | 'en-US',
-    session?: BotSession,
 ) {
     const styleOptions = capabilitiesService.getStyleOptions(toolId);
     const qualityOptions = capabilitiesService.getQualityOptions(toolId);
@@ -551,11 +559,7 @@ export function getVideoToolCapabilities(
             value: option.value,
             label: localeTag === 'ru-RU' ? option.labelRu : option.labelEn,
         })),
-        durations: resolveVideoDurationsForSession(
-            session,
-            toolId,
-            capabilitiesService,
-        ),
+        durations: capabilitiesService.getSupportedDurations(toolId),
         stylePresets: styleOptions.map((option) => {
             const baseLabel =
                 localeTag === 'ru-RU' ? option.labelRu : option.labelEn;

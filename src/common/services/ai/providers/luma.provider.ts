@@ -254,10 +254,7 @@ export class LumaProvider {
         return 'processing';
     }
 
-    private inferResultType(
-        url: string,
-        mimeType?: string,
-    ): 'image' | 'video' {
+    private inferResultType(url: string, mimeType?: string): 'image' | 'video' {
         if (mimeType?.startsWith('video/')) {
             return 'video';
         }

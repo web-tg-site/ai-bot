@@ -282,10 +282,7 @@ export class GenerationFacade {
                         };
                     }
 
-                    if (
-                        failover.ok &&
-                        failover.mode === 'async-inline'
-                    ) {
+                    if (failover.ok && failover.mode === 'async-inline') {
                         const serialized = this.serializeResult(
                             failover.result,
                         );
@@ -368,15 +365,17 @@ export class GenerationFacade {
                     serialized.images?.[0] ??
                     null;
                 if (resultUrl) {
-                    const recorded = await this.aiJobService.recordCompletedJob({
-                        userId: params.userId,
-                        toolId: effectiveToolId,
-                        input,
-                        resultUrl,
-                        tokenCost: actualCost,
-                        notifyTelegram: false,
-                        sessionId: params.sessionId,
-                    });
+                    const recorded = await this.aiJobService.recordCompletedJob(
+                        {
+                            userId: params.userId,
+                            toolId: effectiveToolId,
+                            input,
+                            resultUrl,
+                            tokenCost: actualCost,
+                            notifyTelegram: false,
+                            sessionId: params.sessionId,
+                        },
+                    );
                     jobId = recorded.id;
                     this.cacheRecordedJobMedia(
                         recorded.id,

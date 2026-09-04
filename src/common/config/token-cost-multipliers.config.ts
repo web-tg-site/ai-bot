@@ -41,7 +41,6 @@ const IMAGE_TOOLS_WITH_QUALITY_COST: AiToolId[] = [
 ];
 
 const VIDEO_TOOLS_WITH_RESOLUTION_COST: AiToolId[] = [
-    AiToolId.SORA,
     AiToolId.SEEDANCE,
     AiToolId.HEYGEN,
     AiToolId.KLING,
@@ -84,9 +83,7 @@ export function getVideoResolutionMultiplier(
         return 1.0;
     }
     if (
-        (toolId === AiToolId.SORA ||
-            toolId === AiToolId.KLING ||
-            toolId === AiToolId.KLING_MOTION) &&
+        (toolId === AiToolId.KLING || toolId === AiToolId.KLING_MOTION) &&
         resolution === '1080p'
     ) {
         return 1.5;

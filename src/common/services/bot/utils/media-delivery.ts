@@ -52,7 +52,10 @@ export async function sendGenerationResultWithDelivery(
                 await sendImageBuffer(ctx, buffer, mimeType, true, caption);
                 return;
             }
-            await ctx.replyWithPhoto(result.url, caption ? { caption } : undefined);
+            await ctx.replyWithPhoto(
+                result.url,
+                caption ? { caption } : undefined,
+            );
             return;
         }
 
@@ -140,7 +143,10 @@ export async function sendVideoBuffer(
     await deliverVideoBuffer(
         {
             sendVideo: (file, extra) =>
-                ctx.replyWithVideo(file, { ...extra, ...(caption ? { caption } : {}) }),
+                ctx.replyWithVideo(file, {
+                    ...extra,
+                    ...(caption ? { caption } : {}),
+                }),
             sendDocument: (file) =>
                 ctx.replyWithDocument(file, caption ? { caption } : undefined),
         },
@@ -178,9 +184,7 @@ export async function deliverVideoBuffer(
             lowerMime.startsWith('audio/') ? mimeType : 'audio/mpeg',
             'mp3',
         );
-        await api.sendDocument(
-            bufferToInputFile(buffer, `audio.${audioExt}`),
-        );
+        await api.sendDocument(bufferToInputFile(buffer, `audio.${audioExt}`));
         return;
     }
 

@@ -43,7 +43,15 @@ type HeyGenVoiceRaw = {
 };
 
 type HeyGenListResponse<T> = {
-    data?: T[] | { voices?: T[]; looks?: T[]; items?: T[]; next_token?: string | null; has_more?: boolean };
+    data?:
+        | T[]
+        | {
+              voices?: T[];
+              looks?: T[];
+              items?: T[];
+              next_token?: string | null;
+              has_more?: boolean;
+          };
     voices?: T[];
     next_token?: string | null;
     has_more?: boolean;
@@ -404,15 +412,17 @@ export class HeyGenProvider {
     }
 
     private async fetchAllPublicLooks(): Promise<HeyGenAvatarLookOption[]> {
-        return this.fetchPagedList<HeyGenAvatarLookRaw, HeyGenAvatarLookOption>({
-            path: '/v3/avatars/looks',
-            baseParams: { ownership: 'public' },
-            nestedKey: 'looks',
-            mapItem: (raw) => this.mapLook(raw),
-            // HeyGen looks API rejects limit > 50.
-            pageSize: 50,
-            maxPages: 4,
-        });
+        return this.fetchPagedList<HeyGenAvatarLookRaw, HeyGenAvatarLookOption>(
+            {
+                path: '/v3/avatars/looks',
+                baseParams: { ownership: 'public' },
+                nestedKey: 'looks',
+                mapItem: (raw) => this.mapLook(raw),
+                // HeyGen looks API rejects limit > 50.
+                pageSize: 50,
+                maxPages: 4,
+            },
+        );
     }
 
     private async fetchPagedList<TRaw, TMapped>(options: {
@@ -438,8 +448,11 @@ export class HeyGenProvider {
                     `${options.path}?${params.toString()}`,
                     60_000,
                 );
-                const { items: pageItems, nextToken, hasMore } =
-                    this.unwrapListPage(response, options.nestedKey);
+                const {
+                    items: pageItems,
+                    nextToken,
+                    hasMore,
+                } = this.unwrapListPage(response, options.nestedKey);
 
                 for (const raw of pageItems) {
                     const mapped = options.mapItem(raw);
@@ -487,8 +500,7 @@ export class HeyGenProvider {
                     : (data.looks ?? data.items ?? []);
             return {
                 items: nested,
-                nextToken:
-                    data.next_token ?? response.next_token ?? undefined,
+                nextToken: data.next_token ?? response.next_token ?? undefined,
                 hasMore: data.has_more ?? response.has_more,
             };
         }

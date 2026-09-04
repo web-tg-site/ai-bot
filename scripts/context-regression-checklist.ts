@@ -2,7 +2,6 @@
  * Manual regression checklist for media context (run after deploy).
  *
  * Video:
- * - Sora: 2 frames + transition prompt → output matches frames
  * - Kling: 3+ refs + prompt → middle refs considered
  * - Higgsfield: 1 ref + prompt → style/object from ref
  *
@@ -23,7 +22,6 @@
  */
 
 export const CONTEXT_REGRESSION_CHECKLIST = [
-    'Sora: 2 frames + transition prompt',
     'Kling: 3+ refs + prompt',
     'Higgsfield: 1 ref + prompt',
     'Flux: 2 refs + edit prompt',

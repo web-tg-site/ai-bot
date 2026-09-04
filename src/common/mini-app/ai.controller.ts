@@ -289,10 +289,6 @@ class GenerateBodyDto {
     sunoStyle?: string;
 
     @IsOptional()
-    @IsIn(['create', 'extend', 'edit'])
-    soraVideoMode?: 'create' | 'extend' | 'edit';
-
-    @IsOptional()
     @IsString()
     attachmentRoles?: string;
 
@@ -394,11 +390,7 @@ export class AiController {
                 getElevenLabsUseCaseLabel(voice.useCase, 'ru-RU') ?? null,
             age: voice.age ?? null,
             ageRu:
-                getElevenLabsAgeLabel(
-                    voice.age,
-                    'ru-RU',
-                    voice.gender,
-                ) ?? null,
+                getElevenLabsAgeLabel(voice.age, 'ru-RU', voice.gender) ?? null,
             previewUrl: voice.previewUrl ?? null,
         }));
     }
@@ -555,7 +547,9 @@ export class AiController {
             }
             if (parent.toolId !== body.toolId) {
                 throw new HttpException(
-                    { error: 'Инструмент не совпадает с родительской генерацией' },
+                    {
+                        error: 'Инструмент не совпадает с родительской генерацией',
+                    },
                     HttpStatus.BAD_REQUEST,
                 );
             }
@@ -650,7 +644,6 @@ export class AiController {
                     trackId: body.trackId,
                     parentJobId: body.sourceGenerationId,
                     parentProviderJobId,
-                    soraVideoMode: body.soraVideoMode,
                     attachmentRoles: (() => {
                         if (!body.attachmentRoles) return undefined;
                         try {

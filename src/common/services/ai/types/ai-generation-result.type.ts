@@ -94,7 +94,6 @@ export type AiGenerationInput = {
     lumaWebSearch?: boolean;
     lumaOutputFormat?: 'png' | 'jpeg';
     sourceGenerationId?: string;
-    soraVideoMode?: 'create' | 'extend' | 'edit';
     /** Kling / Veo negative prompt. */
     negativePrompt?: string;
     /** Kling native audio generation (sound on/off). */

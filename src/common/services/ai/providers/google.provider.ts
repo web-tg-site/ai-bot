@@ -53,9 +53,7 @@ export class GoogleProvider {
         this.ensureApiKey();
 
         if (toolId !== AiToolId.NANO_BANANA) {
-            throw new Error(
-                `Google sync generate not supported for ${toolId}`,
-            );
+            throw new Error(`Google sync generate not supported for ${toolId}`);
         }
 
         try {
@@ -79,7 +77,9 @@ export class GoogleProvider {
         this.ensureApiKey();
 
         if (toolId !== AiToolId.VEO) {
-            throw new Error(`Google async jobs only support Veo, got ${toolId}`);
+            throw new Error(
+                `Google async jobs only support Veo, got ${toolId}`,
+            );
         }
 
         try {
@@ -139,7 +139,8 @@ export class GoogleProvider {
                     operation.error !== null &&
                     'message' in operation.error
                         ? String(
-                              (operation.error as { message?: unknown }).message,
+                              (operation.error as { message?: unknown })
+                                  .message,
                           )
                         : 'Veo generation failed';
                 this.logger.warn(
@@ -160,8 +161,7 @@ export class GoogleProvider {
                 return { status: 'processing' };
             }
 
-            const generated =
-                operation.response?.generatedVideos?.[0]?.video;
+            const generated = operation.response?.generatedVideos?.[0]?.video;
             if (!generated) {
                 const filtered =
                     operation.response?.raiMediaFilteredReasons?.join('; ') ??
@@ -338,7 +338,9 @@ export class GoogleProvider {
         const aspectRatio = this.normalizeVeoAspect(input.aspectRatio);
         let resolution = this.normalizeVeoResolution(input.resolution);
         const roles = input.attachmentRoles ?? [];
-        const refRoleCount = roles.filter((role) => role === 'reference').length;
+        const refRoleCount = roles.filter(
+            (role) => role === 'reference',
+        ).length;
         const hasExplicitRefs = refRoleCount > 0;
         const hasFirstLast =
             roles.includes('start_frame') || roles.includes('end_frame');
@@ -434,9 +436,7 @@ export class GoogleProvider {
                 throw new Error('Добавьте до 3 reference-изображений для Veo');
             }
             if (!prompt) {
-                throw new Error(
-                    'Для reference images нужен текстовый промпт',
-                );
+                throw new Error('Для reference images нужен текстовый промпт');
             }
 
             return this.getClient().models.generateVideos({
@@ -641,7 +641,8 @@ export class GoogleProvider {
         if (anyError.status !== undefined) extras.status = anyError.status;
         if (anyError.code !== undefined) extras.code = anyError.code;
         if (anyError.error !== undefined) extras.error = anyError.error;
-        if (anyError.response !== undefined) extras.response = anyError.response;
+        if (anyError.response !== undefined)
+            extras.response = anyError.response;
         if (anyError.cause !== undefined) {
             extras.cause =
                 anyError.cause instanceof Error

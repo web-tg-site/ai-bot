@@ -37,17 +37,17 @@ describe('bot-error.mapper', () => {
             expect(classifyBotError(msg)).toBe(BotErrorCode.TIMEOUT);
         });
 
-        it.each([
-            'Не удалось отправить результат',
-            'delivery failed',
-        ])('DELIVERY: %s', (msg) => {
-            expect(classifyBotError(msg)).toBe(BotErrorCode.DELIVERY);
-        });
+        it.each(['Не удалось отправить результат', 'delivery failed'])(
+            'DELIVERY: %s',
+            (msg) => {
+                expect(classifyBotError(msg)).toBe(BotErrorCode.DELIVERY);
+            },
+        );
 
         it('POLL', () => {
-            expect(classifyBotError('Не удалось проверить статус генерации')).toBe(
-                BotErrorCode.POLL,
-            );
+            expect(
+                classifyBotError('Не удалось проверить статус генерации'),
+            ).toBe(BotErrorCode.POLL);
         });
 
         it.each([
@@ -186,7 +186,9 @@ describe('bot-error.mapper', () => {
             expect(result).not.toContain('Kling');
             expect(result).toMatch(/30/);
             expect(result).toMatch(/длительность|видео/i);
-            expect(result).not.toBe(ru.aiResult.errorByCode[BotErrorCode.PROVIDER]);
+            expect(result).not.toBe(
+                ru.aiResult.errorByCode[BotErrorCode.PROVIDER],
+            );
         });
 
         it('explains 10s limit for image orientation', () => {
@@ -210,13 +212,17 @@ describe('bot-error.mapper', () => {
         });
 
         it('still hides opaque provider errors', () => {
-            const result = toUserFacingError('Kling: upstream task aborted', ru);
+            const result = toUserFacingError(
+                'Kling: upstream task aborted',
+                ru,
+            );
             expect(result).not.toContain('Kling');
             expect(result).toBe(ru.aiResult.errorByCode[BotErrorCode.PROVIDER]);
         });
 
         it('passes through user-friendly Russian messages', () => {
-            const msg = 'Генерация заняла слишком много времени, попробуйте ещё раз';
+            const msg =
+                'Генерация заняла слишком много времени, попробуйте ещё раз';
             expect(toUserFacingError(msg, ru)).toBe(msg);
         });
 

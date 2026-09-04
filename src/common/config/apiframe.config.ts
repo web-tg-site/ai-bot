@@ -48,9 +48,7 @@ export const APIFRAME_SUNO_ACTIONS: readonly ApiframeAction[] = [
 ] as const;
 
 /** Token costs mapped from Apiframe credits (~3 tokens per credit). */
-export function resolveApiframeActionTokenCost(
-    action: ApiframeAction,
-): number {
+export function resolveApiframeActionTokenCost(action: ApiframeAction): number {
     switch (action) {
         case 'upsample':
             return 6;

@@ -34,7 +34,6 @@ import {
 import { ImageToolSettings } from '@/common/types/image-tool-settings.type';
 import {
     buildFluxImageAttachmentRoles,
-    FLUX_OUTPAINT_CANVAS,
     getFluxImageModeLabel,
     normalizeFluxImageMode,
 } from '@/common/config/flux-image-modes.config';
@@ -47,15 +46,13 @@ import {
     getMessageText,
     bufferToInputFile,
 } from '../utils/download-telegram-file';
-import {
-    buildSoraGenerationFields,
-    resetSoraSessionMode,
-} from '../utils/sora-bot.helpers';
-import { SORA_EXTEND_DURATIONS } from '@/common/config/video-editor-capabilities.config';
 import { withPersistedSession } from '../utils/bot-session-store';
 import { collectMediaGroupMessage } from '../utils/media-group-collector';
 import { mimeTypeToExtension } from '@/common/utils/parse-data-url';
-import { serializeGptAssistantMessage, serializeGptUserMessage } from '@/common/utils/gpt-message-content';
+import {
+    serializeGptAssistantMessage,
+    serializeGptUserMessage,
+} from '@/common/utils/gpt-message-content';
 import { compressGptHistoryImage } from '@/common/utils/compress-reference-image';
 import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
 import {
@@ -129,7 +126,6 @@ import {
     goToVideoPromptStep,
     getVideoKeyboardMode,
     buildVideoToolMainScreenText,
-    replyWithVideoEditorKeyboard,
 } from '../utils/video-tool-session';
 import {
     loadVoiceToolSettings,
@@ -313,89 +309,7 @@ export const registerAiToolHandlers = (bot: Telegraf, deps: AiHandlerDeps) => {
             ctx.match[1],
         );
     });
-
-    bot.action(/^ai:sora:extend:(.+)$/, async (ctx) => {
-        await handleSoraExtendCallback(
-            asBotContext(ctx),
-            deps,
-            ctx.match[1],
-        );
-    });
 };
-
-async function handleSoraExtendCallback(
-    ctx: BotContext,
-    deps: AiHandlerDeps,
-    providerJobId: string,
-) {
-    try {
-        await ctx.answerCbQuery();
-    } catch {
-        // ignore stale callback
-    }
-
-    if (!ctx.from) {
-        return;
-    }
-
-    const user = await deps.userModelService.getUserByTelegramId(
-        ctx.from.id.toString(),
-    );
-    if (!user) {
-        return;
-    }
-
-    const i18n = getI18nForUser(user);
-    const session = getSession(ctx);
-    const toolId = AiToolId.SORA;
-    const storedSettings = await loadVideoToolSettings(
-        user.id,
-        toolId,
-        deps.userAiToolSettingsModelService,
-        deps.videoCapabilitiesService,
-    );
-    const extendDuration =
-        storedSettings.durationSeconds &&
-        SORA_EXTEND_DURATIONS.includes(
-            storedSettings.durationSeconds as (typeof SORA_EXTEND_DURATIONS)[number],
-        )
-            ? storedSettings.durationSeconds
-            : 8;
-    const toolSettings =
-        await deps.userAiToolSettingsModelService.upsertVideoSettings(
-            user.id,
-            toolId,
-            { durationSeconds: extendDuration },
-        );
-
-    session.ai = {
-        activeToolId: toolId,
-        step: 'awaiting_video_prompt',
-        activeConversationId: session.ai?.activeConversationId,
-        gptWebSearch: session.ai?.gptWebSearch,
-        gptReplyMode: session.ai?.gptReplyMode,
-        referenceFiles: [],
-        toolSettings,
-        videoKeyboardMode: 'main',
-        soraVideoMode: 'extend',
-        soraExtendSourceId: providerJobId,
-        activeCategory: session.ai?.activeCategory,
-    };
-
-    await ctx.reply(i18n.videoTool.soraExtendPromptHint, {
-        parse_mode: 'HTML',
-    });
-    await replyWithVideoEditorKeyboard(
-        ctx,
-        session,
-        toolId,
-        i18n,
-        deps.videoCapabilitiesService,
-        user.language,
-        i18n.localeTag,
-        { text: i18n.videoTool.promptHint },
-    );
-}
 
 async function selectTool(
     ctx: BotContext,
@@ -1293,10 +1207,7 @@ async function handleImageToolButtonPress(
     if (action.type === 'toggle_nano_search') {
         session.ai.imageKeyboardMode = 'settings';
         await ctx.reply(i18n.imageTool.nanoSearchAlwaysOn, {
-            ...replyKeyboard(
-                'settings',
-                (session.ai.toolSettings ?? {}) as ImageToolSettings,
-            ),
+            ...replyKeyboard('settings', session.ai.toolSettings ?? {}),
             parse_mode: 'HTML',
         });
         return true;
@@ -1484,22 +1395,12 @@ async function appendVideoReferences(
         session.ai.referenceFiles = [];
     }
 
-    let mediaFiles = filterVideoReferenceFiles(toolId, files);
+    const mediaFiles = filterVideoReferenceFiles(toolId, files);
     if (!mediaFiles.length) {
         await ctx.reply(i18n.videoTool.needPhotoOnRefStep, {
             parse_mode: 'HTML',
         });
         return;
-    }
-
-    if (toolId === AiToolId.SORA) {
-        if (
-            mediaFiles.some((file) => isVideoMedia(file.mimeType, file.fileName))
-        ) {
-            session.ai.soraVideoMode = 'edit';
-        } else if (session.ai.soraVideoMode !== 'extend') {
-            session.ai.soraVideoMode = 'create';
-        }
     }
 
     if (toolId === AiToolId.SEEDANCE) {
@@ -1513,21 +1414,6 @@ async function appendVideoReferences(
         if (existingVideos + incomingVideos > maxVideos) {
             await ctx.reply(
                 `Seedance принимает до ${maxVideos} видео-референсов. Можно добавить ещё фото и аудио.`,
-                { parse_mode: 'HTML' },
-            );
-            return;
-        }
-    }
-
-    if (toolId === AiToolId.KLING) {
-        const hasVideo = mediaFiles.some((file) =>
-            isVideoMedia(file.mimeType, file.fileName),
-        );
-        if (hasVideo) {
-            await ctx.reply(
-                i18n.localeTag === 'en-US'
-                    ? 'Kling accepts photos only (up to 4). For motion transfer use Kling Motion.'
-                    : 'Kling принимает только фото (до 4). Для переноса движения используйте Kling Motion.',
                 { parse_mode: 'HTML' },
             );
             return;
@@ -1596,17 +1482,11 @@ async function appendVideoReferences(
                 continue;
             }
         } else if (isVideo) {
-            if (
-                existingVideos >= maxVideos ||
-                existingVisual >= maxVisual
-            ) {
+            if (existingVideos >= maxVideos || existingVisual >= maxVisual) {
                 limitReached = true;
                 continue;
             }
-        } else if (
-            existingImages >= maxImages ||
-            existingVisual >= maxVisual
-        ) {
+        } else if (existingImages >= maxImages || existingVisual >= maxVisual) {
             limitReached = true;
             continue;
         }
@@ -1620,7 +1500,6 @@ async function appendVideoReferences(
         toolId,
         deps.videoCapabilitiesService,
         i18n.localeTag,
-        session,
     );
     const replyKeyboard = generateVideoEditorReplyKeyboard(i18n, {
         toolId,
@@ -1652,15 +1531,6 @@ async function appendVideoReferences(
         limitReached,
         replyKeyboard,
     );
-
-    if (
-        toolId === AiToolId.SORA &&
-        addedRefs.some((ref) => isImageMedia(ref.mimeType, ref.fileName))
-    ) {
-        await ctx.reply(i18n.videoTool.soraFaceWarning, {
-            parse_mode: 'HTML',
-        });
-    }
 }
 
 function filterVideoReferenceFiles(
@@ -1669,11 +1539,13 @@ function filterVideoReferenceFiles(
 ): AiFileInput[] {
     const accepts = getToolById(toolId)?.accepts ?? [];
     const mediaAccepts = accepts.filter(
-        (item) => item === 'photo' || item === 'video' || item === 'audio' || item === 'voice',
+        (item) =>
+            item === 'photo' ||
+            item === 'video' ||
+            item === 'audio' ||
+            item === 'voice',
     );
-    return files.filter((file) =>
-        fileMatchesToolAccepts(file, mediaAccepts),
-    );
+    return files.filter((file) => fileMatchesToolAccepts(file, mediaAccepts));
 }
 
 async function handleVideoToolButtonPress(
@@ -1695,7 +1567,6 @@ async function handleVideoToolButtonPress(
         toolId,
         deps.videoCapabilitiesService,
         i18n.localeTag,
-        session,
     );
     const keyboardMode = getVideoKeyboardMode(session);
     const currentSettings = (session.ai.toolSettings ??
@@ -1835,11 +1706,7 @@ async function handleVideoToolButtonPress(
 
     if (action.type === 'open_duration_picker') {
         session.ai.videoKeyboardMode = 'duration';
-        const title =
-            toolId === AiToolId.SORA && session.ai.soraVideoMode === 'extend'
-                ? i18n.videoTool.selectExtendDurationTitle
-                : i18n.videoTool.selectDurationTitle;
-        await ctx.reply(title, {
+        await ctx.reply(i18n.videoTool.selectDurationTitle, {
             ...replyKeyboard('duration'),
             parse_mode: 'HTML',
         });
@@ -1929,7 +1796,10 @@ async function handleVideoToolButtonPress(
         return true;
     }
 
-    if (action.type === 'heygen_next_page' || action.type === 'heygen_prev_page') {
+    if (
+        action.type === 'heygen_next_page' ||
+        action.type === 'heygen_prev_page'
+    ) {
         const delta = action.type === 'heygen_next_page' ? 1 : -1;
         if (keyboardMode === 'heygen_voice') {
             session.ai.heygenVoicePage = Math.max(
@@ -2207,8 +2077,8 @@ async function handleVideoToolButtonPress(
         session.ai.toolSettings = nextSettings;
         session.ai.videoKeyboardMode = 'settings';
         const effectLabel =
-            effectPresets.find((preset) => preset.id === action.value)
-                ?.label ?? action.value;
+            effectPresets.find((preset) => preset.id === action.value)?.label ??
+            action.value;
         const summary = buildVideoSummaryLine(
             i18n,
             summaryOptions(nextSettings),
@@ -2368,8 +2238,7 @@ async function handleVideoToolButtonPress(
                 user.id,
                 toolId,
                 {
-                    heygenExpressiveness:
-                        action.value as HeyGenExpressiveness,
+                    heygenExpressiveness: action.value as HeyGenExpressiveness,
                 },
             );
         session.ai.toolSettings = nextSettings;
@@ -3286,7 +3155,10 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
             : undefined;
 
     let inputFiles = files;
-    if (isChatAssistantTool(toolId) && !(tool.accepts ?? []).includes('video')) {
+    if (
+        isChatAssistantTool(toolId) &&
+        !(tool.accepts ?? []).includes('video')
+    ) {
         const withoutVideo = files.filter(
             (file) => !isVideoMedia(file.mimeType, file.fileName),
         );
@@ -3371,10 +3243,7 @@ async function processAiInput(ctx: BotContext, deps: AiHandlerDeps) {
                                           ),
                                   )
                                 : batch.files;
-                        if (
-                            !batch.prompt?.trim() &&
-                            batchFiles.length === 0
-                        ) {
+                        if (!batch.prompt?.trim() && batchFiles.length === 0) {
                             await ctx.reply(
                                 i18n.localeTag === 'en-US'
                                     ? 'Claude does not support video. Send text, a photo, or a file.'
@@ -3605,17 +3474,14 @@ async function buildAiGenerationInput(
                 : undefined,
         nanoThinkingLevel:
             toolId === AiToolId.NANO_BANANA ? 'minimal' : undefined,
-        nanoGoogleSearch:
-            toolId === AiToolId.NANO_BANANA ? true : undefined,
+        nanoGoogleSearch: toolId === AiToolId.NANO_BANANA ? true : undefined,
         googlePreviousInteractionId:
             toolId === AiToolId.NANO_BANANA
                 ? session.ai?.googlePreviousInteractionId
                 : undefined,
         veoMode:
             toolId === AiToolId.VEO
-                ? (session.ai?.veoMode ??
-                  videoSettings?.veoMode ??
-                  'create')
+                ? (session.ai?.veoMode ?? videoSettings?.veoMode ?? 'create')
                 : undefined,
         sunoGenreId:
             toolId === AiToolId.SUNO ? voiceSettings?.sunoGenreId : undefined,
@@ -3630,13 +3496,9 @@ async function buildAiGenerationInput(
                 ? voiceSettings?.sunoLyrics?.trim() || undefined
                 : undefined,
         fluxImageMode: fluxMode,
-        attachmentRoles:
-            fluxMode ? buildFluxImageAttachmentRoles(fluxMode) : undefined,
-        outpaintWidth:
-            fluxMode === 'outpaint' ? FLUX_OUTPAINT_CANVAS.width : undefined,
-        outpaintHeight:
-            fluxMode === 'outpaint' ? FLUX_OUTPAINT_CANVAS.height : undefined,
-        ...buildSoraGenerationFields(session, files.length ? files : []),
+        attachmentRoles: fluxMode
+            ? buildFluxImageAttachmentRoles(fluxMode)
+            : undefined,
     };
 }
 
@@ -3786,7 +3648,6 @@ async function runGeneration(
                     toolId,
                     input,
                 });
-                resetSoraSessionMode(session);
                 await ctx.reply(i18n.aiResult.asyncStarted);
                 return;
             } catch (error) {
@@ -3833,7 +3694,6 @@ async function runGeneration(
                                 ],
                             ]),
                         });
-                        resetSoraSessionMode(session);
                         await ctx.reply(i18n.aiResult.asyncStarted);
                         return;
                     }
@@ -3942,7 +3802,6 @@ async function runGeneration(
                         ],
                     ]),
                 });
-                resetSoraSessionMode(session);
                 await ctx.reply(i18n.aiResult.asyncStarted);
                 return;
             }
@@ -4133,7 +3992,13 @@ async function sendGenerationResult(
         result.type === 'video' ||
         result.type === 'audio'
     ) {
-        await sendGenerationResultWithDelivery(ctx, result, toolId, sendAsFile, caption);
+        await sendGenerationResultWithDelivery(
+            ctx,
+            result,
+            toolId,
+            sendAsFile,
+            caption,
+        );
     }
 }
 

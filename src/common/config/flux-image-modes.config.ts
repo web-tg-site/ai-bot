@@ -1,8 +1,4 @@
-export type FluxImageMode =
-    | 'generate'
-    | 'deblur'
-    | 'try_on'
-    | 'outpaint';
+export type FluxImageMode = 'generate' | 'deblur' | 'try_on' | 'outpaint';
 
 export type FluxImageModeOption = {
     id: FluxImageMode;
@@ -45,6 +41,10 @@ export const FLUX_IMAGE_MODE_OPTIONS: FluxImageModeOption[] = [
 
 export const DEFAULT_FLUX_IMAGE_MODE: FluxImageMode = 'generate';
 
+/**
+ * Fallback only: the canvas is normally derived from the real source size in
+ * `BflProvider`. Used when the image dimensions cannot be read.
+ */
 export const FLUX_OUTPAINT_CANVAS = {
     width: 1024,
     height: 1024,

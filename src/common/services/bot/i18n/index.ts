@@ -22,11 +22,16 @@ export function getI18nForUser(
     return getI18n(user?.language);
 }
 
+/**
+ * Jobs and history keep `toolId` as a plain string, so rows can outlive the
+ * tool itself. Fall back to a neutral label instead of rendering `undefined`.
+ */
 export function getToolLabel(
     toolId: AiToolId,
     language?: UserLanguage | null,
 ): string {
-    return getI18n(language).tools.labels[toolId];
+    const i18n = getI18n(language);
+    return i18n.tools.labels[toolId] ?? i18n.tools.removedToolLabel;
 }
 
 export function getToolInstruction(

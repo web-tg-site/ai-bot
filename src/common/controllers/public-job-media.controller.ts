@@ -65,7 +65,9 @@ export class PublicJobMediaController {
                 return;
             }
             const message =
-                error instanceof Error ? error.message : 'Media download failed';
+                error instanceof Error
+                    ? error.message
+                    : 'Media download failed';
             throw new HttpException(
                 { error: toUserFacingError(message, getI18n()) },
                 HttpStatus.BAD_GATEWAY,

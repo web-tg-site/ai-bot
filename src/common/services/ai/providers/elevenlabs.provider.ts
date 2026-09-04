@@ -579,7 +579,9 @@ export class ElevenLabsProvider {
                 buffer[i + 3] === 0x72 // r
             ) {
                 // hdlr: version(1)+flags(3)+pre_defined(4)+handler_type(4) → +16
-                const handler = buffer.subarray(i + 16, i + 20).toString('ascii');
+                const handler = buffer
+                    .subarray(i + 16, i + 20)
+                    .toString('ascii');
                 if (handler === 'vide') return true;
             }
         }
@@ -829,7 +831,9 @@ export class ElevenLabsProvider {
             }
         }
 
-        const isoInText = trimmed.match(/(?:^|[^\p{L}])([a-z]{2})(?:$|[^\p{L}])/u);
+        const isoInText = trimmed.match(
+            /(?:^|[^\p{L}])([a-z]{2})(?:$|[^\p{L}])/u,
+        );
         if (isoInText) {
             const code = isoInText[1];
             const known = new Set(aliases.map((item) => item.code));
