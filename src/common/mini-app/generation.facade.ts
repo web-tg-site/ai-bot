@@ -24,6 +24,7 @@ import { TempPublicMediaService } from '@/common/services/ai/temp-public-media.s
 import { VideoCapabilitiesService } from '@/common/services/ai/video-capabilities.service';
 import { isFailoverEligibleTool } from '@/common/services/ai/failover';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
+import { buildNumberedReferencePrompt } from '@/common/services/bot/utils/image-references';
 
 export type GenerationRequest = {
     userId: string;
@@ -116,6 +117,29 @@ export class GenerationFacade {
 
         let input = { ...params.input };
         let conversationId = params.conversationId;
+
+        if (
+            !isChatAssistantTool(params.toolId) &&
+            input.files?.length &&
+            !/Вложения \(теги для промпта\)|Attachments \(use these tags/.test(
+                input.prompt ?? '',
+            )
+        ) {
+            const locale = input.localeTag === 'en-US' ? 'en-US' : 'ru-RU';
+            const basePrompt =
+                input.prompt?.trim() ||
+                (locale === 'en-US'
+                    ? 'Follow the attached references exactly'
+                    : 'Строго следуй прикреплённым референсам');
+            input = {
+                ...input,
+                prompt: buildNumberedReferencePrompt(
+                    basePrompt,
+                    input.files,
+                    locale,
+                ),
+            };
+        }
 
         let effectiveToolId = params.toolId;
 

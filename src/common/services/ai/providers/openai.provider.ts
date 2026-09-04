@@ -15,6 +15,12 @@ import {
     isImageMedia,
     isVideoMedia,
 } from '@/common/utils/media-kind';
+import {
+    attachmentMentionSystemHint,
+    formatAttachmentMention,
+    getAttachmentMentionIndex1,
+    getAttachmentMentionKind,
+} from '@/common/services/bot/utils/image-references';
 import { OpenRouterProvider } from './openrouter.provider';
 
 const GPT_IMAGE_MODEL = 'gpt-image-1-mini';
@@ -215,15 +221,15 @@ export class OpenAiProvider {
             parts.push({ type: 'input_text', text: prompt });
         }
 
-        let imageIndex = 0;
-        for (const file of files) {
+        for (let i = 0; i < files.length; i += 1) {
+            const file = files[i]!;
+            const mention = formatAttachmentMention(
+                getAttachmentMentionKind(file),
+                getAttachmentMentionIndex1(files, i),
+            );
+
             if (isImageMedia(file.mimeType, file.fileName)) {
-                imageIndex += 1;
-                const label =
-                    localeTag === 'en-US'
-                        ? `[Reference ${imageIndex}]`
-                        : `[Референс ${imageIndex}]`;
-                parts.push({ type: 'input_text', text: label });
+                parts.push({ type: 'input_text', text: mention });
                 parts.push({
                     type: 'input_image',
                     image_url: `data:${file.mimeType || 'image/jpeg'};base64,${file.buffer.toString('base64')}`,
@@ -233,15 +239,20 @@ export class OpenAiProvider {
             }
 
             if (isVideoMedia(file.mimeType, file.fileName)) {
-                parts.push(...(await this.buildVideoParts(file, localeTag)));
+                parts.push(
+                    ...(await this.buildVideoParts(file, localeTag, mention)),
+                );
                 continue;
             }
 
             if (isAudioMedia(file.mimeType, file.fileName)) {
-                parts.push(await this.buildAudioPart(file, localeTag));
+                parts.push(
+                    await this.buildAudioPart(file, localeTag, mention),
+                );
                 continue;
             }
 
+            parts.push({ type: 'input_text', text: mention });
             parts.push(this.buildDocumentPart(file, localeTag));
         }
 
@@ -251,6 +262,7 @@ export class OpenAiProvider {
     private async buildVideoParts(
         file: AiFileInput,
         localeTag: 'ru-RU' | 'en-US',
+        mention = '@video1',
     ): Promise<InputPart[]> {
         const extraction = await extractVideoForGpt(file.buffer, {
             mimeType: file.mimeType,
@@ -268,8 +280,8 @@ export class OpenAiProvider {
 
         const header =
             localeTag === 'en-US'
-                ? `Attached video "${file.fileName ?? 'video'}" (${extraction.durationSec.toFixed(1)}s). Frames below are sampled in order.`
-                : `Прикреплено видео «${file.fileName ?? 'video'}» (${extraction.durationSec.toFixed(1)} с). Ниже кадры по порядку.`;
+                ? `${mention} Attached video "${file.fileName ?? 'video'}" (${extraction.durationSec.toFixed(1)}s). Frames below are sampled in order.`
+                : `${mention} Прикреплено видео «${file.fileName ?? 'video'}» (${extraction.durationSec.toFixed(1)} с). Ниже кадры по порядку.`;
         const audioNote =
             localeTag === 'en-US'
                 ? transcript
@@ -304,6 +316,7 @@ export class OpenAiProvider {
     private async buildAudioPart(
         file: AiFileInput,
         localeTag: 'ru-RU' | 'en-US',
+        mention = '@file1',
     ): Promise<InputPart> {
         const transcript = await this.transcribeAudio(
             file.buffer,
@@ -312,8 +325,8 @@ export class OpenAiProvider {
         );
         const text =
             localeTag === 'en-US'
-                ? `Attached audio "${file.fileName ?? 'audio'}". Transcript:\n${transcript || '(empty)'}`
-                : `Прикреплено аудио «${file.fileName ?? 'audio'}». Транскрипт:\n${transcript || '(пусто)'}`;
+                ? `${mention} Attached audio "${file.fileName ?? 'audio'}". Transcript:\n${transcript || '(empty)'}`
+                : `${mention} Прикреплено аудио «${file.fileName ?? 'audio'}». Транскрипт:\n${transcript || '(пусто)'}`;
         return { type: 'input_text', text };
     }
 
@@ -534,6 +547,7 @@ export class OpenAiProvider {
                 'If the question is about current events, prices, weather, news, or anything time-sensitive, use web search. ' +
                 'Do not invent up-to-date facts. Answer in the same language as the user. ' +
                 'When images, video frames, audio transcripts or documents are attached, analyze them (including people) and give concrete feedback — do not claim you cannot see or hear them. ' +
+                `${attachmentMentionSystemHint('en-US')} ` +
                 'You can generate images when the user asks to draw, illustrate, edit or create a picture. ' +
                 'Use Markdown formatting (bold, lists, code) when it improves readability.'
             );
@@ -545,6 +559,7 @@ export class OpenAiProvider {
             'Если вопрос касается текущих событий, цен, погоды, новостей или другой актуальной информации — используй поиск в интернете. ' +
             'Не выдумывай актуальные факты. Отвечай на том же языке, что и пользователь. ' +
             'Если в сообщении есть изображения, кадры видео, транскрипт аудио или документы — анализируй их (в том числе людей) и давай конкретную обратную связь, а не отвечай, что не видишь вложения. ' +
+            `${attachmentMentionSystemHint('ru-RU')} ` +
             'Если пользователь просит нарисовать, проиллюстрировать или отредактировать картинку — сгенерируй изображение. ' +
             'Используй Markdown-форматирование (жирный текст, списки, код), когда это улучшает читаемость.'
         );

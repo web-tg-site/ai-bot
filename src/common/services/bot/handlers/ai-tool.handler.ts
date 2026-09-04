@@ -3338,9 +3338,6 @@ async function buildAiGenerationInput(
 
     const settings = session.ai?.toolSettings;
     const voiceSettingsFromSession = session.ai?.voiceToolSettings;
-    const referenceCount = preparedFiles.filter((file) =>
-        isImageMedia(file.mimeType, file.fileName),
-    ).length;
     let promptText = text?.trim() ?? '';
 
     if (isVideoFlowTool(toolId)) {
@@ -3357,13 +3354,13 @@ async function buildAiGenerationInput(
     }
 
     const prompt =
-        referenceCount > 0 && !isChatAssistantTool(toolId)
+        preparedFiles.length > 0 && !isChatAssistantTool(toolId)
             ? buildNumberedReferencePrompt(
                   promptText ||
                       (i18n.localeTag === 'en-US'
-                          ? 'Follow the reference images exactly'
+                          ? 'Follow the attached references exactly'
                           : 'Строго следуй прикреплённым референсам'),
-                  referenceCount,
+                  preparedFiles,
                   i18n.localeTag,
               )
             : promptText || text;

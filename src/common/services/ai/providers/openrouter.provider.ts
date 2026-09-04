@@ -27,6 +27,12 @@ import {
     isImageMedia,
     isVideoMedia,
 } from '@/common/utils/media-kind';
+import {
+    attachmentMentionSystemHint,
+    formatAttachmentMention,
+    getAttachmentMentionIndex1,
+    getAttachmentMentionKind,
+} from '@/common/services/bot/utils/image-references';
 
 const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
 const MAX_TEXT_DOCUMENT_CHARS = 12_000;
@@ -513,6 +519,7 @@ export class OpenRouterProvider {
                 'Do not invent up-to-date facts. Answer in the same language as the user. ' +
                 'When images are attached, you can see and analyze them (including people) and should give concrete visual feedback — do not claim you cannot see images. ' +
                 'When a PDF or text document is attached, you can read and analyze its contents — do not claim the file is unreadable binary. ' +
+                `${attachmentMentionSystemHint('en-US')} ` +
                 'Use Markdown formatting (bold, lists, code) when it improves readability.'
             );
         }
@@ -523,6 +530,7 @@ export class OpenRouterProvider {
             'Не выдумывай актуальные факты. Отвечай на том же языке, что и пользователь. ' +
             'Если в сообщении есть изображения — ты их видишь и должен анализировать (в том числе людей, например для стилевых советов), а не отвечать, что не видишь изображения. ' +
             'Если прикреплён PDF или текстовый документ — ты можешь читать и анализировать его содержимое, не отвечай, что файл «сырые бинарные данные». ' +
+            `${attachmentMentionSystemHint('ru-RU')} ` +
             'Используй Markdown-форматирование (жирный текст, списки, код), когда это улучшает читаемость.'
         );
     }
@@ -791,19 +799,19 @@ export class OpenRouterProvider {
             parts.push({ type: 'text', text: prompt });
         }
 
-        let imageIndex = 0;
-        for (const file of files) {
+        for (let i = 0; i < files.length; i += 1) {
+            const file = files[i]!;
+            const mention = formatAttachmentMention(
+                getAttachmentMentionKind(file),
+                getAttachmentMentionIndex1(files, i),
+            );
+
             if (isImageMedia(file.mimeType, file.fileName)) {
                 const base64 = file.buffer.toString('base64');
                 const mime = file.mimeType?.startsWith('image/')
                     ? file.mimeType
                     : 'image/jpeg';
-                const label =
-                    localeTag === 'en-US'
-                        ? `[Reference ${imageIndex + 1}]`
-                        : `[Референс ${imageIndex + 1}]`;
-                imageIndex += 1;
-                parts.push({ type: 'text', text: label });
+                parts.push({ type: 'text', text: mention });
                 parts.push({
                     type: 'image_url',
                     image_url: {
@@ -818,8 +826,8 @@ export class OpenRouterProvider {
                     type: 'text',
                     text:
                         localeTag === 'en-US'
-                            ? `[Attached video: ${file.fileName ?? 'video'} — video analysis is not supported in this chat]`
-                            : `[Прикреплено видео: ${file.fileName ?? 'video'} — анализ видео в этом чате не поддерживается]`,
+                            ? `${mention} Attached video: ${file.fileName ?? 'video'} — video analysis is not supported in this chat`
+                            : `${mention} Прикреплено видео: ${file.fileName ?? 'video'} — анализ видео в этом чате не поддерживается`,
                 });
                 continue;
             }
@@ -829,12 +837,13 @@ export class OpenRouterProvider {
                     type: 'text',
                     text:
                         localeTag === 'en-US'
-                            ? `[Attached audio: ${file.fileName ?? 'audio'} — audio analysis is not supported in this chat]`
-                            : `[Прикреплено аудио: ${file.fileName ?? 'audio'} — анализ аудио в этом чате не поддерживается]`,
+                            ? `${mention} Attached audio: ${file.fileName ?? 'audio'} — audio analysis is not supported in this chat`
+                            : `${mention} Прикреплено аудио: ${file.fileName ?? 'audio'} — анализ аудио в этом чате не поддерживается`,
                 });
                 continue;
             }
 
+            parts.push({ type: 'text', text: mention });
             parts.push(...this.buildDocumentParts(file, localeTag));
         }
 
