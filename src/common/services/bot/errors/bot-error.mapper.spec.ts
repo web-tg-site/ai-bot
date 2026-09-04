@@ -117,9 +117,23 @@ describe('bot-error.mapper', () => {
             'Прикреплённый файл слишком большой. Максимум 20 МБ.',
             'Video duration must not exceed 10s. Shorten the clip and try again.',
             'Pose from photo: motion video must be under 10 seconds',
+            'Image pixel is invalid',
+            'Kling: Something went wrong when we tried to get the contents of the file.',
         ])('detects user input: %s', (msg) => {
             expect(isUserInputValidationError(msg)).toBe(true);
             expect(isFailoverEligibleError(msg)).toBe(false);
+        });
+
+        it('localizes Kling image/video read failures', () => {
+            expect(toUserFacingError('Image pixel is invalid', ru)).toMatch(
+                /не смог прочитать фото/i,
+            );
+            expect(
+                toUserFacingError(
+                    'Something went wrong when we tried to get the contents of the file.',
+                    ru,
+                ),
+            ).toMatch(/не смог прочитать видео/i);
         });
 
         it.each([

@@ -13,8 +13,11 @@ import {
     AiToolId,
 } from '../types';
 import { downloadRemoteFile } from '@/common/utils/download-remote-file';
+import { compressReferenceImage } from '@/common/utils/compress-reference-image';
 import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
 import { probeVideoMetadata } from '@/common/utils/probe-video-metadata';
+import { transcodeVideoToH264 } from '@/common/utils/transcode-video-h264';
+import imageSize from 'image-size';
 import { TempPublicMediaService } from '../temp-public-media.service';
 
 const DEFAULT_KLING_API_URL = 'https://api-singapore.klingai.com';
@@ -38,6 +41,9 @@ const OMNI_VIDEO_MIN_SIDE = 700;
 const OMNI_VIDEO_MAX_SIDE = 2160;
 const OMNI_VIDEO_MIN_FPS = 24;
 const OMNI_VIDEO_MAX_FPS = 60;
+/** Omni image refs: JPEG/PNG, both sides ≥ 300 px, aspect 1:2.5 … 2.5:1. */
+const OMNI_IMAGE_MIN_SIDE = 300;
+const OMNI_IMAGE_MAX_ASPECT = 2.5;
 /** Output durations Omni allows with a `feature` video reference. */
 const OMNI_OUTPUT_DURATIONS = [5, 10] as const;
 
@@ -349,15 +355,19 @@ export class KlingProvider {
             );
         }
 
-        const video = videos[0];
+        const video = await this.prepareOmniReferenceVideo(videos[0]);
         await this.validateOmniReferenceVideo(video);
 
-        // Omni fetches media by URL; base64 is not accepted for video_list.
+        // Omni fetches video by URL; images are embedded as JPEG data-URLs so
+        // Kling does not re-fetch a host that can serve WebP/HTML and answer
+        // "Image pixel is invalid".
         const videoUrl = await this.uploadTempPublicUrl(video, 'video');
         const imageList = await Promise.all(
-            images.slice(0, MAX_IMAGE_REFS).map(async (file) => ({
-                image_url: await this.uploadTempPublicUrl(file, 'image'),
-            })),
+            images
+                .slice(0, MAX_IMAGE_REFS)
+                .map(async (file) => ({
+                    image_url: await this.toOmniImageDataUrl(file),
+                })),
         );
 
         const body: Record<string, unknown> = {
@@ -390,6 +400,107 @@ export class KlingProvider {
         }
 
         return { endpoint: '/v1/videos/omni-video', body };
+    }
+
+    /**
+     * Force H.264 MP4 before Omni upload — iPhone “mp4” is often HEVC, and
+     * Kling then fails with “get the contents of the file”.
+     */
+    private async prepareOmniReferenceVideo(
+        video: AiFileInput,
+    ): Promise<AiFileInput> {
+        try {
+            const buffer = await transcodeVideoToH264(video.buffer, {
+                force: true,
+                maxSeconds: OMNI_VIDEO_MAX_SECONDS,
+            });
+            return {
+                buffer,
+                mimeType: 'video/mp4',
+                fileName:
+                    video.fileName?.replace(/\.\w+$/i, '.mp4') ??
+                    `kling-omni-${Date.now()}.mp4`,
+            };
+        } catch (error) {
+            this.logger.warn(
+                { err: error instanceof Error ? error.message : error },
+                'Kling Omni video re-encode failed, uploading original',
+            );
+            return {
+                ...video,
+                mimeType: 'video/mp4',
+                fileName:
+                    video.fileName?.replace(/\.\w+$/i, '.mp4') ??
+                    `kling-omni-${Date.now()}.mp4`,
+            };
+        }
+    }
+
+    /**
+     * Omni image_list wants JPEG/PNG ≥300px. Sending a data-URL avoids
+     * third-party hosts returning WebP/HTML that Kling rejects as invalid pixels.
+     */
+    private async toOmniImageDataUrl(file: AiFileInput): Promise<string> {
+        const prepared = await compressReferenceImage(file);
+        if (prepared.buffer.length > MAX_IMAGE_BYTES) {
+            throw new Error('Изображение для Kling не больше 10 МБ');
+        }
+
+        let jpeg = prepared;
+        if (
+            !/^image\/(jpeg|png)$/i.test(prepared.mimeType) ||
+            prepared.fileName?.toLowerCase().endsWith('.webp')
+        ) {
+            const sharp = (await import('sharp')).default;
+            const buffer = await sharp(prepared.buffer)
+                .rotate()
+                .jpeg({ quality: 90, mozjpeg: true })
+                .toBuffer();
+            jpeg = {
+                buffer,
+                mimeType: 'image/jpeg',
+                fileName:
+                    prepared.fileName?.replace(/\.\w+$/i, '.jpg') ??
+                    'reference.jpg',
+            };
+        }
+
+        await this.validateOmniReferenceImage(jpeg);
+
+        const mime = jpeg.mimeType.includes('png')
+            ? 'image/png'
+            : 'image/jpeg';
+        return `data:${mime};base64,${jpeg.buffer.toString('base64')}`;
+    }
+
+    private async validateOmniReferenceImage(file: AiFileInput) {
+        try {
+            const size = imageSize(file.buffer);
+            const width = size.width ?? 0;
+            const height = size.height ?? 0;
+            if (width < OMNI_IMAGE_MIN_SIDE || height < OMNI_IMAGE_MIN_SIDE) {
+                throw new Error(
+                    `Фото для Kling должно быть не меньше ${OMNI_IMAGE_MIN_SIDE}×${OMNI_IMAGE_MIN_SIDE} пикселей.`,
+                );
+            }
+            const aspect = Math.max(width, height) / Math.min(width, height);
+            if (aspect > OMNI_IMAGE_MAX_ASPECT + 0.01) {
+                throw new Error(
+                    'Слишком вытянутое фото для Kling. Используйте кадр ближе к обычному (не уже чем ~2.5:1).',
+                );
+            }
+        } catch (error) {
+            if (
+                error instanceof Error &&
+                /Фото для Kling|Слишком вытянутое/.test(error.message)
+            ) {
+                throw error;
+            }
+            this.logger.warn(
+                { err: error instanceof Error ? error.message : error },
+                'Kling Omni: could not read image size, sending anyway',
+            );
+        }
     }
 
     /**
