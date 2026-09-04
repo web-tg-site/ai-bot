@@ -34,11 +34,62 @@ export function stripTechnicalErrorDetails(message: string): string {
     return message.split('\n\nID запроса:')[0].trim();
 }
 
+/**
+ * Errors the user can fix by changing the prompt/file — not provider outages.
+ * Failover must not redirect these to another model.
+ */
+export function isUserInputValidationError(rawMessage: string): boolean {
+    const message = stripTechnicalErrorDetails(rawMessage);
+    if (!message) return false;
+
+    const detail = stripProviderPrefix(message);
+
+    if (
+        /INSUFFICIENT_TOKENS|NO_SUBSCRIPTION|API_KEY|not configured|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|HTTP\s*[45]\d\d|Insufficient credits|queue full|generation timed out|превысила максимальное время/i.test(
+            detail,
+        )
+    ) {
+        return false;
+    }
+
+    if (
+        /Видео-референс|Обрежьте клип|обрежь клип|С видео-референсом нужен|нужен промпт|только одно видео|не больше \d+\s*МБ|должен быть от|должна быть от|Разрешение видео|Кадровая частота|принимает не больше|принимает только|Загрузите фото|Загрузите видео|загрузите фото|загрузите видео|Отправьте текстовый промпт|Прикреплённый файл слишком|Поза с фото|Поза из видео|не подходит|Convert the document|Сохраните документ как PDF/i.test(
+            detail,
+        )
+    ) {
+        return true;
+    }
+
+    if (
+        /Video duration|длительность видео|короче \d|не должна превышать|must be at least|должна быть не меньше|Pose from photo|Pose from video|trim the clip|Upload a (?:photo|video|longer)|reference video|motion video must|file is too large|must be (?:at least|under|between|from)|too large|resolution must|fps must|aspect ratio/i.test(
+            detail,
+        )
+    ) {
+        return true;
+    }
+
+    // Localized constraint details from providers (duration/size/format), after brand strip.
+    if (
+        isActionableProviderDetail(detail) &&
+        /duration|seconds|\d+\s*s\b|file size|too large|too small|resolution|aspect|format|invalid|must be|required|upload|orientation|fps|dimension|width|height|mb\b|длин|секунд|разрешен|формат|загруз|обреж|кадр/i.test(
+            detail,
+        )
+    ) {
+        return true;
+    }
+
+    return false;
+}
+
 export function classifyBotError(rawMessage: string): BotErrorCode {
     const message = stripTechnicalErrorDetails(rawMessage);
 
     if (message === 'INSUFFICIENT_TOKENS') {
         return BotErrorCode.INSUFFICIENT_TOKENS;
+    }
+
+    if (isUserInputValidationError(message)) {
+        return BotErrorCode.UNKNOWN;
     }
 
     if (

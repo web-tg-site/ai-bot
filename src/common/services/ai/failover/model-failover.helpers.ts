@@ -7,6 +7,7 @@ import {
 import {
     BotErrorCode,
     classifyBotError,
+    isUserInputValidationError,
 } from '@/common/services/bot/errors/bot-error.mapper';
 import { getI18n, getToolLabel } from '@/common/services/bot/i18n';
 import { UserLanguage } from '@/generated/prisma/enums';
@@ -28,6 +29,11 @@ export function isFailoverEligibleTool(toolId: AiToolId): boolean {
 }
 
 export function isFailoverEligibleError(rawMessage: string): boolean {
+    // User fixed the wrong file / duration / size — show the tip, don't hop models.
+    if (isUserInputValidationError(rawMessage)) {
+        return false;
+    }
+
     const code = classifyBotError(rawMessage);
     if (
         code === BotErrorCode.CONTENT_POLICY ||
@@ -41,15 +47,6 @@ export function isFailoverEligibleError(rawMessage: string): boolean {
     // Only block failover for non-key config issues (e.g. unknown tool wiring).
     if (code === BotErrorCode.CONFIG) {
         return /API_KEY|not configured/i.test(rawMessage);
-    }
-
-    // User-fixable input validation — show the message, don't burn another model.
-    if (
-        /Video duration|длительность видео|короче \d|не должна превышать \d|must be at least|должна быть не меньше|Поза с фото|Pose from photo/i.test(
-            rawMessage,
-        )
-    ) {
-        return false;
     }
 
     return true;

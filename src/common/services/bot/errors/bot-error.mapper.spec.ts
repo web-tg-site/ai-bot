@@ -5,9 +5,11 @@ import {
     formatUserBotError,
     formatUserBotErrorMessage,
     stripTechnicalErrorDetails,
+    isUserInputValidationError,
 } from './bot-error.mapper';
 import { ru } from '../i18n/locales/ru';
 import { en } from '../i18n/locales/en';
+import { isFailoverEligibleError } from '@/common/services/ai/failover/model-failover.helpers';
 
 describe('bot-error.mapper', () => {
     describe('stripTechnicalErrorDetails', () => {
@@ -101,6 +103,35 @@ describe('bot-error.mapper', () => {
             expect(
                 classifyBotError('INSUFFICIENT_TOKENS\n\nID запроса: xyz'),
             ).toBe(BotErrorCode.INSUFFICIENT_TOKENS);
+        });
+    });
+
+    describe('isUserInputValidationError / failover', () => {
+        it.each([
+            'Видео-референс должен быть от 3 до 10 секунд. Обрежьте клип и попробуйте снова.',
+            'Видео-референс для Kling не больше 200 МБ',
+            'Разрешение видео-референса должно быть от 700 до 2160 пикселей по стороне.',
+            'С видео-референсом нужен промпт: опишите, какое видео сгенерировать.',
+            'Kling принимает только одно видео-референс. Оставьте один клип.',
+            'Kling Motion: загрузите фото персонажа',
+            'Прикреплённый файл слишком большой. Максимум 20 МБ.',
+            'Video duration must not exceed 10s. Shorten the clip and try again.',
+            'Pose from photo: motion video must be under 10 seconds',
+        ])('detects user input: %s', (msg) => {
+            expect(isUserInputValidationError(msg)).toBe(true);
+            expect(isFailoverEligibleError(msg)).toBe(false);
+        });
+
+        it.each([
+            'Kling: generation failed',
+            'HTTP 500 internal',
+            'OpenRouter rate limit',
+            'generation timed out',
+            'Insufficient credits',
+            'BFL returned error',
+        ])('allows failover for provider outage: %s', (msg) => {
+            expect(isUserInputValidationError(msg)).toBe(false);
+            expect(isFailoverEligibleError(msg)).toBe(true);
         });
     });
 
