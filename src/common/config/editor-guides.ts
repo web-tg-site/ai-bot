@@ -40,13 +40,13 @@ const RU: Partial<Record<AiToolId, string>> = {
 - ✍️ Опиши идею — Sora создаст новую картинку
 - 📸 Добавь до 10 фото в качестве примеров или референсов
 - 🔤 Хорошо пишет текст на картинке (вывески, надписи)
-- ✨ Качество: базовое, стандартное или высокое (насколько тщательно рисует)
-- 📐 Размер задаётся форматом кадра
+- 📐 Выбери разрешение: Авто, 1K, 1.5K или 2K
+- 📐 Формат кадра задаёт пропорции картинки
 
 Как пользоваться
 1. Опиши, что нужно на картинке.
 2. При желании добавь фото-примеры.
-3. Выбери формат и качество.
+3. Выбери формат и разрешение.
 4. Запусти генерацию.
 5. Не понравился результат? Опиши, что изменить, и запусти снова.`,
 
@@ -104,14 +104,14 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 🔍 «Резкость» — сделать размытое фото чётче (текст не нужен)
 - 👗 «Примерка» — человек + фото одежды
 - 🖼️ «Расширить» — добавить место вокруг фото
-- ✨ Качество: базовое, стандартное или высокое
-- 📐 Размер задаётся форматом кадра
+- 📐 Выбери разрешение: 768p, 1K или 1.5K
+- 📐 Формат кадра задаёт пропорции картинки
 
 Как пользоваться
 1. Выбери режим.
 2. Добавь нужные фото (кнопка подскажет, какие).
 3. Если режим просит — напиши текст.
-4. Выбери формат и качество и запусти генерацию.`,
+4. Выбери формат и разрешение и запусти генерацию.`,
 
     [AiToolId.KLING]: `🎥 Kling
 Создавай короткие видео по тексту или фото с помощью Kling.
@@ -159,14 +159,14 @@ const RU: Partial<Record<AiToolId, string>> = {
 
 - ✍️ Опиши сцену — получишь видео на 4, 6 или 8 секунд
 - 📐 Формат: широкий (16:9) или вертикальный сторис (9:16)
-- 🎞️ Качество: 720p, 1080p или 4K
+- 🎞️ Разрешение: 720p, 1080p или 4K
 - 📸 Одно фото — видео начнётся с этого кадра
 - 🔄 Два фото — плавный переход от первого ко второму
 - 🖼️ До 3 фото-примеров — «как должно выглядеть»
 - 🚫 Негативный промпт — напиши, чего избегать при генерации видео
 
 Как пользоваться
-1. Выбери формат и качество.
+1. Выбери формат и разрешение.
 2. При желании прикрепи фото.
 3. Напиши, что происходит в ролике.
 4. Запусти генерацию и подожди.`,
@@ -341,13 +341,13 @@ Create and edit images from text with Sora.
 - ✍️ Describe your idea — Sora will create a new image
 - 📸 Add up to 10 photos as examples or references
 - 🔤 Great at text on images (signs, labels)
-- ✨ Quality: basic, standard or high (how carefully it renders)
-- 📐 Size follows the frame aspect ratio
+- 📐 Choose resolution: Auto, 1K, 1.5K or 2K
+- 📐 Frame aspect sets the image proportions
 
 How to use
 1. Describe what should be in the image.
 2. Optionally add photo references.
-3. Choose format and quality.
+3. Choose format and resolution.
 4. Run generation.
 5. Not happy with the result? Describe what to change and run again.`,
 
@@ -410,14 +410,14 @@ Creates realistic images with several modes for different tasks.
 - 🔍 "Sharpen" — make a blurry photo sharper (no text needed)
 - 👗 "Try-on" — person + clothing photo
 - 🖼️ "Expand" — add space around the photo
-- ✨ Quality: basic, standard or high
-- 📐 Size follows the frame aspect ratio
+- 📐 Choose resolution: 768p, 1K or 1.5K
+- 📐 Frame aspect sets the image proportions
 
 How to use
 1. Choose a mode.
 2. Add the required photos (the button will hint which ones).
 3. If the mode asks — write a prompt.
-4. Choose format and quality and run generation.`,
+4. Choose format and resolution and run generation.`,
 
     [AiToolId.KLING]: `🎥 Kling
 Create short videos from text or photos with Kling.
@@ -465,14 +465,14 @@ Create short videos from text — audio is included in the clip.
 
 - ✍️ Describe the scene — get a 4, 6 or 8 second video
 - 📐 Format: widescreen (16:9) or vertical stories (9:16)
-- 🎞️ Quality: 720p, 1080p or 4K
+- 🎞️ Resolution: 720p, 1080p or 4K
 - 📸 One photo — video starts from that frame
 - 🔄 Two photos — smooth transition from first to second
 - 🖼️ Up to 3 reference photos — "how it should look"
 - 🚫 Negative prompt — write what to avoid when generating the video
 
 How to use
-1. Choose format and quality.
+1. Choose format and resolution.
 2. Optionally attach photos.
 3. Describe what happens in the clip.
 4. Run generation and wait.`,

@@ -546,12 +546,12 @@ ${getTariffIncludesText(type, plan, ru)}
             'Отправьте фото-референсы или нажмите «Пропустить» / «К промпту».',
         needPrompt: 'Отправьте промпт для генерации.',
         aspectRatioButton: (ratio) => `📐 Формат: ${ratio}`,
-        resolutionButton: (resolution) => `🖼 Разрешение: ${resolution}`,
+        resolutionButton: (resolution) => `🖼 ${resolution}`,
         formatToolbarButton: (ratio) =>
             formatAspectRatioToolbarLabel(ratio, 'ru-RU'),
         changeFormatButton: '📐 Изменить формат',
-        changeResolutionButton: '🖼 Изменить разрешение',
-        changeQualityButton: '✨ Изменить качество',
+        changeResolutionButton: '🖼 Изменить размер',
+        changeQualityButton: '🖼 Изменить размер',
         changeFluxModeButton: '🎛 Режим Flux',
         nanoThinkingButton: (high) =>
             high ? '✨ Качество: лучше' : '⚡️ Качество: быстрее',
@@ -567,8 +567,8 @@ ${getTariffIncludesText(type, plan, ru)}
         nanoSearchAlwaysOn: 'Поиск всегда включён',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Выберите формат:',
-        selectResolutionTitle: 'Выберите разрешение:',
-        selectQualityTitle: 'Выберите качество:',
+        selectResolutionTitle: 'Выберите размер:',
+        selectQualityTitle: 'Выберите размер:',
         selectFluxModeTitle: 'Выберите режим Flux:',
         aspectRatioPickerOption: (ratio) => formatAspectRatioLabelRu(ratio),
         aspectRatioPickerSelected: (ratio) =>
@@ -582,9 +582,9 @@ ${getTariffIncludesText(type, plan, ru)}
         aspectRatioChanged: (ratio) =>
             `Формат: ${formatAspectRatioLabelRu(ratio)}`,
         resolutionChanged: (resolution, tokens) =>
-            `Разрешение: ${resolution} (${tokens} токенов)`,
+            `${resolution} (${tokens} токенов)`,
         qualityChanged: (label, tokens) =>
-            `Качество: ${label} (${tokens} токенов)`,
+            `${label} (${tokens} токенов)`,
         fluxModePickerOption: (label) => label,
         fluxModePickerSelected: (label) => `✓ ${label}`,
         fluxModeChanged: (label) => `Режим Flux: <b>${label}</b>`,
@@ -632,12 +632,12 @@ ${getTariffIncludesText(type, plan, ru)}
             'Отправьте фото, видео или аудио — что принимает этот редактор — или нажмите «Пропустить» / «К промпту».',
         needPrompt: 'Отправьте промпт для генерации видео.',
         aspectRatioButton: (ratio) => `📐 Формат: ${ratio}`,
-        resolutionButton: (resolution) => `🖼 Разрешение: ${resolution}`,
+        resolutionButton: (resolution) => `🖼 ${resolution}`,
         formatToolbarButton: (ratio) =>
             formatAspectRatioToolbarLabel(ratio, 'ru-RU'),
         changeFormatButton: '📐 Изменить формат',
-        changeResolutionButton: '🖼 Изменить разрешение',
-        changeQualityButton: '✨ Изменить качество',
+        changeResolutionButton: '🖼 Изменить размер',
+        changeQualityButton: '🖼 Изменить размер',
         changeDurationButton: '⏱ Изменить длительность',
         changeStyleButton: '🎨 Изменить стиль',
         changeEffectButton: '✨ Изменить эффект',
@@ -677,8 +677,8 @@ ${getTariffIncludesText(type, plan, ru)}
         heygenVoicePreviewFailed: 'Не удалось загрузить превью голоса.',
         resolutionToolbarButton: (resolution) => `🖼 ${resolution}`,
         selectAspectRatioTitle: 'Выберите формат:',
-        selectResolutionTitle: 'Выберите разрешение:',
-        selectQualityTitle: 'Выберите качество:',
+        selectResolutionTitle: 'Выберите размер:',
+        selectQualityTitle: 'Выберите размер:',
         selectDurationTitle: 'Выберите длительность:',
         selectStyleTitle: 'Выберите стиль:',
         selectEffectTitle: 'Выберите эффект:',
@@ -695,9 +695,9 @@ ${getTariffIncludesText(type, plan, ru)}
         aspectRatioChanged: (ratio) =>
             `Формат: ${formatAspectRatioLabelRu(ratio)}`,
         resolutionChanged: (resolution, tokens) =>
-            `Разрешение: ${resolution} (${tokens} токенов)`,
+            `${resolution} (${tokens} токенов)`,
         qualityChanged: (label, tokens) =>
-            `Качество: ${label} (${tokens} токенов)`,
+            `${label} (${tokens} токенов)`,
         durationToolbarButton: (seconds, credits) =>
             `⏱ ${seconds} сек · ${credits} ток.`,
         durationPickerOption: (seconds, credits) =>

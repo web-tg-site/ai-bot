@@ -60,7 +60,7 @@ export function formatGenerationSettingsLines(
         case AiToolId.SEEDREAM:
             if (input.resolution) {
                 lines.push(
-                    `✨ Качество: ${escapeHtml(formatImageResolutionLabel(input.resolution))}`,
+                    `✨ ${escapeHtml(formatImageResolutionLabel(input.resolution))}`,
                 );
             }
             break;
@@ -69,13 +69,13 @@ export function formatGenerationSettingsLines(
         case AiToolId.MIDJOURNEY:
             if (input.quality) {
                 lines.push(
-                    `✨ Качество: ${escapeHtml(formatImageQualityLabel(input.quality, locale, toolId))}`,
+                    `✨ ${escapeHtml(formatImageQualityLabel(input.quality, locale, toolId))}`,
                 );
             }
             break;
         case AiToolId.TOPAZ:
             if (input.topazScale) {
-                lines.push(`✨ Масштаб: ×${input.topazScale}`);
+                lines.push(`✨ ×${input.topazScale}`);
             }
             break;
         case AiToolId.KLING:
@@ -85,20 +85,19 @@ export function formatGenerationSettingsLines(
         case AiToolId.LUMA_RAY:
         case AiToolId.HIGGSFIELD:
             if (input.resolution) {
-                lines.push(`✨ Разрешение: ${escapeHtml(input.resolution)}`);
-            }
-            if (input.quality) {
+                lines.push(`✨ ${escapeHtml(input.resolution)}`);
+            } else if (input.quality) {
                 lines.push(
-                    `✨ Качество: ${escapeHtml(getVideoQualityLabel(input.quality, locale))}`,
+                    `✨ ${escapeHtml(getVideoQualityLabel(input.quality, locale))}`,
                 );
             }
             if (input.durationSeconds) {
-                lines.push(`⏱ Длительность: ${input.durationSeconds} сек`);
+                lines.push(`⏱ ${input.durationSeconds} сек`);
             }
             break;
         case AiToolId.HEYGEN:
             if (input.durationSeconds) {
-                lines.push(`⏱ Длительность: ${input.durationSeconds} сек`);
+                lines.push(`⏱ ${input.durationSeconds} сек`);
             }
             break;
         case AiToolId.SUNO:
@@ -118,13 +117,12 @@ export function formatGenerationSettingsLines(
             break;
         default:
             if (input.resolution) {
-                lines.push(`✨ Разрешение: ${escapeHtml(input.resolution)}`);
-            }
-            if (input.quality) {
-                lines.push(`✨ Качество: ${escapeHtml(input.quality)}`);
+                lines.push(`✨ ${escapeHtml(input.resolution)}`);
+            } else if (input.quality) {
+                lines.push(`✨ ${escapeHtml(input.quality)}`);
             }
             if (input.durationSeconds) {
-                lines.push(`⏱ Длительность: ${input.durationSeconds} сек`);
+                lines.push(`⏱ ${input.durationSeconds} сек`);
             }
             break;
     }
