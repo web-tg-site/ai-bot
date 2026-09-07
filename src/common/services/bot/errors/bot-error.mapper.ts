@@ -53,7 +53,7 @@ export function isUserInputValidationError(rawMessage: string): boolean {
     }
 
     if (
-        /Видео-референс|Обрежьте клип|обрежь клип|С видео-референсом нужен|нужен промпт|только одно видео|не больше \d+\s*МБ|должен быть от|должна быть от|Разрешение видео|Кадровая частота|принимает не больше|принимает только|Загрузите фото|Загрузите видео|загрузите фото|загрузите видео|Отправьте текстовый промпт|Прикреплённый файл слишком|Поза с фото|Поза из видео|не подходит|Convert the document|Сохраните документ|не смог прочитать фото|не смог прочитать видео|Фото для Kling|Слишком вытянутое фото|Image pixel is invalid|get the contents of the file/i.test(
+        /Видео-референс|Обрежьте клип|обрежь клип|С видео-референсом нужен|нужен промпт|только одно видео|не больше \d+\s*МБ|должен быть от|должна быть от|Разрешение видео|Кадровая частота|принимает не больше|принимает только|Загрузите фото|Загрузите видео|загрузите фото|загрузите видео|Отправьте текстовый промпт|Прикреплённый файл слишком|Поза с фото|Поза из видео|не подходит|Convert the document|Сохраните документ|не смог прочитать фото|не смог прочитать видео|Фото для Kling|Слишком вытянутое фото|Image pixel is invalid|get the contents of the file|Выберите голос|Extra input|invalid_parameter|voice(?:_id)? (?:is )?required|select (?:a )?voice/i.test(
             detail,
         )
     ) {
@@ -61,7 +61,7 @@ export function isUserInputValidationError(rawMessage: string): boolean {
     }
 
     if (
-        /Video duration|длительность видео|короче \d|не должна превышать|must be at least|должна быть не меньше|Pose from photo|Pose from video|trim the clip|Upload a (?:photo|video|longer)|reference video|motion video must|file is too large|must be (?:at least|under|between|from)|too large|resolution must|fps must|aspect ratio/i.test(
+        /Video duration|длительность видео|короче \d|не должна превышать|must be at least|должна быть не меньше|Pose from photo|Pose from video|trim the clip|Upload a (?:photo|video|longer)|reference video|motion video must|file is too large|must be (?:at least|under|between|from)|too large|resolution must|fps must|aspect ratio|extra inputs? are not permitted|invalid parameter|missing (?:required )?field|field required/i.test(
             detail,
         )
     ) {
@@ -177,7 +177,7 @@ function isActionableProviderDetail(detail: string): boolean {
     }
 
     if (
-        /duration|longer than|shorter than|seconds|\d+(?:\.\d+)?\s*s\b|file size|too large|too small|resolution|aspect|format|invalid|must be|cannot|can not|can't|required|upload|orientation|fps|frame|dimension|width|height|mb\b|minutes?/i.test(
+        /duration|longer than|shorter than|seconds|\d+(?:\.\d+)?\s*s\b|file size|too large|too small|resolution|aspect|format|invalid|must be|cannot|can not|can't|required|upload|orientation|fps|frame|dimension|width|height|mb\b|minutes?|extra input|parameter|voice/i.test(
             detail,
         )
     ) {
@@ -272,8 +272,8 @@ function localizeActionableProviderDetail(
         )
     ) {
         return ru
-            ? 'Kling не смог прочитать фото. Нужен обычный JPEG/PNG не меньше 300×300 пикселей — без слишком узких панорам. Попробуйте другое фото.'
-            : 'Kling could not read the photo. Use a normal JPEG/PNG at least 300×300 px — avoid extremely narrow panoramas. Try another photo.';
+            ? 'Не удалось прочитать фото. Нужен обычный JPEG/PNG не меньше 300×300 пикселей — без слишком узких панорам. Попробуйте другое фото.'
+            : 'Could not read the photo. Use a normal JPEG/PNG at least 300×300 px — avoid extremely narrow panoramas. Try another photo.';
     }
 
     if (
@@ -282,8 +282,69 @@ function localizeActionableProviderDetail(
         )
     ) {
         return ru
-            ? 'Kling не смог прочитать видео-референс. Загрузите клип 3–10 секунд в MP4/MOV (с iPhone тоже можно) и попробуйте снова.'
-            : 'Kling could not read the reference video. Upload a 3–10 second MP4/MOV clip and try again.';
+            ? 'Не удалось прочитать видео-референс. Загрузите клип 3–10 секунд в MP4/MOV (с iPhone тоже можно) и попробуйте снова.'
+            : 'Could not read the reference video. Upload a 3–10 second MP4/MOV clip and try again.';
+    }
+
+    if (
+        /extra inputs? are not permitted|invalid_parameter|invalid parameter/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'Неверные параметры запроса. Проверьте, что выбраны голос и нужные настройки, и попробуйте снова.'
+            : 'Invalid request parameters. Check that a voice and the required settings are selected, then try again.';
+    }
+
+    if (
+        /voice(?:_id)?(?:\s+is)?\s+required|required.*voice|select (?:a )?voice|missing voice|no voice|voice not (?:selected|set|provided)/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'Выберите голос в параметрах или прикрепите аудиофайл озвучки.'
+            : 'Select a voice in settings or attach an audio file for speech.';
+    }
+
+    if (
+        /(?:field|parameter|input).*(?:required|missing)|(?:required|missing).*(?:field|parameter|input)|must (?:provide|specify|include)/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'Не хватает обязательных данных для генерации. Проверьте промпт, вложения и параметры модели.'
+            : 'Required generation data is missing. Check the prompt, attachments, and model settings.';
+    }
+
+    if (
+        /file (?:is )?too large|payload too large|exceeds? (?:the )?max(?:imum)? (?:file )?size|размер файла|слишком больш/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'Файл слишком большой. Уменьшите размер или длительность и попробуйте снова.'
+            : 'The file is too large. Reduce the size or duration and try again.';
+    }
+
+    if (
+        /resolution|pixel|dimension|width|height|side must|between \d+ and \d+.*(px|pixel)|700.*2160|2160.*700/i.test(
+            detail,
+        ) &&
+        /video|image|frame|photo|resolut|pixel|dimension/i.test(detail)
+    ) {
+        return ru
+            ? 'Разрешение медиа не подходит для этой модели. Загрузите другое фото или видео и попробуйте снова.'
+            : 'Media resolution is not accepted by this model. Upload a different photo or video and try again.';
+    }
+
+    if (
+        /timed? ?out|timeout|took too long|превышено время|слишком долго/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'Генерация заняла слишком много времени. Попробуйте ещё раз чуть позже.'
+            : 'Generation took too long. Please try again in a moment.';
     }
 
     // Keep other actionable details, but never leak provider brand names.

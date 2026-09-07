@@ -152,7 +152,7 @@ export class HeyGenProvider {
             title: this.buildVideoTitle(input.prompt ?? 'HeyGen'),
             resolution: input.resolution ?? '720p',
             aspect_ratio: input.aspectRatio ?? '16:9',
-            ...this.buildSharedVideoOptions(input),
+            ...this.buildSharedVideoOptions(input, { allowEngine: true }),
         };
 
         await this.applySpeech(body, input, audio, voiceId, false);
@@ -193,7 +193,8 @@ export class HeyGenProvider {
             title: this.buildVideoTitle(input.prompt ?? 'HeyGen'),
             resolution: input.resolution ?? '720p',
             aspect_ratio: input.aspectRatio ?? '16:9',
-            ...this.buildSharedVideoOptions(input),
+            // CreateVideoFromImage rejects `engine` (additionalProperties: false).
+            ...this.buildSharedVideoOptions(input, { allowEngine: false }),
         };
 
         await this.applySpeech(body, input, audio, voiceId, true);
@@ -221,13 +222,9 @@ export class HeyGenProvider {
                 audio.buffer,
                 audio.mimeType || 'audio/mpeg',
             );
-            body.voice = {
-                type: 'audio',
-                audio_asset_id: audioAssetId,
-            };
-            if (input.prompt?.trim()) {
-                body.script = input.prompt.trim();
-            }
+            // CreateVideoFromImage / CreateVideoFromAvatar expect top-level
+            // audio_asset_id — nested `voice` is rejected as extra input.
+            body.audio_asset_id = audioAssetId;
             return;
         }
 
@@ -277,11 +274,14 @@ export class HeyGenProvider {
 
     private buildSharedVideoOptions(
         input: AiGenerationInput,
+        optionsFlags: { allowEngine: boolean } = { allowEngine: true },
     ): Record<string, unknown> {
         const options: Record<string, unknown> = {};
 
-        const engine = input.heygenEngine ?? DEFAULT_HEYGEN_ENGINE;
-        options.engine = { type: engine };
+        if (optionsFlags.allowEngine) {
+            const engine = input.heygenEngine ?? DEFAULT_HEYGEN_ENGINE;
+            options.engine = { type: engine };
+        }
 
         if (input.heygenCaptions) {
             options.caption = { style: 'default' };

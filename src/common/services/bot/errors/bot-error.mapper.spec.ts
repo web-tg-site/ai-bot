@@ -126,14 +126,26 @@ describe('bot-error.mapper', () => {
 
         it('localizes Kling image/video read failures', () => {
             expect(toUserFacingError('Image pixel is invalid', ru)).toMatch(
-                /не смог прочитать фото/i,
+                /прочитать фото/i,
             );
             expect(
                 toUserFacingError(
                     'Something went wrong when we tried to get the contents of the file.',
                     ru,
                 ),
-            ).toMatch(/не смог прочитать видео/i);
+            ).toMatch(/прочитать видео/i);
+        });
+
+        it('localizes HeyGen invalid parameter and missing voice', () => {
+            expect(
+                toUserFacingError(
+                    'Extra input are not permitted (invalid_parameter)',
+                    ru,
+                ),
+            ).toMatch(/параметр|голос|настройк/i);
+            expect(
+                toUserFacingError('voice_id is required', ru),
+            ).toMatch(/Выберите голос/i);
         });
 
         it('keeps Russian user validation tips that mention the tool name', () => {

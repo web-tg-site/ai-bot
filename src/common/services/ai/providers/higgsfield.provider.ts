@@ -107,7 +107,7 @@ export class HiggsfieldProvider {
         }
 
         if (imageFile) {
-            return this.createPlatformDopJob(input, imageFile, [], 'standard');
+            return this.createPlatformDopJob(input, imageFile, [], 'turbo');
         }
 
         if (!input.prompt?.trim()) {

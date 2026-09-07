@@ -13,6 +13,11 @@ export type TranscodeVideoToH264Options = {
     /** Always run ffmpeg (Telegram delivery needs faststart even for H.264). */
     force?: boolean;
     timeoutMs?: number;
+    /**
+     * Scale so every side is within [minSide, maxSide] (aspect preserved, no crop).
+     * Upscales undersized clips and downscales oversized ones.
+     */
+    fitSideRange?: { minSide: number; maxSide: number };
 };
 
 async function runProcess(
@@ -96,6 +101,72 @@ async function isProviderCompatibleH264(inputPath: string): Promise<boolean> {
     }
 }
 
+async function probeVideoSize(
+    inputPath: string,
+): Promise<{ width: number; height: number } | null> {
+    try {
+        const probe = await runProcess(
+            'ffprobe',
+            [
+                '-v',
+                'error',
+                '-select_streams',
+                'v:0',
+                '-show_entries',
+                'stream=width,height',
+                '-of',
+                'csv=p=0:s=x',
+                inputPath,
+            ],
+            15_000,
+        );
+        if (probe.code !== 0) return null;
+        const [wRaw, hRaw] = probe.stdout.trim().split('x');
+        const width = Number(wRaw);
+        const height = Number(hRaw);
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) {
+            return null;
+        }
+        return { width, height };
+    } catch {
+        return null;
+    }
+}
+
+/** Even dimensions required by libx264 yuv420p. */
+function evenDim(value: number): number {
+    const rounded = Math.round(value);
+    return rounded % 2 === 0 ? rounded : rounded + 1;
+}
+
+function resolveFitScale(
+    width: number,
+    height: number,
+    minSide: number,
+    maxSide: number,
+): { width: number; height: number } | null {
+    const short = Math.min(width, height);
+    const long = Math.max(width, height);
+    if (short >= minSide && long <= maxSide) {
+        return null;
+    }
+
+    let scale = 1;
+    if (short < minSide) {
+        scale = minSide / short;
+    }
+    let nextW = width * scale;
+    let nextH = height * scale;
+    const nextLong = Math.max(nextW, nextH);
+    if (nextLong > maxSide) {
+        scale *= maxSide / nextLong;
+        nextW = width * scale;
+        nextH = height * scale;
+    }
+
+    return { width: evenDim(nextW), height: evenDim(nextH) };
+}
+
 /**
  * Transcode phone/camera clips to MP4 H.264 + optional AAC + faststart.
  * Many iPhone “.mp4” uploads are HEVC and get rejected by providers.
@@ -114,7 +185,23 @@ export async function transcodeVideoToH264(
     try {
         await writeFile(inputPath, buffer);
 
-        if (!force && options.maxSeconds == null) {
+        let scaleFilter: string | null = null;
+        if (options.fitSideRange) {
+            const size = await probeVideoSize(inputPath);
+            if (size) {
+                const target = resolveFitScale(
+                    size.width,
+                    size.height,
+                    options.fitSideRange.minSide,
+                    options.fitSideRange.maxSide,
+                );
+                if (target) {
+                    scaleFilter = `scale=${target.width}:${target.height}`;
+                }
+            }
+        }
+
+        if (!force && options.maxSeconds == null && !scaleFilter) {
             const compatible = await isProviderCompatibleH264(inputPath);
             if (compatible) {
                 return buffer;
@@ -125,11 +212,11 @@ export async function transcodeVideoToH264(
         if (options.maxSeconds != null && options.maxSeconds > 0) {
             args.push('-t', String(options.maxSeconds));
         }
+        args.push('-map', '0:v:0', '-map', '0:a:0?');
+        if (scaleFilter) {
+            args.push('-vf', scaleFilter);
+        }
         args.push(
-            '-map',
-            '0:v:0',
-            '-map',
-            '0:a:0?',
             '-c:v',
             'libx264',
             '-pix_fmt',

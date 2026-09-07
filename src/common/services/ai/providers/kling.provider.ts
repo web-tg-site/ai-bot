@@ -404,6 +404,7 @@ export class KlingProvider {
     /**
      * Force H.264 MP4 before Omni upload — iPhone “mp4” is often HEVC, and
      * Kling then fails with “get the contents of the file”.
+     * Also fit resolution into the Omni envelope (700–2160 px per side).
      */
     private async prepareOmniReferenceVideo(
         video: AiFileInput,
@@ -412,6 +413,10 @@ export class KlingProvider {
             const buffer = await transcodeVideoToH264(video.buffer, {
                 force: true,
                 maxSeconds: OMNI_VIDEO_MAX_SECONDS,
+                fitSideRange: {
+                    minSide: OMNI_VIDEO_MIN_SIDE,
+                    maxSide: OMNI_VIDEO_MAX_SIDE,
+                },
             });
             return {
                 buffer,
