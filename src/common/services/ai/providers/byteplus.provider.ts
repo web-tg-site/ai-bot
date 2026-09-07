@@ -13,6 +13,7 @@ import {
 } from '../types';
 import { AiToolId } from '../types';
 import { downloadRemoteFile } from '@/common/utils/download-remote-file';
+import { compressReferenceImage } from '@/common/utils/compress-reference-image';
 import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
 import { isImageMedia } from '@/common/utils/media-kind';
 import { TempPublicMediaService } from '../temp-public-media.service';
@@ -175,6 +176,14 @@ export class BytePlusProvider {
         }
 
         if (status === 'failed') {
+            this.logger.warn(
+                {
+                    providerJobId,
+                    errorCode: response.error?.code,
+                    errorMessage: response.error?.message,
+                },
+                'BytePlus task failed',
+            );
             return {
                 status,
                 errorMessage:
@@ -191,19 +200,30 @@ export class BytePlusProvider {
         model: string,
         input: AiGenerationInput,
     ): Promise<Record<string, unknown>> {
-        const { images, videos, audios } = splitMediaFiles(input.files);
+        // Always re-encode image refs so Telegram / MiniApp JPEGs look alike
+        // to Seedance likeness moderation.
+        const normalizedInput = await this.normalizeSeedanceImages(input);
+        const { images, videos, audios } = splitMediaFiles(
+            normalizedInput.files,
+        );
         this.validateMediaCounts(images, videos, audios);
         this.validateFileSizes([...images, ...videos, ...audios]);
 
-        const mode = this.resolveMode(input, images, videos);
-        const prompt = this.resolvePrompt(input, mode, images, videos, audios);
+        const mode = this.resolveMode(normalizedInput, images, videos);
+        const prompt = this.resolvePrompt(
+            normalizedInput,
+            mode,
+            images,
+            videos,
+            audios,
+        );
         const content = await this.buildContent(
             prompt,
             mode,
             images,
             videos,
             audios,
-            this.getFrameRoleOrder(input),
+            this.getFrameRoleOrder(normalizedInput),
         );
 
         const resolution =
@@ -672,10 +692,9 @@ export class BytePlusProvider {
             );
             return response.data;
         } catch (error) {
-            this.logger.error(
-                `BytePlus POST ${path} failed: ${this.formatError(error)}`,
-            );
-            throw new Error(this.formatError(error));
+            const message = this.formatError(error);
+            this.logger.error(`BytePlus POST ${path} failed: ${message}`);
+            throw new Error(message);
         }
     }
 
@@ -689,10 +708,9 @@ export class BytePlusProvider {
             );
             return response.data;
         } catch (error) {
-            this.logger.error(
-                `BytePlus GET ${path} failed: ${this.formatError(error)}`,
-            );
-            throw new Error(this.formatError(error));
+            const message = this.formatError(error);
+            this.logger.error(`BytePlus GET ${path} failed: ${message}`);
+            throw new Error(message);
         }
     }
 
@@ -709,12 +727,26 @@ export class BytePlusProvider {
                 message?: string;
             };
             const data = axiosError.response?.data;
+            const status = axiosError.response?.status;
+            const code = data?.error?.code;
             const msg =
                 data?.error?.message ??
                 data?.message ??
                 axiosError.message ??
                 'BytePlus request failed';
-            const status = axiosError.response?.status;
+
+            // Keep the raw provider payload in logs so we can tell real-person
+            // blocks from franchise IP without guessing from the user text.
+            this.logger.warn(
+                {
+                    status,
+                    errorCode: code,
+                    errorMessage: msg,
+                    dataPreview: this.previewErrorData(data),
+                },
+                'BytePlus API error payload',
+            );
+
             const friendly = /web url|reference_video/i.test(msg)
                 ? 'Seedance не принял видео-референс. Попробуйте другой файл (MP4/MOV) или позже.'
                 : msg;
@@ -724,5 +756,39 @@ export class BytePlusProvider {
             return error.message;
         }
         return 'BytePlus request failed';
+    }
+
+    private previewErrorData(data: unknown): unknown {
+        if (data == null) return undefined;
+        try {
+            const raw = JSON.stringify(data);
+            if (raw.length <= 800) return data;
+            return `${raw.slice(0, 800)}…`;
+        } catch {
+            return undefined;
+        }
+    }
+
+    /**
+     * Force JPEG re-encode for every image ref. Skip would leave Telegram vs
+     * MiniApp buffers different enough for flaky likeness moderation.
+     */
+    private async normalizeSeedanceImages(
+        input: AiGenerationInput,
+    ): Promise<AiGenerationInput> {
+        if (!input.files?.length) {
+            return input;
+        }
+
+        const files = await Promise.all(
+            input.files.map(async (file) => {
+                if (!isImageMedia(file.mimeType, file.fileName)) {
+                    return file;
+                }
+                return compressReferenceImage(file, { force: true });
+            }),
+        );
+
+        return { ...input, files };
     }
 }

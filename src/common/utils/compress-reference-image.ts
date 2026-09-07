@@ -94,9 +94,12 @@ const resizeToJpeg = async (file: AiFileInput): Promise<AiFileInput> => {
  * Compresses / normalizes reference images before session storage / API upload.
  * HEIC/HEIF is converted via heic-convert (sharp prebuilds omit HEVC).
  * Other rasters are JPEG-normalized when oversized or not provider-safe.
+ * Pass `force: true` to always re-encode (Seedance likeness moderation is
+ * sensitive to upstream JPEG differences between Telegram and MiniApp).
  */
 export async function compressReferenceImage(
     file: AiFileInput,
+    options?: { force?: boolean },
 ): Promise<AiFileInput> {
     let working = file;
 
@@ -117,6 +120,7 @@ export async function compressReferenceImage(
     }
 
     const needsNormalize =
+        Boolean(options?.force) ||
         working.buffer.byteLength > MAX_REFERENCE_BYTES ||
         !PROVIDER_SAFE_MIME.test(working.mimeType) ||
         isHeicLike(working);

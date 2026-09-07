@@ -222,8 +222,20 @@ function localizeActionableProviderDetail(
             : `Video duration must be at least ${sec}s. Upload a longer clip.`;
     }
 
+    // Likeness / real-person blocks first — BytePlus often rejects ordinary
+    // photos of people with "real person", which must not look like a franchise ban.
     if (
-        /copyright|trademark|intellectual property|\bip\b|third[- ]party|franchis|licensed character|real person|public figure|famous/i.test(
+        /real person|public figure|likeness|portrait of a real|photograph of a (?:real )?person|depict(?:s|ing)? a real (?:person|people|human)/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'Модель не принимает фото реальных людей для такой генерации. Попробуйте другой кадр или опишите персонажа текстом.'
+            : 'The model rejects photos of real people for this generation. Try a different frame or describe the character in text.';
+    }
+
+    if (
+        /copyright|trademark|intellectual property|ip\s+violation|third[- ]party|franchis|licensed character|famous (?:character|brand|franchise)/i.test(
             detail,
         )
     ) {

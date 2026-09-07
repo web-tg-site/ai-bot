@@ -187,6 +187,32 @@ describe('bot-error.mapper', () => {
             );
         });
 
+        it('maps real-person blocks separately from franchise characters', () => {
+            const result = toUserFacingError(
+                'InputImageSensitiveContentDetected: The image may contain a real person (HTTP 400)',
+                ru,
+            );
+            expect(result).toMatch(/реальных людей/i);
+            expect(result).not.toMatch(/фильмов и игр/i);
+        });
+
+        it('maps franchise / licensed character blocks to film-game message', () => {
+            const result = toUserFacingError(
+                'Request rejected due to licensed character copyright (HTTP 400)',
+                ru,
+            );
+            expect(result).toMatch(/фильмов и игр/i);
+            expect(result).not.toMatch(/реальных людей/i);
+        });
+
+        it('prefers real-person text when both likeness and IP keywords appear', () => {
+            const result = toUserFacingError(
+                'Rejected: real person likeness may violate intellectual property',
+                ru,
+            );
+            expect(result).toMatch(/реальных людей/i);
+        });
+
         it('returns generic safety for "blocked the request"', () => {
             expect(toUserFacingError('blocked the request', ru)).toBe(
                 ru.aiResult.userErrors.safetyBlocked,
