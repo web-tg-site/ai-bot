@@ -30,9 +30,10 @@ import {
 import {
     fallbackDocumentName,
     guessDocumentMime,
-    isOpenRouterBinaryDocument,
+    isPdfDocument,
     isPlainTextDocument,
 } from '@/common/utils/document-file.util';
+import { extractOfficeText } from '@/common/utils/extract-office-text.util';
 import {
     attachmentMentionSystemHint,
     formatAttachmentMention,
@@ -42,6 +43,8 @@ import {
 
 const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
 const MAX_TEXT_DOCUMENT_CHARS = 12_000;
+/** Office text is extracted locally — allow more than plain TXT paste. */
+const MAX_OFFICE_TEXT_CHARS = 100_000;
 
 type OpenRouterFilePart = {
     type: 'file';
@@ -451,7 +454,7 @@ export class OpenRouterProvider {
                 if (msg.role === 'user' && msg.files?.length) {
                     messages.push({
                         role: msg.role,
-                        content: this.buildUserContent(
+                        content: await this.buildUserContent(
                             msg.content,
                             msg.files,
                             input.localeTag,
@@ -464,7 +467,7 @@ export class OpenRouterProvider {
             }
         }
 
-        const userContent = this.buildUserContent(
+        const userContent = await this.buildUserContent(
             prompt,
             input.files,
             input.localeTag,
@@ -669,7 +672,7 @@ export class OpenRouterProvider {
             return this.generateImageViaImagesApi(model, input, prompt);
         }
 
-        const userContent = this.buildUserContent(
+        const userContent = await this.buildUserContent(
             prompt,
             input.files,
             input.localeTag,
@@ -796,11 +799,11 @@ export class OpenRouterProvider {
         return resolution;
     }
 
-    private buildUserContent(
+    private async buildUserContent(
         prompt: string,
         files?: AiGenerationInput['files'],
         localeTag: 'ru-RU' | 'en-US' = 'ru-RU',
-    ): OpenRouterMessageContent {
+    ): Promise<OpenRouterMessageContent> {
         if (!files?.length) {
             return prompt;
         }
@@ -860,7 +863,7 @@ export class OpenRouterProvider {
             }
 
             parts.push({ type: 'text', text: mention });
-            parts.push(...this.buildDocumentParts(file, localeTag));
+            parts.push(...(await this.buildDocumentParts(file, localeTag)));
         }
 
         return parts;
@@ -876,14 +879,14 @@ export class OpenRouterProvider {
     }
 
     /**
-     * OpenRouter accepts PDF + DOCX/XLSX/PPTX as `type: "file"` (native for
-     * Claude or via file-parser). Dumping Office buffers as UTF-8 made Claude
-     * see binary garbage — always send them as base64 data URLs.
+     * PDF → OpenRouter `type: "file"` (Claude native / file-parser).
+     * DOCX/XLSX/PPTX → local text extraction (sending Office binaries through
+     * OpenRouter file-parser often hangs until client timeout).
      */
-    private buildDocumentParts(
+    private async buildDocumentParts(
         file: AiFileInput,
         localeTag: 'ru-RU' | 'en-US',
-    ): Array<{ type: 'text'; text: string } | OpenRouterFilePart> {
+    ): Promise<Array<{ type: 'text'; text: string } | OpenRouterFilePart>> {
         if (file.buffer.byteLength > MAX_DOCUMENT_BYTES) {
             throw new Error(
                 localeTag === 'en-US'
@@ -892,7 +895,7 @@ export class OpenRouterProvider {
             );
         }
 
-        if (isOpenRouterBinaryDocument(file)) {
+        if (isPdfDocument(file)) {
             const filename =
                 file.fileName?.trim() || fallbackDocumentName(file);
             const mime = guessDocumentMime(filename, file.mimeType);
@@ -903,6 +906,49 @@ export class OpenRouterProvider {
                         filename,
                         file_data: `data:${mime};base64,${file.buffer.toString('base64')}`,
                     },
+                },
+            ];
+        }
+
+        try {
+            const officeText = await extractOfficeText(
+                file.buffer,
+                file.fileName,
+                file.mimeType,
+            );
+            if (officeText != null) {
+                const sliced = officeText.slice(0, MAX_OFFICE_TEXT_CHARS);
+                const truncated =
+                    officeText.length > MAX_OFFICE_TEXT_CHARS
+                        ? localeTag === 'en-US'
+                            ? '\n\n[Document truncated for length.]'
+                            : '\n\n[Документ обрезан из‑за длины.]'
+                        : '';
+                return [
+                    {
+                        type: 'text',
+                        text:
+                            localeTag === 'en-US'
+                                ? `Contents of ${file.fileName ?? 'document'}:\n${sliced}${truncated}`
+                                : `Содержимое файла ${file.fileName ?? 'document'}:\n${sliced}${truncated}`,
+                    },
+                ];
+            }
+        } catch (error) {
+            this.logger.warn(
+                {
+                    err: error instanceof Error ? error.message : String(error),
+                    fileName: file.fileName,
+                },
+                'Office text extraction failed',
+            );
+            return [
+                {
+                    type: 'text',
+                    text:
+                        localeTag === 'en-US'
+                            ? `[Could not read "${file.fileName ?? 'document'}". Re-save as PDF or TXT and send again.]`
+                            : `[Не удалось прочитать «${file.fileName ?? 'document'}». Сохраните как PDF или TXT и отправьте снова.]`,
                 },
             ];
         }
@@ -922,7 +968,6 @@ export class OpenRouterProvider {
             ];
         }
 
-        // Legacy .doc/.ppt/.xls and other binaries are not in OpenRouter's list.
         return [
             {
                 type: 'text',
