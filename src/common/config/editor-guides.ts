@@ -13,7 +13,6 @@ const REFERENCE_TOOLS = new Set<AiToolId>([
     AiToolId.KLING_MOTION,
     AiToolId.VEO,
     AiToolId.HIGGSFIELD,
-    AiToolId.HEYGEN,
     AiToolId.SEEDANCE,
     AiToolId.LUMA_RAY,
 ]);

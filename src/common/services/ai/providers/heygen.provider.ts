@@ -20,6 +20,7 @@ import {
     AiJobStatusResult,
     AiToolId,
 } from '../types';
+import { stripAttachmentMentionManifest } from '@/common/services/bot/utils/image-references';
 
 type HeyGenAvatarLookRaw = {
     id?: string;
@@ -136,7 +137,8 @@ export class HeyGenProvider {
     ): Promise<AiJobCreateResult> {
         this.ensureApiKey();
 
-        if (!input.prompt?.trim() && !audio) {
+        const speechScript = this.resolveSpeechScript(input);
+        if (!speechScript && !audio) {
             throw new Error(
                 'Отправьте текст сценария или прикрепите голосовой файл озвучки',
             );
@@ -149,13 +151,13 @@ export class HeyGenProvider {
         const body: Record<string, unknown> = {
             type: 'avatar',
             avatar_id: avatarId,
-            title: this.buildVideoTitle(input.prompt ?? 'HeyGen'),
+            title: this.buildVideoTitle(speechScript || 'HeyGen'),
             resolution: input.resolution ?? '720p',
             aspect_ratio: input.aspectRatio ?? 'auto',
             ...this.buildSharedVideoOptions(input, { allowEngine: true }),
         };
 
-        await this.applySpeech(body, input, audio, voiceId, false);
+        await this.applySpeech(body, speechScript, audio, voiceId, false);
 
         const response = await this.post<{ data: { video_id: string } }>(
             '/v3/videos',
@@ -175,7 +177,8 @@ export class HeyGenProvider {
     ): Promise<AiJobCreateResult> {
         this.ensureApiKey();
 
-        if (!input.prompt?.trim() && !audio) {
+        const speechScript = this.resolveSpeechScript(input);
+        if (!speechScript && !audio) {
             throw new Error(
                 'Отправьте текст сценария или прикрепите голосовой файл озвучки',
             );
@@ -190,14 +193,14 @@ export class HeyGenProvider {
         const body: Record<string, unknown> = {
             type: 'image',
             image: { type: 'asset_id', asset_id: assetId },
-            title: this.buildVideoTitle(input.prompt ?? 'HeyGen'),
+            title: this.buildVideoTitle(speechScript || 'HeyGen'),
             resolution: input.resolution ?? '720p',
             aspect_ratio: input.aspectRatio ?? 'auto',
             // CreateVideoFromImage rejects `engine` (additionalProperties: false).
             ...this.buildSharedVideoOptions(input, { allowEngine: false }),
         };
 
-        await this.applySpeech(body, input, audio, voiceId, true);
+        await this.applySpeech(body, speechScript, audio, voiceId, true);
 
         const response = await this.post<{ data: { video_id: string } }>(
             '/v3/videos',
@@ -210,9 +213,14 @@ export class HeyGenProvider {
         };
     }
 
+    /** Spoken text only — never the attachment @image / @file manifesto. */
+    private resolveSpeechScript(input: AiGenerationInput): string {
+        return stripAttachmentMentionManifest(input.prompt ?? '').trim();
+    }
+
     private async applySpeech(
         body: Record<string, unknown>,
-        input: AiGenerationInput,
+        speechScript: string,
         audio: NonNullable<AiGenerationInput['files']>[number] | undefined,
         voiceId: string | undefined,
         requireVoiceIfNoAudio: boolean,
@@ -234,8 +242,8 @@ export class HeyGenProvider {
             );
         }
 
-        if (input.prompt?.trim()) {
-            body.script = input.prompt.trim();
+        if (speechScript) {
+            body.script = speechScript;
         }
         if (voiceId) {
             body.voice_id = voiceId;

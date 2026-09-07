@@ -3358,7 +3358,9 @@ async function buildAiGenerationInput(
     }
 
     const prompt =
-        preparedFiles.length > 0 && !isChatAssistantTool(toolId)
+        preparedFiles.length > 0 &&
+        !isChatAssistantTool(toolId) &&
+        toolId !== AiToolId.HEYGEN
             ? buildNumberedReferencePrompt(
                   promptText ||
                       (i18n.localeTag === 'en-US'
