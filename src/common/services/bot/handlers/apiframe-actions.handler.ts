@@ -4,6 +4,10 @@ import { AiGenerationInput } from '@/common/services/ai/types';
 import type { ApiframeAction } from '@/common/config/apiframe.config';
 import { getI18nForUser } from '@/common/services/bot/i18n';
 import type { BotHandlerDeps } from '../types/bot-handler-deps.type';
+import {
+    safeDeleteMessage,
+    safeEditMessageText,
+} from '../utils/safe-delete-message';
 
 type AiHandlerDeps = BotHandlerDeps;
 type BotContext = Context & { session: BotSession };
@@ -18,6 +22,40 @@ function getSession(ctx: Context): BotSession {
         botCtx.session = {};
     }
     return botCtx.session;
+}
+
+/**
+ * Queues a follow-up job behind a single status message. The message id is
+ * stored on the job so delivery removes it once the result is out.
+ */
+async function startFollowUpJob(
+    ctx: BotContext,
+    deps: AiHandlerDeps,
+    i18n: ReturnType<typeof getI18nForUser>,
+    params: {
+        userId: string;
+        telegramId: string;
+        toolId: AiToolId;
+        input: AiGenerationInput;
+    },
+) {
+    const statusMessage = await ctx.reply(i18n.aiResult.generating);
+
+    try {
+        await deps.aiJobService.createJob({
+            ...params,
+            statusMessageId: statusMessage.message_id,
+        });
+    } catch (error) {
+        await safeDeleteMessage(ctx, statusMessage.message_id);
+        throw error;
+    }
+
+    await safeEditMessageText(
+        ctx,
+        statusMessage.message_id,
+        i18n.aiResult.asyncStarted,
+    );
 }
 
 export function registerApiframeActionHandlers(
@@ -152,14 +190,12 @@ async function runImmediateMjAction(
     };
 
     try {
-        await ctx.reply(i18n.aiResult.generating);
-        await deps.aiJobService.createJob({
+        await startFollowUpJob(ctx, deps, i18n, {
             userId: user.id,
             telegramId: ctx.from.id.toString(),
             toolId: AiToolId.MIDJOURNEY,
             input,
         });
-        await ctx.reply(i18n.aiResult.asyncStarted);
     } catch (error) {
         const message =
             error instanceof Error ? error.message : 'Ошибка запуска';
@@ -261,14 +297,12 @@ async function runImmediateSunoAction(
     };
 
     try {
-        await ctx.reply(i18n.aiResult.generating);
-        await deps.aiJobService.createJob({
+        await startFollowUpJob(ctx, deps, i18n, {
             userId: user.id,
             telegramId: ctx.from.id.toString(),
             toolId: AiToolId.SUNO,
             input,
         });
-        await ctx.reply(i18n.aiResult.asyncStarted);
     } catch (error) {
         const message =
             error instanceof Error ? error.message : 'Ошибка запуска';
@@ -375,14 +409,12 @@ export async function tryHandlePendingApiframeFollowUp(
         };
 
         try {
-            await ctx.reply(i18n.aiResult.generating);
-            await deps.aiJobService.createJob({
+            await startFollowUpJob(ctx, deps, i18n, {
                 userId: user.id,
                 telegramId: ctx.from.id.toString(),
                 toolId: AiToolId.MIDJOURNEY,
                 input,
             });
-            await ctx.reply(i18n.aiResult.asyncStarted);
         } catch (error) {
             const message =
                 error instanceof Error ? error.message : 'Ошибка запуска';
@@ -423,14 +455,12 @@ export async function tryHandlePendingApiframeFollowUp(
         };
 
         try {
-            await ctx.reply(i18n.aiResult.generating);
-            await deps.aiJobService.createJob({
+            await startFollowUpJob(ctx, deps, i18n, {
                 userId: user.id,
                 telegramId: ctx.from.id.toString(),
                 toolId: AiToolId.SUNO,
                 input,
             });
-            await ctx.reply(i18n.aiResult.asyncStarted);
         } catch (error) {
             const message =
                 error instanceof Error ? error.message : 'Ошибка запуска';

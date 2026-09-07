@@ -78,8 +78,8 @@ export function getVideoResolutionMultiplier(
         return 1.0;
     }
     if (toolId === AiToolId.SEEDANCE) {
+        if (resolution === '1080p') return 1.5;
         if (resolution === '720p') return 1.25;
-        if (resolution === '480p') return 1.0;
         return 1.0;
     }
     if (

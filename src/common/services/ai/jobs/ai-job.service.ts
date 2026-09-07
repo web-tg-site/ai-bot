@@ -50,6 +50,7 @@ export class AiJobService {
         input: AiGenerationInput;
         notifyTelegram?: boolean;
         sessionId?: string;
+        statusMessageId?: number;
     }) {
         const tool = getToolById(params.toolId);
         if (!tool) {
@@ -98,6 +99,7 @@ export class AiJobService {
                 prompt: jobPromptForDb(params.input),
                 notifyTelegram: params.notifyTelegram ?? true,
                 sessionId: params.sessionId ?? null,
+                statusMessageId: params.statusMessageId ?? null,
             },
         });
 
@@ -154,6 +156,17 @@ export class AiJobService {
         });
 
         return { job, tokenCost: params.tokenCost };
+    }
+
+    /**
+     * Attach the Telegram status message so job delivery can clean it up.
+     * Used when the message is only sent after the job row exists (failover).
+     */
+    async setStatusMessageId(jobId: string, statusMessageId: number) {
+        await this.prismaService.aiGenerationJob.update({
+            where: { id: jobId },
+            data: { statusMessageId },
+        });
     }
 
     async reassignJobForFailover(params: {

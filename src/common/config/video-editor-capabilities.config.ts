@@ -265,7 +265,7 @@ export const STATIC_VIDEO_RESOLUTIONS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.KLING]: ['720p', '1080p'],
     [AiToolId.KLING_MOTION]: ['720p', '1080p'],
     [AiToolId.VEO]: ['720p', '1080p', '4k'],
-    [AiToolId.SEEDANCE]: ['480p', '720p'],
+    [AiToolId.SEEDANCE]: ['480p', '720p', '1080p'],
     [AiToolId.LUMA_RAY]: ['1080p', '720p'],
     [AiToolId.HIGGSFIELD]: ['720p'],
     [AiToolId.HEYGEN]: ['720p', '1080p'],

@@ -14,11 +14,15 @@ import {
 import { AiToolId } from '../types';
 import { downloadRemoteFile } from '@/common/utils/download-remote-file';
 import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
+import { isImageMedia } from '@/common/utils/media-kind';
 import { TempPublicMediaService } from '../temp-public-media.service';
 
 const DEFAULT_BYTEPLUS_API_URL =
     'https://ark.ap-southeast.bytepluses.com/api/v3';
 const SEEDANCE_25_MODEL = 'dreamina-seedance-2-5-260628';
+
+/** Resolutions Seedance accepts; anything else falls back to 720p. */
+const SEEDANCE_RESOLUTIONS = new Set(['480p', '720p', '1080p']);
 
 const MAX_IMAGES = 30;
 const MAX_VIDEOS = 10;
@@ -199,9 +203,13 @@ export class BytePlusProvider {
             images,
             videos,
             audios,
+            this.getFrameRoleOrder(input),
         );
 
-        const resolution = input.resolution === '480p' ? '480p' : '720p';
+        const resolution =
+            input.resolution && SEEDANCE_RESOLUTIONS.has(input.resolution)
+                ? input.resolution
+                : '720p';
 
         const body: Record<string, unknown> = {
             model,
@@ -237,9 +245,22 @@ export class BytePlusProvider {
         if (videos.length > 0 && this.isExtendPrompt(prompt)) {
             return 'extend';
         }
+
+        // In first_last mode the photo becomes the opening frame, so its
+        // subject overrides whatever the prompt describes ("девушка" turning
+        // into the man from the reference). Use it only when the user asked
+        // for frame interpolation, marked start/end frames, or gave no prompt
+        // at all — otherwise the images stay plain style references.
         if (videos.length === 0 && images.length >= 1 && images.length <= 2) {
-            return 'first_last';
+            const framesRequested =
+                this.getFrameRoleOrder(input).length > 0 ||
+                this.isFrameAnimationPrompt(prompt) ||
+                !prompt.trim();
+            if (framesRequested) {
+                return 'first_last';
+            }
         }
+
         return 'generate';
     }
 
@@ -251,6 +272,47 @@ export class BytePlusProvider {
 
     private isExtendPrompt(prompt: string): boolean {
         return /(продолж|продли|расшир|extend|continue|prolong)/i.test(prompt);
+    }
+
+    private isFrameAnimationPrompt(prompt: string): boolean {
+        return /(перв\w* кадр|последн\w* кадр|начальн\w* кадр|конечн\w* кадр|оживи|ожив\w* фото|из фото в фото|переход между|first frame|last frame|start frame|end frame|animate (?:the )?photo)/i.test(
+            prompt,
+        );
+    }
+
+    /**
+     * Roles the mini-app attached to image files, in image order.
+     * `attachmentRoles` is index-aligned with `input.files`, so it has to be
+     * filtered by the same predicate `splitMediaFiles` uses for images.
+     */
+    private getImageRoles(input: AiGenerationInput): (string | undefined)[] {
+        const roles = input.attachmentRoles ?? [];
+        return (input.files ?? [])
+            .map((file, index) => ({ file, role: roles[index] }))
+            .filter(({ file }) => isImageMedia(file.mimeType, file.fileName))
+            .map(({ role }) => role);
+    }
+
+    /**
+     * Image indexes to use as [first frame, last frame], empty when the caller
+     * marked neither. A missing side is filled from the unmarked images so a
+     * lone `end_frame` never ends up as the opening frame.
+     */
+    private getFrameRoleOrder(input: AiGenerationInput): number[] {
+        const roles = this.getImageRoles(input);
+        const start = roles.indexOf('start_frame');
+        const end = roles.indexOf('end_frame');
+        if (start < 0 && end < 0) {
+            return [];
+        }
+
+        const unmarked = roles
+            .map((_, index) => index)
+            .filter((index) => index !== start && index !== end);
+        const first = start >= 0 ? start : unmarked.shift();
+        const last = end >= 0 ? end : undefined;
+
+        return [first, last].filter((index): index is number => index != null);
     }
 
     private resolvePrompt(
@@ -284,6 +346,11 @@ export class BytePlusProvider {
         return manifest ? `${manifest}\n\n${raw}` : raw;
     }
 
+    /**
+     * Tags match the @image1 / @video1 / @file1 notation the user types, so the
+     * model can resolve them. The closing rule keeps the prompt authoritative
+     * for the subject — otherwise a reference photo silently replaces it.
+     */
     private buildAssetManifest(
         images: AiFileInput[],
         videos: AiFileInput[],
@@ -292,16 +359,29 @@ export class BytePlusProvider {
         const lines: string[] = [];
         images.forEach((_, i) => {
             lines.push(
-                `Image ${i + 1}: visual reference (appearance / scene / style).`,
+                `@image${i + 1}: reference image — appearance, style and scene details only.`,
             );
         });
         videos.forEach((_, i) => {
-            lines.push(`Video ${i + 1}: motion / timing / scene reference.`);
+            lines.push(
+                `@video${i + 1}: reference video — motion, timing and camera only.`,
+            );
         });
         audios.forEach((_, i) => {
-            lines.push(`Audio ${i + 1}: voice / ambience / music reference.`);
+            lines.push(
+                `@audio${i + 1}: reference audio — voice, ambience or music only.`,
+            );
         });
-        return lines.join('\n');
+
+        if (!lines.length) {
+            return '';
+        }
+
+        return [
+            'Assets referenced by the prompt:',
+            ...lines,
+            'The prompt text is authoritative for the subject, gender, count, action and scene. References only describe how the subject the prompt asks for should look; never replace a subject described in the prompt with a subject taken from a reference.',
+        ].join('\n');
     }
 
     private async buildContent(
@@ -310,19 +390,24 @@ export class BytePlusProvider {
         images: AiFileInput[],
         videos: AiFileInput[],
         audios: AiFileInput[],
+        frameOrder: number[] = [],
     ): Promise<BytePlusContentItem[]> {
         const content: BytePlusContentItem[] = [{ type: 'text', text: prompt }];
 
         if (mode === 'first_last') {
+            // Explicit start/end roles win over upload order.
+            const ordered = frameOrder.length
+                ? frameOrder.map((index) => images[index])
+                : images;
             content.push({
                 type: 'image_url',
-                image_url: { url: this.toDataUrl(images[0]) },
+                image_url: { url: this.toDataUrl(ordered[0]) },
                 role: 'first_frame',
             });
-            if (images[1]) {
+            if (ordered[1]) {
                 content.push({
                     type: 'image_url',
-                    image_url: { url: this.toDataUrl(images[1]) },
+                    image_url: { url: this.toDataUrl(ordered[1]) },
                     role: 'last_frame',
                 });
             }

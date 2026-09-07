@@ -308,6 +308,8 @@ export class AiJobCron {
                 return;
             }
 
+            await this.clearStatusMessage(botService, job);
+
             try {
                 await this.sendApiframeOrDefaultResult(
                     botService,
@@ -431,6 +433,17 @@ export class AiJobCron {
         );
     }
 
+    /** Removes the "generation started" message once the job is resolved. */
+    private async clearStatusMessage(botService: BotService, job: PendingJob) {
+        if (!job.statusMessageId) {
+            return;
+        }
+        await botService.deleteMessage(
+            job.user.telegramId,
+            job.statusMessageId,
+        );
+    }
+
     private async failJob(
         botService: BotService,
         job: PendingJob,
@@ -461,6 +474,8 @@ export class AiJobCron {
         if (job.notifyTelegram === false) {
             return;
         }
+
+        await this.clearStatusMessage(botService, job);
 
         const refundSuffix =
             job.tokenCost > 0

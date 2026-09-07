@@ -535,7 +535,8 @@ ${getTariffIncludesText(type, plan, ru)}
             'Управление чатом:\n• Новый чат — начать отдельный диалог\n• Мои чаты — переключиться между диалогами\n• Поиск в интернете всегда включён',
     },
     imageTool: {
-        promptHint: 'Опишите задачу.',
+        promptHint:
+            'Опишите задачу. Ссылаться на референсы можно тегами @image1, @video1, @file1.',
         refAdded: (count, max) => `✅ Референс добавлен: ${count}/${max}`,
         refDeleteButton: '🗑 Удалить',
         refDeleted: '🗑 Референс удалён',
@@ -621,7 +622,8 @@ ${getTariffIncludesText(type, plan, ru)}
             asFile ? 'Отправка: <b>файлом</b>' : 'Отправка: <b>как фото</b>',
     },
     videoTool: {
-        promptHint: 'Опишите сцену и движение камеры.',
+        promptHint:
+            'Опишите сцену и движение камеры. Ссылаться на референсы можно тегами @image1, @video1, @file1.',
         refAdded: (count, max) => `✅ Референс добавлен: ${count}/${max}`,
         refDeleteButton: '🗑 Удалить',
         refDeleted: '🗑 Референс удалён',

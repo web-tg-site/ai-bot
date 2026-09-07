@@ -533,7 +533,8 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             'Chat controls:\n• New chat — start a separate conversation\n• My chats — switch between conversations\n• Web search is always on',
     },
     imageTool: {
-        promptHint: 'Describe the task.',
+        promptHint:
+            'Describe the task. You can address references with @image1, @video1, @file1 tags.',
         refAdded: (count, max) => `✅ Reference added: ${count}/${max}`,
         refDeleteButton: '🗑 Delete',
         refDeleted: '🗑 Reference removed',
@@ -615,7 +616,8 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             asFile ? 'Delivery: <b>file</b>' : 'Delivery: <b>photo</b>',
     },
     videoTool: {
-        promptHint: 'Describe the scene and camera movement.',
+        promptHint:
+            'Describe the scene and camera movement. You can address references with @image1, @video1, @file1 tags.',
         refAdded: (count, max) => `✅ Reference added: ${count}/${max}`,
         refDeleteButton: '🗑 Delete',
         refDeleted: '🗑 Reference removed',

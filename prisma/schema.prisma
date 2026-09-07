@@ -170,6 +170,8 @@ model AiGenerationJob {
   staleReminderSent Boolean @default(false)
   /// When false (mini-app), skip Telegram delivery of result / completion text.
   notifyTelegram Boolean  @default(true)
+  /// Telegram id of the "generation started" message, deleted once the result is delivered.
+  statusMessageId Int?
   /// Client-side chat session id (mini-app); groups generations into separate chats.
   sessionId     String?
   /// User-facing notice when the job was redirected to another model.

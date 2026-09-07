@@ -382,9 +382,12 @@ Topaz: отдельная формула `ceil(40 × scale/2)` — ×2 = 40, ×4
 
 | Параметр   | Значение | Множитель | Инструменты                   |
 | ---------- | -------- | --------- | ----------------------------- |
-| Разрешение | 720p     | ×1.0      | Seedance, HeyGen, Kling, Veo  |
-| Разрешение | 1080p    | ×1.5      | Kling, Kling Motion           |
-| Разрешение | 1080p    | ×1.25     | Seedance, HeyGen, Veo         |
+| Разрешение | 480p     | ×1.0      | Seedance                      |
+| Разрешение | 720p     | ×1.25     | Seedance                      |
+| Разрешение | 1080p    | ×1.5      | Seedance, Kling, Kling Motion |
+| Разрешение | 720p     | ×1.0      | HeyGen, Kling, Veo            |
+| Разрешение | 1080p    | ×1.25     | HeyGen, Veo                   |
+| Разрешение | 4K       | ×2.0      | Veo                           |
 
 ```
 токены_видео = ceil(perSecondCost × секунды × resolutionMult × qualityMult)

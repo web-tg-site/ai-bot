@@ -156,6 +156,18 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         await this.bot.telegram.sendMessage(chatId, message, options);
     }
 
+    /**
+     * Drops a transient status message. Telegram refuses deletion for messages
+     * older than 48h or already removed, which must not break job delivery.
+     */
+    public async deleteMessage(chatId: string, messageId: number) {
+        try {
+            await this.bot.telegram.deleteMessage(chatId, messageId);
+        } catch {
+            // message already gone or too old to delete
+        }
+    }
+
     public async sendPhoto(chatId: string, url: string, caption?: string) {
         const parsed = parseDataUrl(url);
         if (parsed) {

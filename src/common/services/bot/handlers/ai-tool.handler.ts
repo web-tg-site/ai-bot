@@ -64,6 +64,10 @@ import {
 } from '@/common/utils/media-kind';
 import { prepareUploadMediaList } from '@/common/utils/prepare-upload-media';
 import { replyHtmlChunks } from '../utils/telegram-html-reply';
+import {
+    safeDeleteMessage,
+    safeEditMessageText,
+} from '../utils/safe-delete-message';
 import { markdownToTelegramHtml } from '@/common/utils/markdown-to-telegram-html';
 import { getToolsByCategory } from '@/common/config/ai-tools.registry';
 import { BotHandlerDeps } from './global.handler';
@@ -3630,24 +3634,38 @@ async function runGeneration(
         return;
     }
 
+    // Holds the transient "⏳ Генерация…" message until the result is out; the
+    // `finally` below removes it unless ownership moved to an async job row.
+    let statusMessageId: number | undefined;
+
     try {
         if (tool.isAsync) {
             try {
-                if (toolId === AiToolId.VIDEO_TO_AUDIO) {
-                    await ctx.reply(i18n.aiResult.videoToAudioPreparing);
-                } else {
-                    await ctx.reply(i18n.aiResult.generating);
-                }
+                const statusMessage = await ctx.reply(
+                    toolId === AiToolId.VIDEO_TO_AUDIO
+                        ? i18n.aiResult.videoToAudioPreparing
+                        : i18n.aiResult.generating,
+                );
+                statusMessageId = statusMessage.message_id;
 
                 await deps.aiJobService.createJob({
                     userId: user.id,
                     telegramId: ctx.from.id.toString(),
                     toolId,
                     input,
+                    statusMessageId,
                 });
-                await ctx.reply(i18n.aiResult.asyncStarted);
+                await safeEditMessageText(
+                    ctx,
+                    statusMessageId,
+                    i18n.aiResult.asyncStarted,
+                );
+                // The job row now owns this message and deletes it on delivery.
+                statusMessageId = undefined;
                 return;
             } catch (error) {
+                await safeDeleteMessage(ctx, statusMessageId);
+                statusMessageId = undefined;
                 const message =
                     error instanceof Error ? error.message : String(error);
                 if (message === 'INSUFFICIENT_TOKENS') {
@@ -3691,7 +3709,12 @@ async function runGeneration(
                                 ],
                             ]),
                         });
-                        await ctx.reply(i18n.aiResult.asyncStarted);
+                        await replyAsyncStarted(
+                            ctx,
+                            deps,
+                            failover.jobId,
+                            i18n.aiResult.asyncStarted,
+                        );
                         return;
                     }
 
@@ -3732,7 +3755,8 @@ async function runGeneration(
             }
         }
 
-        await ctx.reply(i18n.aiResult.generating);
+        const statusMessage = await ctx.reply(i18n.aiResult.generating);
+        statusMessageId = statusMessage.message_id;
 
         let generationResult;
         let actualToolId = toolId;
@@ -3788,6 +3812,8 @@ async function runGeneration(
             tokensAlreadySettled = true;
 
             if (failover.mode === 'async-job') {
+                await safeDeleteMessage(ctx, statusMessageId);
+                statusMessageId = undefined;
                 await ctx.reply(failover.notice, {
                     parse_mode: 'HTML',
                     ...Markup.inlineKeyboard([
@@ -3799,7 +3825,12 @@ async function runGeneration(
                         ],
                     ]),
                 });
-                await ctx.reply(i18n.aiResult.asyncStarted);
+                await replyAsyncStarted(
+                    ctx,
+                    deps,
+                    failover.jobId,
+                    i18n.aiResult.asyncStarted,
+                );
                 return;
             }
 
@@ -3913,6 +3944,24 @@ async function runGeneration(
         await ctx.reply(formatUserBotError(error, i18n), {
             parse_mode: 'HTML',
         });
+    } finally {
+        await safeDeleteMessage(ctx, statusMessageId);
+    }
+}
+
+/**
+ * Sends the "job started" notice and hands it to the job row, so that the
+ * cron delivery removes it together with the result.
+ */
+async function replyAsyncStarted(
+    ctx: BotContext,
+    deps: AiHandlerDeps,
+    jobId: string | undefined,
+    text: string,
+) {
+    const message = await ctx.reply(text);
+    if (jobId) {
+        await deps.aiJobService.setStatusMessageId(jobId, message.message_id);
     }
 }
 

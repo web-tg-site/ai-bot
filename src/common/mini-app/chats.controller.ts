@@ -22,6 +22,7 @@ import { AiToolId } from '@/common/services/ai/types';
 import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
 import {
     parseGptMediaMessage,
+    splitGptAttachmentNotes,
     toDataUrl,
 } from '@/common/utils/gpt-message-content';
 import { isImageMedia } from '@/common/utils/media-kind';
@@ -157,15 +158,37 @@ export class ChatsController {
                     )
                     .map((file) => toDataUrl(file));
 
+                if (msg.role !== 'user') {
+                    return {
+                        id: msg.id,
+                        role: msg.role,
+                        content: parsed.text,
+                        images: images?.length ? images : undefined,
+                        jobId: parsed.jobId,
+                        createdAt: msg.createdAt,
+                    };
+                }
+
+                // Documents / video / audio are stored as text notes, so the
+                // prompt has to be separated from them to render both.
+                const { text, notes } = splitGptAttachmentNotes(parsed.text);
+                const attachments = [
+                    ...(images ?? []).map((src) => ({
+                        kind: 'image' as const,
+                        src,
+                    })),
+                    ...notes.map((note) => ({
+                        kind: note.kind,
+                        name: note.name,
+                    })),
+                ];
+
                 return {
                     id: msg.id,
                     role: msg.role,
-                    content:
-                        parsed.text ||
-                        (msg.role === 'user' && images?.length
-                            ? '[image]'
-                            : ''),
+                    content: text,
                     images: images?.length ? images : undefined,
+                    attachments: attachments.length ? attachments : undefined,
                     jobId: parsed.jobId,
                     createdAt: msg.createdAt,
                 };

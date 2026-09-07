@@ -110,6 +110,41 @@ function describeNonImageAttachments(files?: AiFileInput[]): string {
     return lines.join('\n');
 }
 
+export type GptAttachmentNote = {
+    kind: 'video' | 'audio' | 'file';
+    name: string;
+};
+
+const ATTACHMENT_NOTE_PATTERN = /^\[(video|audio|file):\s*(.+)\]$/;
+
+/**
+ * Inverse of `describeNonImageAttachments`: splits a stored user message back
+ * into the prompt the user typed and the attachments it mentions. Needed
+ * because only images are persisted as binaries — documents, video and audio
+ * survive as text notes.
+ */
+export function splitGptAttachmentNotes(text: string): {
+    text: string;
+    notes: GptAttachmentNote[];
+} {
+    const notes: GptAttachmentNote[] = [];
+    const promptLines: string[] = [];
+
+    for (const line of text.split('\n')) {
+        const match = ATTACHMENT_NOTE_PATTERN.exec(line.trim());
+        if (match) {
+            notes.push({
+                kind: match[1] as GptAttachmentNote['kind'],
+                name: match[2].trim(),
+            });
+            continue;
+        }
+        promptLines.push(line);
+    }
+
+    return { text: promptLines.join('\n').trim(), notes };
+}
+
 export function parseGptMediaMessage(content: string): {
     text: string;
     files?: AiFileInput[];

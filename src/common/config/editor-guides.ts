@@ -1,5 +1,53 @@
 import { AiToolId } from '@/common/services/ai/types';
 
+/** Tools where prompts can address attachments by @image1 / @video1 / @file1. */
+const REFERENCE_TOOLS = new Set<AiToolId>([
+    AiToolId.GPT,
+    AiToolId.CLAUDE_SONNET,
+    AiToolId.GPT_IMAGES,
+    AiToolId.MIDJOURNEY,
+    AiToolId.NANO_BANANA,
+    AiToolId.SEEDREAM,
+    AiToolId.FLUX,
+    AiToolId.KLING,
+    AiToolId.KLING_MOTION,
+    AiToolId.VEO,
+    AiToolId.HIGGSFIELD,
+    AiToolId.HEYGEN,
+    AiToolId.SEEDANCE,
+    AiToolId.LUMA_RAY,
+]);
+
+const REFERENCE_HINT_RU = `Как работать с референсами
+Во время написания промта нажми на нужное изображение, видео или файл — Endora сама добавит его номер в текст.
+
+- 🖼️ нажал на изображение 1 → @image1
+- 🖼️ нажал на изображение 2 → @image2
+- 🎬 нажал на видео → @video1
+- 📄 нажал на файл → @file1
+
+После тега напиши, что нужно взять или сделать. Например:
+@image1 — возьми фон.
+@image2 — возьми персонажа.
+Объедини их в одно изображение.
+
+Так Endora понимает, какой именно материал нужно использовать.`;
+
+const REFERENCE_HINT_EN = `How to work with references
+While writing the prompt, tap the image, video or file you need — Endora adds its number to the text for you.
+
+- 🖼️ tapped image 1 → @image1
+- 🖼️ tapped image 2 → @image2
+- 🎬 tapped a video → @video1
+- 📄 tapped a file → @file1
+
+After the tag, write what to take or do. For example:
+@image1 — take the background.
+@image2 — take the character.
+Combine them into one image.
+
+That is how Endora knows which material to use.`;
+
 const RU: Partial<Record<AiToolId, string>> = {
     [AiToolId.GPT]: `🤖 GPT
 Умный помощник в чате — отвечает на вопросы и помогает с любыми задачами.
@@ -219,6 +267,7 @@ const RU: Partial<Record<AiToolId, string>> = {
 - ⏱️ Ролики до 30 секунд
 - ⏩ Можно продолжить уже готовое видео
 - 🖼️ Много примеров сразу (десятки фото, несколько видео и аудио)
+- 📐 Разрешение: 480p, 720p или 1080p (чем выше, тем дороже)
 
 Как пользоваться
 1. Выбери формат и длительность.
@@ -526,6 +575,7 @@ Create videos using many files at once — text, photos, video and audio.
 - ⏱️ Clips up to 30 seconds
 - ⏩ You can continue an existing video
 - 🖼️ Many references at once (dozens of photos, several videos and audio files)
+- 📐 Resolution: 480p, 720p or 1080p (higher costs more)
 
 How to use
 1. Choose format and duration.
@@ -613,5 +663,10 @@ export function getEditorGuideText(
     toolId: AiToolId,
     locale: 'ru-RU' | 'en-US',
 ): string | undefined {
-    return (locale === 'en-US' ? EN : RU)[toolId];
+    const en = locale === 'en-US';
+    const base = (en ? EN : RU)[toolId];
+    if (!base || !REFERENCE_TOOLS.has(toolId)) {
+        return base;
+    }
+    return `${base}\n\n${en ? REFERENCE_HINT_EN : REFERENCE_HINT_RU}`;
 }
