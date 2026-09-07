@@ -14,6 +14,7 @@ import {
 import { calculateTopazTokenCost } from '@/common/config/image-editor-capabilities.config';
 import { getToolById } from '@/common/config/ai-tools.registry';
 import { AiToolId } from '../types';
+import { probeVideoMetadata } from '@/common/utils/probe-video-metadata';
 
 const IMAGE_BASE = 'https://api.topazlabs.com/image/v1';
 const VIDEO_BASE = 'https://api.topazlabs.com';
@@ -120,11 +121,23 @@ export class TopazProvider {
         topazScale: number,
     ): Promise<AiJobCreateResult> {
         const container = this.resolveVideoContainer(file);
-        const { width, height } = this.guessVideoResolution(file.buffer.length);
-        const frameRate = 24;
+        const meta = await probeVideoMetadata(file.buffer, file.fileName);
+        const guessed = this.guessVideoResolution(file.buffer.length);
+        const width = meta.width && meta.width > 0 ? meta.width : guessed.width;
+        const height =
+            meta.height && meta.height > 0 ? meta.height : guessed.height;
+        const frameRate =
+            meta.fps && meta.fps > 0 && meta.fps <= 120
+                ? Math.round(meta.fps)
+                : 24;
         const duration = Math.max(
             1,
-            Math.min(30, Math.round(file.buffer.length / 200_000)),
+            Math.min(
+                30,
+                meta.durationSeconds && meta.durationSeconds > 0
+                    ? Math.round(meta.durationSeconds)
+                    : Math.round(file.buffer.length / 200_000),
+            ),
         );
         const frameCount = Math.round(duration * frameRate);
 
