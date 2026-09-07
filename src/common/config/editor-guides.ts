@@ -240,12 +240,13 @@ const RU: Partial<Record<AiToolId, string>> = {
 - ✍️ Пишешь текст — аватар произносит его в видео
 - 👤 Можно выбрать лицо (аватар) и голос
 - 📸 Можно загрузить своё фото — получится «говорящая голова»
+- 📐 Формат видео берётся из загруженного кадра (отдельный выбор не нужен)
 - 📢 Удобно для рекламы, обучения и объясняющих роликов
 
 Как пользоваться
 1. Впиши текст, который должен сказать ведущий.
-2. Выбери аватар и голос.
-3. Выбери формат и настройки в кнопке «HeyGen».
+2. Выбери аватар и голос (или загрузи своё фото).
+3. При необходимости открой настройки в кнопке «HeyGen».
 4. Запусти генерацию.`,
 
     [AiToolId.TOPAZ]: `✨ Topaz
@@ -548,12 +549,13 @@ Create videos with a virtual host — the avatar speaks your text.
 - ✍️ You write text — the avatar speaks it in the video
 - 👤 Choose a face (avatar) and voice
 - 📸 Upload your photo — get a "talking head"
+- 📐 Video format follows the uploaded frame (no separate aspect picker)
 - 📢 Great for ads, training and explainer videos
 
 How to use
 1. Enter the script the host should say.
-2. Choose avatar and voice.
-3. Choose format and settings in the "HeyGen" button.
+2. Choose avatar and voice (or upload your photo).
+3. Optionally open settings in the "HeyGen" button.
 4. Run generation.`,
 
     [AiToolId.TOPAZ]: `✨ Topaz

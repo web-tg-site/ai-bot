@@ -151,7 +151,7 @@ export class HeyGenProvider {
             avatar_id: avatarId,
             title: this.buildVideoTitle(input.prompt ?? 'HeyGen'),
             resolution: input.resolution ?? '720p',
-            aspect_ratio: input.aspectRatio ?? '16:9',
+            aspect_ratio: input.aspectRatio ?? 'auto',
             ...this.buildSharedVideoOptions(input, { allowEngine: true }),
         };
 
@@ -192,7 +192,7 @@ export class HeyGenProvider {
             image: { type: 'asset_id', asset_id: assetId },
             title: this.buildVideoTitle(input.prompt ?? 'HeyGen'),
             resolution: input.resolution ?? '720p',
-            aspect_ratio: input.aspectRatio ?? '16:9',
+            aspect_ratio: input.aspectRatio ?? 'auto',
             // CreateVideoFromImage rejects `engine` (additionalProperties: false).
             ...this.buildSharedVideoOptions(input, { allowEngine: false }),
         };

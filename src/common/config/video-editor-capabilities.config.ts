@@ -221,7 +221,6 @@ export const VIDEO_TOOLS_WITH_ASPECT_SETTINGS: AiToolId[] = [
     AiToolId.SEEDANCE,
     AiToolId.LUMA_RAY,
     AiToolId.HIGGSFIELD,
-    AiToolId.HEYGEN,
 ];
 
 export const VIDEO_TOOL_MAX_REFERENCES: Partial<Record<AiToolId, number>> = {
@@ -258,7 +257,7 @@ export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.SEEDANCE]: [...UI_ASPECT_RATIOS],
     [AiToolId.LUMA_RAY]: [...UI_ASPECT_RATIOS],
     [AiToolId.HIGGSFIELD]: [...UI_ASPECT_RATIOS],
-    [AiToolId.HEYGEN]: [...UI_ASPECT_RATIOS],
+    [AiToolId.HEYGEN]: [],
 };
 
 export const STATIC_VIDEO_RESOLUTIONS: Partial<Record<AiToolId, string[]>> = {
