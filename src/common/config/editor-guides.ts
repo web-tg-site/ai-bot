@@ -22,6 +22,7 @@ const RU: Partial<Record<AiToolId, string>> = {
 Умный помощник в чате — особенно удобен для длинных текстов и сложных разборов.
 
 - 📚 Хорошо читает большие документы
+- 📄 Разбирает PDF, Word, Excel и PowerPoint
 - ✍️ Помогает писать и править тексты
 - 💻 Разбирает код и сложные задачи
 - 📎 Можно прикрепить фото и документы (видео Claude не читает)
@@ -323,6 +324,7 @@ How to use
 A smart chat assistant — especially good for long texts and complex analysis.
 
 - 📚 Reads large documents well
+- 📄 Reads PDF, Word, Excel and PowerPoint
 - ✍️ Helps write and edit texts
 - 💻 Breaks down code and complex tasks
 - 📎 You can attach photos and documents (Claude cannot read video)

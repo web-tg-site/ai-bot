@@ -16,6 +16,11 @@ import {
     isVideoMedia,
 } from '@/common/utils/media-kind';
 import {
+    fallbackDocumentName,
+    guessDocumentMime,
+    isOpenAiBinaryDocument,
+} from '@/common/utils/document-file.util';
+import {
     attachmentMentionSystemHint,
     formatAttachmentMention,
     getAttachmentMentionIndex1,
@@ -342,9 +347,9 @@ export class OpenAiProvider {
             );
         }
 
-        if (this.isBinaryDocument(file)) {
-            const filename = file.fileName || this.fallbackDocumentName(file);
-            const mime = file.mimeType || this.guessDocumentMime(filename);
+        if (isOpenAiBinaryDocument(file)) {
+            const filename = file.fileName || fallbackDocumentName(file);
+            const mime = guessDocumentMime(filename, file.mimeType);
             return {
                 type: 'input_file',
                 filename,
@@ -355,7 +360,10 @@ export class OpenAiProvider {
         const textContent = file.buffer.toString('utf-8').slice(0, 12000);
         return {
             type: 'input_text',
-            text: `Содержимое файла ${file.fileName ?? 'document'}:\n${textContent}`,
+            text:
+                localeTag === 'en-US'
+                    ? `Contents of ${file.fileName ?? 'document'}:\n${textContent}`
+                    : `Содержимое файла ${file.fileName ?? 'document'}:\n${textContent}`,
         };
     }
 
@@ -600,58 +608,6 @@ export class OpenAiProvider {
               ? 'webp'
               : 'jpg';
         return `ref-${index}.${ext}`;
-    }
-
-    private isBinaryDocument(file: AiFileInput): boolean {
-        const mime = file.mimeType.toLowerCase();
-        const name = (file.fileName ?? '').toLowerCase();
-        if (
-            mime.startsWith('text/') ||
-            mime === 'application/json' ||
-            mime === 'application/xml'
-        ) {
-            return false;
-        }
-        if (
-            mime === 'application/pdf' ||
-            mime.includes('officedocument') ||
-            mime.includes('msword') ||
-            mime.includes('ms-excel') ||
-            mime.includes('ms-powerpoint')
-        ) {
-            return true;
-        }
-        return /\.(pdf|docx?|pptx?|xlsx?)$/i.test(name);
-    }
-
-    private fallbackDocumentName(file: AiFileInput): string {
-        const mime = file.mimeType.toLowerCase();
-        if (mime.includes('pdf')) return 'document.pdf';
-        if (mime.includes('wordprocessingml') || mime.includes('msword')) {
-            return 'document.docx';
-        }
-        if (mime.includes('presentationml') || mime.includes('powerpoint')) {
-            return 'document.pptx';
-        }
-        if (mime.includes('spreadsheetml') || mime.includes('excel')) {
-            return 'document.xlsx';
-        }
-        return 'document.bin';
-    }
-
-    private guessDocumentMime(filename: string): string {
-        const name = filename.toLowerCase();
-        if (name.endsWith('.pdf')) return 'application/pdf';
-        if (name.endsWith('.docx')) {
-            return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        }
-        if (name.endsWith('.pptx')) {
-            return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-        }
-        if (name.endsWith('.xlsx')) {
-            return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-        }
-        return 'application/octet-stream';
     }
 
     private ensureApiKey() {

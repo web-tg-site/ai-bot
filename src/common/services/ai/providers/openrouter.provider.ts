@@ -28,6 +28,12 @@ import {
     isVideoMedia,
 } from '@/common/utils/media-kind';
 import {
+    fallbackDocumentName,
+    guessDocumentMime,
+    isOpenRouterBinaryDocument,
+    isPlainTextDocument,
+} from '@/common/utils/document-file.util';
+import {
     attachmentMentionSystemHint,
     formatAttachmentMention,
     getAttachmentMentionIndex1,
@@ -474,6 +480,16 @@ export class OpenRouterProvider {
             ],
         };
 
+        if (
+            this.hasOpenRouterFileParts(userContent) ||
+            messages.some((message) =>
+                this.hasOpenRouterFileParts(message.content),
+            )
+        ) {
+            // Lets OpenRouter parse DOCX/XLSX/PPTX (and PDFs) before Claude.
+            body.plugins = [{ id: 'file-parser' }];
+        }
+
         const response = await this.post<{
             choices: Array<{
                 message: {
@@ -518,7 +534,7 @@ export class OpenRouterProvider {
                 'If the question is about current events, prices, weather, news, or anything time-sensitive, use web search. ' +
                 'Do not invent up-to-date facts. Answer in the same language as the user. ' +
                 'When images are attached, you can see and analyze them (including people) and should give concrete visual feedback — do not claim you cannot see images. ' +
-                'When a PDF or text document is attached, you can read and analyze its contents — do not claim the file is unreadable binary. ' +
+                'When a PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx) or text document is attached, you can read and analyze its contents — do not claim the file is unreadable binary. ' +
                 `${attachmentMentionSystemHint('en-US')} ` +
                 'Use Markdown formatting (bold, lists, code) when it improves readability.'
             );
@@ -529,7 +545,7 @@ export class OpenRouterProvider {
             'Если вопрос касается текущих событий, цен, погоды, новостей или другой актуальной информации — используй поиск в интернете. ' +
             'Не выдумывай актуальные факты. Отвечай на том же языке, что и пользователь. ' +
             'Если в сообщении есть изображения — ты их видишь и должен анализировать (в том числе людей, например для стилевых советов), а не отвечать, что не видишь изображения. ' +
-            'Если прикреплён PDF или текстовый документ — ты можешь читать и анализировать его содержимое, не отвечай, что файл «сырые бинарные данные». ' +
+            'Если прикреплён PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx) или текстовый документ — ты можешь читать и анализировать его содержимое, не отвечай, что файл «сырые бинарные данные». ' +
             `${attachmentMentionSystemHint('ru-RU')} ` +
             'Используй Markdown-форматирование (жирный текст, списки, код), когда это улучшает читаемость.'
         );
@@ -850,9 +866,19 @@ export class OpenRouterProvider {
         return parts;
     }
 
+    private hasOpenRouterFileParts(
+        content: OpenRouterMessageContent,
+    ): boolean {
+        if (typeof content === 'string') {
+            return false;
+        }
+        return content.some((part) => part.type === 'file');
+    }
+
     /**
-     * OpenRouter accepts PDFs as `type: "file"` (native for Claude, or via its
-     * file-parser). Dumping the buffer as UTF-8 made Claude see binary garbage.
+     * OpenRouter accepts PDF + DOCX/XLSX/PPTX as `type: "file"` (native for
+     * Claude or via file-parser). Dumping Office buffers as UTF-8 made Claude
+     * see binary garbage — always send them as base64 data URLs.
      */
     private buildDocumentParts(
         file: AiFileInput,
@@ -866,20 +892,22 @@ export class OpenRouterProvider {
             );
         }
 
-        if (this.isPdfDocument(file)) {
-            const filename = file.fileName?.trim() || 'document.pdf';
+        if (isOpenRouterBinaryDocument(file)) {
+            const filename =
+                file.fileName?.trim() || fallbackDocumentName(file);
+            const mime = guessDocumentMime(filename, file.mimeType);
             return [
                 {
                     type: 'file',
                     file: {
                         filename,
-                        file_data: `data:application/pdf;base64,${file.buffer.toString('base64')}`,
+                        file_data: `data:${mime};base64,${file.buffer.toString('base64')}`,
                     },
                 },
             ];
         }
 
-        if (this.isPlainTextDocument(file)) {
+        if (isPlainTextDocument(file)) {
             const textContent = file.buffer
                 .toString('utf-8')
                 .slice(0, MAX_TEXT_DOCUMENT_CHARS);
@@ -894,44 +922,16 @@ export class OpenRouterProvider {
             ];
         }
 
-        // Office binaries are not reliably parsed for Claude via OpenRouter.
+        // Legacy .doc/.ppt/.xls and other binaries are not in OpenRouter's list.
         return [
             {
                 type: 'text',
                 text:
                     localeTag === 'en-US'
-                        ? `[Attached file "${file.fileName ?? 'document'}" — this chat can analyze PDF and text files. Convert the document to PDF or TXT and send it again.]`
-                        : `[Прикреплён файл «${file.fileName ?? 'document'}» — в этом чате разбираются PDF и текстовые файлы. Сохраните документ как PDF или TXT и отправьте снова.]`,
+                        ? `[Attached file "${file.fileName ?? 'document'}" — this chat can analyze PDF, DOCX, XLSX, PPTX and text files. Convert the document to one of those formats and send it again.]`
+                        : `[Прикреплён файл «${file.fileName ?? 'document'}» — в этом чате разбираются PDF, DOCX, XLSX, PPTX и текстовые файлы. Сохраните документ в одном из этих форматов и отправьте снова.]`,
             },
         ];
-    }
-
-    private isPdfDocument(file: AiFileInput): boolean {
-        const mime = (file.mimeType ?? '').toLowerCase();
-        const name = (file.fileName ?? '').toLowerCase();
-        if (mime === 'application/pdf' || mime === 'application/x-pdf') {
-            return true;
-        }
-        if (name.endsWith('.pdf')) {
-            return true;
-        }
-        // Telegram sometimes sends PDFs as octet-stream with a .pdf name above;
-        // also detect the %PDF magic header.
-        return file.buffer.subarray(0, 4).toString('ascii') === '%PDF';
-    }
-
-    private isPlainTextDocument(file: AiFileInput): boolean {
-        const mime = (file.mimeType ?? '').toLowerCase();
-        const name = (file.fileName ?? '').toLowerCase();
-        if (
-            mime.startsWith('text/') ||
-            mime === 'application/json' ||
-            mime === 'application/xml' ||
-            mime === 'application/csv'
-        ) {
-            return true;
-        }
-        return /\.(txt|md|csv|json|xml|html?|log|tsv)$/i.test(name);
     }
 
     private toImageResult(url: string): AiGenerationResult {
