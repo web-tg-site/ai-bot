@@ -310,6 +310,12 @@ describe('bot-error.mapper', () => {
             expect(result).toBe(ru.aiResult.errorByCode[BotErrorCode.PROVIDER]);
         });
 
+        it('localizes Railway Application failed to respond', () => {
+            expect(
+                toUserFacingError('Application failed to respond', ru),
+            ).toBe(ru.aiResult.errorByCode[BotErrorCode.CONFIG]);
+        });
+
         it('passes through user-friendly Russian messages', () => {
             const msg =
                 'Генерация заняла слишком много времени, попробуйте ещё раз';

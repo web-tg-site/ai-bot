@@ -112,6 +112,14 @@ export function classifyBotError(rawMessage: string): BotErrorCode {
         return BotErrorCode.CONFIG;
     }
 
+    if (
+        /Application failed to respond|failed to forward request to upstream|Bad Gateway|Service Unavailable|Gateway Timeout/i.test(
+            message,
+        )
+    ) {
+        return BotErrorCode.CONFIG;
+    }
+
     if (isContentPolicyMessage(message)) {
         return BotErrorCode.CONTENT_POLICY;
     }
@@ -170,6 +178,15 @@ function isActionableProviderDetail(detail: string): boolean {
 
     if (
         /ECONNREFUSED|ETIMEDOUT|ENOTFOUND|stack trace|at\s+\w+\s+\(/i.test(
+            detail,
+        )
+    ) {
+        return false;
+    }
+
+    // Infra / gateway outages — not user-fixable validation tips.
+    if (
+        /Application failed to respond|failed to forward request to upstream|Bad Gateway|Service Unavailable|Gateway Timeout/i.test(
             detail,
         )
     ) {
@@ -431,6 +448,14 @@ function matchKnownFallback(
     message: string,
     i18n: I18nBundle,
 ): string | undefined {
+    if (
+        /Application failed to respond|failed to forward request to upstream|Bad Gateway|Service Unavailable|Gateway Timeout|HTTP 502|HTTP 503|HTTP 504/i.test(
+            message,
+        )
+    ) {
+        return i18n.aiResult.errorByCode[BotErrorCode.CONFIG];
+    }
+
     if (
         /rate.?limit|too many requests|quota exceeded|insufficient quota|HTTP 429/i.test(
             message,
