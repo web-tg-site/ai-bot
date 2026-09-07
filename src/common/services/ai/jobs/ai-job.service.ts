@@ -14,6 +14,7 @@ import {
     jobPromptForDb,
     toPersistedInputJson,
 } from '../utils/persist-generation-input';
+import { stripAttachmentMentionManifest } from '@/common/services/bot/utils/image-references';
 
 export type JobListItem = {
     id: string;
@@ -276,7 +277,7 @@ export class AiJobService {
             providerJobId: job.providerJobId,
             errorMessage: job.errorMessage,
             tokenCost: job.tokenCost,
-            prompt: job.prompt ?? '',
+            prompt: stripAttachmentMentionManifest(job.prompt ?? ''),
             sessionId: job.sessionId,
             failoverNotice: job.failoverNotice,
             failoverFromToolId: job.failoverFromToolId,

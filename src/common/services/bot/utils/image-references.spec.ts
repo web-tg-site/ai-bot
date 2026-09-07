@@ -4,6 +4,7 @@ import {
     getAttachmentMentionIndex1,
     getAttachmentMentionKind,
     getReferenceLabel,
+    stripAttachmentMentionManifest,
 } from './image-references';
 
 describe('attachment mentions', () => {
@@ -43,5 +44,31 @@ describe('attachment mentions', () => {
         expect(prompt).toContain('@video1');
         expect(prompt).toContain('замени лицо на @image2');
         expect(prompt).toContain('Вложения (теги для промпта)');
+    });
+
+    it('strips manifesto back to the user task for UI/history', () => {
+        const enriched = buildNumberedReferencePrompt(
+            'замени лицо на @image2',
+            [
+                { mimeType: 'image/jpeg', fileName: 'a.jpg' },
+                { mimeType: 'image/png', fileName: 'b.png' },
+            ],
+            'ru-RU',
+        );
+        expect(stripAttachmentMentionManifest(enriched)).toBe(
+            'замени лицо на @image2',
+        );
+        expect(
+            stripAttachmentMentionManifest(
+                buildNumberedReferencePrompt(
+                    'Строго следуй прикреплённым референсам',
+                    [{ mimeType: 'audio/mpeg', fileName: 'a.mp3' }],
+                    'ru-RU',
+                ),
+            ),
+        ).toBe('');
+        expect(stripAttachmentMentionManifest('просто промпт')).toBe(
+            'просто промпт',
+        );
     });
 });

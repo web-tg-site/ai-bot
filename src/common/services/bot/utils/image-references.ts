@@ -172,6 +172,37 @@ export function buildNumberedReferencePrompt(
         : `${manifest}\n\nЗадача пользователя:\n${trimmed}`;
 }
 
+const DEFAULT_FOLLOW_REFS_RU = 'Строго следуй прикреплённым референсам';
+const DEFAULT_FOLLOW_REFS_EN = 'Follow the attached references exactly';
+
+/**
+ * User-facing prompt only: drops the AI attachment manifesto (@file1 map)
+ * that we prepend for providers. History / mini-app must never show that block.
+ */
+export function stripAttachmentMentionManifest(prompt: string): string {
+    const trimmed = prompt.trim();
+    if (!trimmed) {
+        return '';
+    }
+
+    const hasManifest =
+        /^(?:Вложения \(теги для промпта\)|Attachments \(use these tags in the prompt\)):/m.test(
+            trimmed,
+        );
+    if (!hasManifest) {
+        return trimmed;
+    }
+
+    const taskMatch = trimmed.match(
+        /(?:^|\n\n)(?:Задача пользователя|User task):\n([\s\S]*)$/,
+    );
+    const task = taskMatch?.[1]?.trim() ?? '';
+    if (!task || task === DEFAULT_FOLLOW_REFS_RU || task === DEFAULT_FOLLOW_REFS_EN) {
+        return '';
+    }
+    return task;
+}
+
 export function attachmentMentionSystemHint(
     locale: 'ru-RU' | 'en-US',
 ): string {

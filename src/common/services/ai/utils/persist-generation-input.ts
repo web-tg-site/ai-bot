@@ -1,5 +1,6 @@
 import type { AiGenerationInput } from '../types';
 import type { Prisma } from '@/generated/prisma/client';
+import { stripAttachmentMentionManifest } from '@/common/services/bot/utils/image-references';
 
 /**
  * JSON-safe job input for DB. File buffers as `{type:'Buffer',data:number[]}`
@@ -7,7 +8,7 @@ import type { Prisma } from '@/generated/prisma/client';
  * the job can still failover, and drop binaries once the job is terminal.
  */
 export function jobPromptForDb(input: AiGenerationInput): string | null {
-    const prompt = input.prompt?.trim();
+    const prompt = stripAttachmentMentionManifest(input.prompt ?? '');
     if (!prompt) return null;
     return prompt.slice(0, 4000);
 }

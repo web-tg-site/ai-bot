@@ -60,6 +60,7 @@ import { prepareUploadMedia } from '@/common/utils/prepare-upload-media';
 import { getI18n } from '@/common/services/bot/i18n';
 import { normalizeFluxImageMode } from '@/common/config/flux-image-modes.config';
 import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
+import { stripAttachmentMentionManifest } from '@/common/services/bot/utils/image-references';
 import {
     formatMiniAppSendMessage,
     formatSendPromptMessage,
@@ -747,7 +748,7 @@ export class AiController {
                     ? toUserFacingError(job.errorMessage, getI18n())
                     : job.errorMessage,
                 tokenCost: job.tokenCost,
-                prompt: job.prompt ?? '',
+                prompt: stripAttachmentMentionManifest(job.prompt ?? ''),
                 sessionId: job.sessionId ?? undefined,
                 failoverNotice: job.failoverNotice ?? undefined,
                 failoverFromToolId: job.failoverFromToolId ?? undefined,
@@ -974,7 +975,7 @@ export class AiController {
                 ? toUserFacingError(job.errorMessage, getI18n())
                 : job.errorMessage,
             tokenCost: job.tokenCost,
-            prompt: job.prompt ?? '',
+            prompt: stripAttachmentMentionManifest(job.prompt ?? ''),
             sessionId: job.sessionId ?? undefined,
             failoverNotice: job.failoverNotice ?? undefined,
             failoverFromToolId: job.failoverFromToolId ?? undefined,
@@ -1039,7 +1040,9 @@ export class AiController {
                     formatMiniAppSendMessage({
                         jobId: job.id,
                         toolId,
-                        prompt: job.prompt,
+                        prompt: stripAttachmentMentionManifest(
+                            job.prompt ?? '',
+                        ),
                         inputJson: job.inputJson,
                         tokenCost: job.tokenCost,
                         tokenLeft: job.user.tokenLeft,
