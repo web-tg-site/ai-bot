@@ -146,11 +146,21 @@ export class ChatsController {
 
         const rows = await this.prismaService.gptMessage.findMany({
             where: { conversationId: id },
-            orderBy: { createdAt: 'asc' },
+            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        });
+
+        // Same createdAt (legacy createMany) can still put assistant before
+        // user — keep the request + file chip above the reply.
+        const ordered = [...rows].sort((left, right) => {
+            const byTime =
+                left.createdAt.getTime() - right.createdAt.getTime();
+            if (byTime !== 0) return byTime;
+            if (left.role === right.role) return left.id.localeCompare(right.id);
+            return left.role === 'user' ? -1 : 1;
         });
 
         return {
-            items: rows.map((msg) => {
+            items: ordered.map((msg) => {
                 const parsed = parseGptMediaMessage(msg.content);
                 const images = parsed.files
                     ?.filter((file) =>

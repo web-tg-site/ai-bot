@@ -90,11 +90,19 @@ export class GptConversationModelService {
     async getMessages(conversationId: string): Promise<AiChatMessage[]> {
         const messages = await this.prismaService.gptMessage.findMany({
             where: { conversationId },
-            orderBy: { createdAt: 'asc' },
+            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
             take: MAX_CONTEXT_MESSAGES,
         });
 
-        return messages.map((msg) => {
+        const ordered = [...messages].sort((left, right) => {
+            const byTime =
+                left.createdAt.getTime() - right.createdAt.getTime();
+            if (byTime !== 0) return byTime;
+            if (left.role === right.role) return left.id.localeCompare(right.id);
+            return left.role === 'user' ? -1 : 1;
+        });
+
+        return ordered.map((msg) => {
             if (msg.role === 'user') {
                 const parsed = parseGptMediaMessage(msg.content);
                 return {
@@ -128,26 +136,29 @@ export class GptConversationModelService {
         userContent: string,
         assistantContent: string,
     ) {
-        await this.prismaService.$transaction([
-            this.prismaService.gptMessage.createMany({
-                data: [
-                    {
-                        conversationId,
-                        role: 'user',
-                        content: userContent,
-                    },
-                    {
-                        conversationId,
-                        role: 'assistant',
-                        content: assistantContent,
-                    },
-                ],
-            }),
-            this.prismaService.gptConversation.update({
+        // Sequential creates so createdAt differs — createMany used the same
+        // timestamp for both rows and reload order could put the file chip
+        // under the assistant reply.
+        await this.prismaService.$transaction(async (tx) => {
+            await tx.gptMessage.create({
+                data: {
+                    conversationId,
+                    role: 'user',
+                    content: userContent,
+                },
+            });
+            await tx.gptMessage.create({
+                data: {
+                    conversationId,
+                    role: 'assistant',
+                    content: assistantContent,
+                },
+            });
+            await tx.gptConversation.update({
                 where: { id: conversationId },
                 data: { updatedAt: new Date() },
-            }),
-        ]);
+            });
+        });
     }
 
     async setTitleIfDefault(

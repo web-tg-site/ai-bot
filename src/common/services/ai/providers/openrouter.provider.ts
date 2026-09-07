@@ -535,7 +535,7 @@ export class OpenRouterProvider {
             return (
                 `${identityEn} Today is ${date}. ` +
                 'If the question is about current events, prices, weather, news, or anything time-sensitive, use web search. ' +
-                'Do not invent up-to-date facts. Answer in the same language as the user. ' +
+                'Do not invent up-to-date facts. Always reply in English by default, even if an attached document is in another language. Switch language only when the user explicitly asks. ' +
                 'When images are attached, you can see and analyze them (including people) and should give concrete visual feedback — do not claim you cannot see images. ' +
                 'When a PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx) or text document is attached, you can read and analyze its contents — do not claim the file is unreadable binary. ' +
                 `${attachmentMentionSystemHint('en-US')} ` +
@@ -546,7 +546,7 @@ export class OpenRouterProvider {
         return (
             `${identityRu} Сегодня ${date}. ` +
             'Если вопрос касается текущих событий, цен, погоды, новостей или другой актуальной информации — используй поиск в интернете. ' +
-            'Не выдумывай актуальные факты. Отвечай на том же языке, что и пользователь. ' +
+            'Не выдумывай актуальные факты. По умолчанию всегда отвечай на русском, даже если прикреплённый документ на другом языке. Переходи на другой язык только если пользователь явно попросил. ' +
             'Если в сообщении есть изображения — ты их видишь и должен анализировать (в том числе людей, например для стилевых советов), а не отвечать, что не видишь изображения. ' +
             'Если прикреплён PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx) или текстовый документ — ты можешь читать и анализировать его содержимое, не отвечай, что файл «сырые бинарные данные». ' +
             `${attachmentMentionSystemHint('ru-RU')} ` +

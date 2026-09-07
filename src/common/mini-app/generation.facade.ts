@@ -10,7 +10,7 @@ import {
     serializeGptUserMessage,
 } from '@/common/utils/gpt-message-content';
 import { isChatAssistantTool } from '@/common/utils/is-chat-assistant-tool';
-import { SubscribeType } from '@/generated/prisma/enums';
+import { SubscribeType, UserLanguage } from '@/generated/prisma/enums';
 import {
     AiGenerationInput,
     AiGenerationResult,
@@ -116,6 +116,12 @@ export class GenerationFacade {
         }
 
         let input = { ...params.input };
+        // MiniApp often omits localeTag — fall back to the language the user
+        // picked in the bot (RU by default, EN only if they chose English).
+        if (!input.localeTag) {
+            input.localeTag =
+                user.language === UserLanguage.EN ? 'en-US' : 'ru-RU';
+        }
         let conversationId = params.conversationId;
 
         if (
