@@ -27,6 +27,8 @@ import {
     getHeyGenBackgroundLabel,
     getHeyGenEngineLabel,
     getHeyGenExpressivenessLabel,
+    heygenUiShowsEngine,
+    heygenUiShowsExpressiveness,
     type HeyGenAvatarLookOption,
     type HeyGenVoiceOption,
 } from '@/common/config/heygen.config';
@@ -99,6 +101,7 @@ export function generateVideoEditorReplyKeyboard(
         heygenAvatars?: HeyGenAvatarLookOption[];
         heygenVoicePage?: number;
         heygenAvatarPage?: number;
+        hasTalkingPhoto?: boolean;
         step: AiSessionStep;
         keyboardMode: VideoKeyboardMode;
         localeTag: 'ru-RU' | 'en-US';
@@ -316,6 +319,7 @@ function generateSettingsMenuKeyboard(
         durations: number[];
         stylePresets: VideoStyleOption[];
         effectPresets?: VideoEffectOption[];
+        hasTalkingPhoto?: boolean;
     },
 ) {
     const settingButtons: string[] = [];
@@ -354,12 +358,27 @@ function generateSettingsMenuKeyboard(
         settingButtons.push(
             i18n.videoTool.changeHeygenVoiceButton,
             i18n.videoTool.changeHeygenAvatarButton,
-            i18n.videoTool.changeHeygenEngineButton,
+        );
+        if (heygenUiShowsEngine(Boolean(options.hasTalkingPhoto))) {
+            settingButtons.push(i18n.videoTool.changeHeygenEngineButton);
+        }
+        settingButtons.push(
             i18n.videoTool.toggleHeygenCaptionsButton(
                 Boolean(options.settings.heygenCaptions),
             ),
             i18n.videoTool.changeHeygenBackgroundButton,
-            i18n.videoTool.changeHeygenExpressivenessButton,
+        );
+        if (
+            heygenUiShowsExpressiveness(
+                Boolean(options.hasTalkingPhoto),
+                options.settings.heygenEngine ?? DEFAULT_HEYGEN_ENGINE,
+            )
+        ) {
+            settingButtons.push(
+                i18n.videoTool.changeHeygenExpressivenessButton,
+            );
+        }
+        settingButtons.push(
             i18n.videoTool.changeHeygenSpeedButton,
             i18n.videoTool.changeHeygenPitchButton,
         );

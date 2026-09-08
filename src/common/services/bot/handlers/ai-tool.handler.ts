@@ -130,6 +130,7 @@ import {
     goToVideoPromptStep,
     getVideoKeyboardMode,
     buildVideoToolMainScreenText,
+    sessionHasHeyGenTalkingPhoto,
 } from '../utils/video-tool-session';
 import {
     loadVoiceToolSettings,
@@ -545,6 +546,7 @@ async function selectTool(
                 step: session.ai.step,
                 keyboardMode: 'main',
                 localeTag: i18n.localeTag,
+                hasTalkingPhoto: sessionHasHeyGenTalkingPhoto(session),
             }),
         );
     } else if (toolId === AiToolId.ELEVENLABS_VOICE) {
@@ -1520,6 +1522,7 @@ async function appendVideoReferences(
         step: session.ai.step ?? 'awaiting_video_references',
         keyboardMode: getVideoKeyboardMode(session),
         localeTag: i18n.localeTag,
+        hasTalkingPhoto: sessionHasHeyGenTalkingPhoto(session),
     });
 
     await sendReferenceAddedMessages(
@@ -1621,6 +1624,7 @@ async function handleVideoToolButtonPress(
         heygenAvatarPage: session.ai.heygenAvatarPage ?? 0,
         currentSettings,
         localeTag: i18n.localeTag,
+        hasTalkingPhoto: sessionHasHeyGenTalkingPhoto(session),
     });
 
     if (!action) {
@@ -1647,6 +1651,7 @@ async function handleVideoToolButtonPress(
             step: session.ai!.step,
             keyboardMode: mode,
             localeTag: i18n.localeTag,
+            hasTalkingPhoto: sessionHasHeyGenTalkingPhoto(session),
         });
 
     const summaryOptions = (settings: VideoToolSettings) => ({

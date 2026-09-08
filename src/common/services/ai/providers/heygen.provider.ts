@@ -4,12 +4,6 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import {
-    DEFAULT_HEYGEN_BACKGROUND_COLOR,
-    DEFAULT_HEYGEN_BACKGROUND_MODE,
-    DEFAULT_HEYGEN_ENGINE,
-    DEFAULT_HEYGEN_EXPRESSIVENESS,
-    DEFAULT_HEYGEN_VOICE_PITCH,
-    DEFAULT_HEYGEN_VOICE_SPEED,
     type HeyGenAvatarLookOption,
     type HeyGenEngine,
     type HeyGenVoiceOption,
@@ -21,6 +15,11 @@ import {
     AiToolId,
 } from '../types';
 import { stripAttachmentMentionManifest } from '@/common/services/bot/utils/image-references';
+import {
+    buildHeyGenSharedVideoOptions,
+    resolveHeyGenJobStatus,
+    type HeyGenVideoStatusData,
+} from './heygen-video-options';
 
 type HeyGenAvatarLookRaw = {
     id?: string;
@@ -74,6 +73,7 @@ export class HeyGenProvider {
 
     private voicesCache: ListCache<HeyGenVoiceOption> | null = null;
     private looksCache: ListCache<HeyGenAvatarLookOption> | null = null;
+    private captionedWaitStartedAt = new Map<string, number>();
 
     constructor(
         private readonly httpService: HttpService,
@@ -154,7 +154,10 @@ export class HeyGenProvider {
             title: this.buildVideoTitle(speechScript || 'HeyGen'),
             resolution: input.resolution ?? '720p',
             aspect_ratio: input.aspectRatio ?? 'auto',
-            ...this.buildSharedVideoOptions(input, { allowEngine: true }),
+            ...buildHeyGenSharedVideoOptions(input, {
+                kind: 'avatar',
+                hasAudioAsset: Boolean(audio),
+            }),
         };
 
         await this.applySpeech(body, speechScript, audio, voiceId, false);
@@ -196,8 +199,10 @@ export class HeyGenProvider {
             title: this.buildVideoTitle(speechScript || 'HeyGen'),
             resolution: input.resolution ?? '720p',
             aspect_ratio: input.aspectRatio ?? 'auto',
-            // CreateVideoFromImage rejects `engine` (additionalProperties: false).
-            ...this.buildSharedVideoOptions(input, { allowEngine: false }),
+            ...buildHeyGenSharedVideoOptions(input, {
+                kind: 'image',
+                hasAudioAsset: Boolean(audio),
+            }),
         };
 
         await this.applySpeech(body, speechScript, audio, voiceId, true);
@@ -251,84 +256,39 @@ export class HeyGenProvider {
     }
 
     async getJobStatus(providerJobId: string): Promise<AiJobStatusResult> {
-        const response = await this.get<{
-            data: {
-                status: string;
-                video_url?: string;
-                failure_message?: string;
-            };
-        }>(`/v3/videos/${providerJobId}`);
+        const response = await this.get<{ data: HeyGenVideoStatusData }>(
+            `/v3/videos/${providerJobId}`,
+        );
 
-        const status = this.mapStatus(response.data.status);
+        const firstCompletedAt = this.captionedWaitStartedAt.get(providerJobId);
+        const resolved = resolveHeyGenJobStatus(response.data, {
+            firstCompletedAt,
+        });
 
-        if (status === 'completed' && response.data.video_url) {
+        if (resolved.waitingForCaptioned && firstCompletedAt == null) {
+            this.captionedWaitStartedAt.set(providerJobId, Date.now());
+        }
+        if (resolved.status === 'completed' || resolved.status === 'failed') {
+            this.captionedWaitStartedAt.delete(providerJobId);
+        }
+
+        if (resolved.status === 'completed' && resolved.resultUrl) {
             return {
-                status,
-                result: { type: 'video', url: response.data.video_url },
+                status: 'completed',
+                result: { type: 'video', url: resolved.resultUrl },
             };
         }
 
-        if (status === 'failed') {
+        if (resolved.status === 'failed') {
             return {
-                status,
+                status: 'failed',
                 errorMessage:
-                    response.data.failure_message ??
+                    resolved.errorMessage ??
                     'Не удалось завершить генерацию — сбой на стороне провайдера.',
             };
         }
 
-        return { status };
-    }
-
-    private buildSharedVideoOptions(
-        input: AiGenerationInput,
-        optionsFlags: { allowEngine: boolean } = { allowEngine: true },
-    ): Record<string, unknown> {
-        const options: Record<string, unknown> = {};
-
-        if (optionsFlags.allowEngine) {
-            const engine = input.heygenEngine ?? DEFAULT_HEYGEN_ENGINE;
-            options.engine = { type: engine };
-        }
-
-        if (input.heygenCaptions) {
-            options.caption = { style: 'default' };
-        }
-
-        const backgroundMode =
-            input.heygenBackgroundMode ?? DEFAULT_HEYGEN_BACKGROUND_MODE;
-        if (backgroundMode === 'remove') {
-            options.remove_background = true;
-        } else if (backgroundMode === 'color') {
-            options.background = {
-                type: 'color',
-                value:
-                    input.heygenBackgroundColor ??
-                    DEFAULT_HEYGEN_BACKGROUND_COLOR,
-            };
-        }
-
-        const speed = input.heygenVoiceSpeed ?? DEFAULT_HEYGEN_VOICE_SPEED;
-        const pitch = input.heygenVoicePitch ?? DEFAULT_HEYGEN_VOICE_PITCH;
-        if (speed !== DEFAULT_HEYGEN_VOICE_SPEED || pitch !== 0) {
-            options.voice_settings = {
-                speed: this.clamp(speed, 0.5, 1.5),
-                pitch: this.clamp(pitch, -50, 50),
-            };
-        }
-
-        const motionPrompt = input.heygenMotionPrompt?.trim();
-        if (motionPrompt) {
-            options.motion_prompt = motionPrompt;
-        }
-
-        const expressiveness =
-            input.heygenExpressiveness ?? DEFAULT_HEYGEN_EXPRESSIVENESS;
-        if (expressiveness !== DEFAULT_HEYGEN_EXPRESSIVENESS) {
-            options.expressiveness = expressiveness;
-        }
-
-        return options;
+        return { status: resolved.status };
     }
 
     private resolveVoiceId(
@@ -601,24 +561,10 @@ export class HeyGenProvider {
         return `${normalized.slice(0, 77)}...`;
     }
 
-    private clamp(value: number, min: number, max: number): number {
-        return Math.min(max, Math.max(min, value));
-    }
-
     private ensureApiKey() {
         if (!this.apiKey) {
             throw new Error('HEYGEN_API_KEY is not configured');
         }
-    }
-
-    private mapStatus(status: string): AiJobStatusResult['status'] {
-        const normalized = status.toLowerCase();
-        if (['completed', 'success', 'done'].includes(normalized))
-            return 'completed';
-        if (['failed', 'error'].includes(normalized)) return 'failed';
-        if (['processing', 'pending', 'waiting'].includes(normalized))
-            return 'processing';
-        return 'pending';
     }
 
     private async post<T>(path: string, data: unknown): Promise<T> {

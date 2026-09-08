@@ -103,3 +103,22 @@ export function getHeyGenBackgroundLabel(
     }
     return color ?? (localeTag === 'ru-RU' ? 'Цвет' : 'Color');
 }
+
+/** Engine is rejected on `type: "image"` (talking photo). */
+export function heygenUiShowsEngine(hasTalkingPhoto: boolean): boolean {
+    return !hasTalkingPhoto;
+}
+
+/** Expressiveness: Avatar IV and photo-avatar only. */
+export function heygenUiShowsExpressiveness(
+    hasTalkingPhoto: boolean,
+    engine: HeyGenEngine,
+): boolean {
+    if (hasTalkingPhoto) return true;
+    return engine === 'avatar_iv';
+}
+
+/** Motion prompt is rejected on Avatar III. */
+export function heygenUiShowsMotionPrompt(engine: HeyGenEngine): boolean {
+    return engine !== 'avatar_iii';
+}

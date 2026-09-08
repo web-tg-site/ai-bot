@@ -60,6 +60,12 @@ export function getVideoKeyboardMode(session: BotSession): VideoKeyboardMode {
     return session.ai?.videoKeyboardMode ?? 'main';
 }
 
+export function sessionHasHeyGenTalkingPhoto(session?: BotSession): boolean {
+    return (session?.ai?.referenceFiles ?? []).some((ref) =>
+        (ref.mimeType ?? '').toLowerCase().startsWith('image/'),
+    );
+}
+
 export function buildVideoToolMainScreenText(
     i18n: I18nBundle,
     toolId: AiToolId,
@@ -126,6 +132,7 @@ export function buildVideoEditorReplyKeyboard(
         step: options.step,
         keyboardMode: options.keyboardMode ?? 'main',
         localeTag: options.localeTag,
+        hasTalkingPhoto: sessionHasHeyGenTalkingPhoto(options.session),
     });
 }
 

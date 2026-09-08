@@ -16,6 +16,9 @@ import {
     HEYGEN_EXPRESSIVENESS_OPTIONS,
     getHeyGenBackgroundLabel,
     getHeyGenEngineLabel,
+    heygenUiShowsEngine,
+    heygenUiShowsExpressiveness,
+    DEFAULT_HEYGEN_ENGINE,
     type HeyGenAvatarLookOption,
     type HeyGenVoiceOption,
 } from '@/common/config/heygen.config';
@@ -85,6 +88,7 @@ export function resolveVideoToolButtonAction(
         heygenAvatars?: HeyGenAvatarLookOption[];
         heygenVoicePage?: number;
         heygenAvatarPage?: number;
+        hasTalkingPhoto?: boolean;
         currentSettings: VideoToolSettings;
         localeTag: 'ru-RU' | 'en-US';
     },
@@ -418,7 +422,8 @@ export function resolveVideoToolButtonAction(
         }
         if (
             options.toolId === AiToolId.HEYGEN &&
-            text === i18n.videoTool.changeHeygenEngineButton
+            text === i18n.videoTool.changeHeygenEngineButton &&
+            heygenUiShowsEngine(Boolean(options.hasTalkingPhoto))
         ) {
             return { type: 'open_heygen_engine_picker' };
         }
@@ -430,7 +435,11 @@ export function resolveVideoToolButtonAction(
         }
         if (
             options.toolId === AiToolId.HEYGEN &&
-            text === i18n.videoTool.changeHeygenExpressivenessButton
+            text === i18n.videoTool.changeHeygenExpressivenessButton &&
+            heygenUiShowsExpressiveness(
+                Boolean(options.hasTalkingPhoto),
+                options.currentSettings.heygenEngine ?? DEFAULT_HEYGEN_ENGINE,
+            )
         ) {
             return { type: 'open_heygen_expressiveness_picker' };
         }
