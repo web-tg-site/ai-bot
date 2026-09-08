@@ -27,6 +27,7 @@ import {
     getHeyGenBackgroundLabel,
     getHeyGenEngineLabel,
     getHeyGenExpressivenessLabel,
+    heygenUiShowsAvatar,
     heygenUiShowsEngine,
     heygenUiShowsExpressiveness,
     type HeyGenAvatarLookOption,
@@ -355,10 +356,10 @@ function generateSettingsMenuKeyboard(
     }
 
     if (options.toolId === AiToolId.HEYGEN) {
-        settingButtons.push(
-            i18n.videoTool.changeHeygenVoiceButton,
-            i18n.videoTool.changeHeygenAvatarButton,
-        );
+        settingButtons.push(i18n.videoTool.changeHeygenVoiceButton);
+        if (heygenUiShowsAvatar(Boolean(options.hasTalkingPhoto))) {
+            settingButtons.push(i18n.videoTool.changeHeygenAvatarButton);
+        }
         if (heygenUiShowsEngine(Boolean(options.hasTalkingPhoto))) {
             settingButtons.push(i18n.videoTool.changeHeygenEngineButton);
         }

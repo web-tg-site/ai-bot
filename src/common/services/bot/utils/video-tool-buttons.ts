@@ -16,6 +16,7 @@ import {
     HEYGEN_EXPRESSIVENESS_OPTIONS,
     getHeyGenBackgroundLabel,
     getHeyGenEngineLabel,
+    heygenUiShowsAvatar,
     heygenUiShowsEngine,
     heygenUiShowsExpressiveness,
     DEFAULT_HEYGEN_ENGINE,
@@ -416,7 +417,8 @@ export function resolveVideoToolButtonAction(
         }
         if (
             options.toolId === AiToolId.HEYGEN &&
-            text === i18n.videoTool.changeHeygenAvatarButton
+            text === i18n.videoTool.changeHeygenAvatarButton &&
+            heygenUiShowsAvatar(Boolean(options.hasTalkingPhoto))
         ) {
             return { type: 'open_heygen_avatar_picker' };
         }

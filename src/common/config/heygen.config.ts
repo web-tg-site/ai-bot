@@ -109,6 +109,11 @@ export function heygenUiShowsEngine(hasTalkingPhoto: boolean): boolean {
     return !hasTalkingPhoto;
 }
 
+/** Talking photo uses the attached image, not a catalog avatar. */
+export function heygenUiShowsAvatar(hasTalkingPhoto: boolean): boolean {
+    return !hasTalkingPhoto;
+}
+
 /** Expressiveness: Avatar IV and photo-avatar only. */
 export function heygenUiShowsExpressiveness(
     hasTalkingPhoto: boolean,
