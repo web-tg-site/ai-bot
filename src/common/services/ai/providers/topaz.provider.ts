@@ -15,6 +15,7 @@ import { calculateTopazTokenCost } from '@/common/config/image-editor-capabiliti
 import { getToolById } from '@/common/config/ai-tools.registry';
 import { AiToolId } from '../types';
 import { probeVideoMetadata } from '@/common/utils/probe-video-metadata';
+import { downloadRemoteFile } from '@/common/utils/download-remote-file';
 
 const IMAGE_BASE = 'https://api.topazlabs.com/image/v1';
 const VIDEO_BASE = 'https://api.topazlabs.com';
@@ -120,7 +121,7 @@ export class TopazProvider {
         file: AiFileInput,
         topazScale: number,
     ): Promise<AiJobCreateResult> {
-        const container = this.resolveVideoContainer(file);
+        const sourceContainer = this.resolveVideoContainer(file);
         const meta = await probeVideoMetadata(file.buffer, file.fileName);
         const guessed = this.guessVideoResolution(file.buffer.length);
         const width = meta.width && meta.width > 0 ? meta.width : guessed.width;
@@ -140,28 +141,31 @@ export class TopazProvider {
             ),
         );
         const frameCount = Math.round(duration * frameRate);
+        const outputSize = this.capH264Size(
+            width * topazScale,
+            height * topazScale,
+        );
 
         const createResponse = await this.post<{ requestId: string }>(
             '/video/',
             {
                 source: {
                     resolution: { width, height },
-                    container,
+                    container: sourceContainer,
                     size: file.buffer.length,
                     duration,
                     frameRate,
                     frameCount,
                 },
                 output: {
-                    resolution: {
-                        width: width * topazScale,
-                        height: height * topazScale,
-                    },
+                    resolution: outputSize,
                     audioCodec: 'AAC',
-                    audioTransfer: 'Copy',
+                    audioTransfer: 'Convert',
+                    videoEncoder: 'H264',
+                    videoProfile: 'High',
                     frameRate,
                     dynamicCompressionLevel: 'High',
-                    container,
+                    container: 'mp4',
                 },
                 filters: [{ model: 'prob-4' }],
             },
@@ -270,7 +274,11 @@ export class TopazProvider {
         if (status === 'completed' && response.download?.url) {
             return {
                 status,
-                result: { type: 'video', url: response.download.url },
+                result: {
+                    type: 'video',
+                    url: response.download.url,
+                    mimeType: 'video/mp4',
+                },
             };
         }
 
@@ -327,6 +335,57 @@ export class TopazProvider {
             return { width: 1280, height: 720 };
         }
         return { width: 1920, height: 1080 };
+    }
+
+    /**
+     * H.264 max side is 4096. ×4/×6 of 1080p exceeds that and Topaz then
+     * silently encodes H.265 — Telegram and the mini-app cannot play it.
+     */
+    private capH264Size(
+        width: number,
+        height: number,
+    ): { width: number; height: number } {
+        const even = (value: number) => {
+            const rounded = Math.max(2, Math.round(value));
+            return rounded % 2 === 0 ? rounded : rounded - 1;
+        };
+        const maxSide = 4096;
+        const long = Math.max(width, height);
+        if (long <= maxSide) {
+            return { width: even(width), height: even(height) };
+        }
+        const scale = maxSide / long;
+        return {
+            width: even(width * scale),
+            height: even(height * scale),
+        };
+    }
+
+    async fetchResultMedia(
+        providerJobId: string,
+    ): Promise<{ buffer: Buffer; mimeType: string } | null> {
+        const status = await this.getJobStatus(providerJobId);
+        const url = status.result?.url;
+        if (status.status !== 'completed' || !url) {
+            return null;
+        }
+
+        try {
+            const { buffer, mimeType } = await downloadRemoteFile(url);
+            return {
+                buffer,
+                mimeType: status.result?.mimeType ?? mimeType ?? 'video/mp4',
+            };
+        } catch (error) {
+            this.logger.warn(
+                {
+                    providerJobId,
+                    err: error instanceof Error ? error.message : String(error),
+                },
+                'Failed to download Topaz result media',
+            );
+            return null;
+        }
     }
 
     private mapImageStatus(status: string): AiJobStatusResult['status'] {

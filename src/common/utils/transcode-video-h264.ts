@@ -18,6 +18,8 @@ export type TranscodeVideoToH264Options = {
      * Upscales undersized clips and downscales oversized ones.
      */
     fitSideRange?: { minSide: number; maxSide: number };
+    /** libx264 quality. Lower is larger/better. Default ffmpeg CRF is 23. */
+    crf?: number;
 };
 
 async function runProcess(
@@ -124,7 +126,12 @@ async function probeVideoSize(
         const [wRaw, hRaw] = probe.stdout.trim().split('x');
         const width = Number(wRaw);
         const height = Number(hRaw);
-        if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) {
+        if (
+            !Number.isFinite(width) ||
+            !Number.isFinite(height) ||
+            width < 1 ||
+            height < 1
+        ) {
             return null;
         }
         return { width, height };
@@ -216,11 +223,11 @@ export async function transcodeVideoToH264(
         if (scaleFilter) {
             args.push('-vf', scaleFilter);
         }
+        args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p');
+        if (options.crf != null && Number.isFinite(options.crf)) {
+            args.push('-crf', String(Math.round(options.crf)));
+        }
         args.push(
-            '-c:v',
-            'libx264',
-            '-pix_fmt',
-            'yuv420p',
             '-c:a',
             'aac',
             '-ac',

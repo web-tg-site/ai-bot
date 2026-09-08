@@ -195,8 +195,7 @@ export async function deliverVideoBuffer(
         payload = buffer;
     }
 
-    const ext = mimeTypeToExtension(mimeType, 'mp4');
-    const inputFile = bufferToInputFile(payload, `video.${ext}`);
+    const inputFile = bufferToInputFile(payload, 'video.mp4');
     if (sendAsFile) {
         await api.sendDocument(inputFile);
         return;

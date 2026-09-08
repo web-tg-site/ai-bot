@@ -13,7 +13,9 @@ import {
 } from './providers/elevenlabs.provider';
 import { HiggsfieldProvider } from './providers/higgsfield.provider';
 import { BytePlusProvider } from './providers/byteplus.provider';
+import { TopazProvider } from './providers/topaz.provider';
 import { TempPublicMediaService } from './temp-public-media.service';
+import { transcodeVideoToH264 } from '@/common/utils/transcode-video-h264';
 
 export type ResolvedJobMedia = {
     buffer: Buffer;
@@ -35,6 +37,7 @@ export class JobMediaResolverService {
         private readonly elevenLabsProvider: ElevenLabsProvider,
         private readonly higgsfieldProvider: HiggsfieldProvider,
         private readonly tempPublicMedia: TempPublicMediaService,
+        private readonly topazProvider: TopazProvider,
     ) {}
 
     async resolveCompletedJobMedia(job: {
@@ -49,21 +52,18 @@ export class JobMediaResolverService {
         }
 
         const jobLocal = this.tempPublicMedia.getByJobId(job.id);
-        if (jobLocal) {
-            const media = {
-                buffer: jobLocal.buffer,
-                mimeType: jobLocal.mimeType,
-            };
-            this.setCachedMedia(job.id, media.buffer, media.mimeType);
-            return media;
-        }
+        const raw = jobLocal
+            ? {
+                  buffer: jobLocal.buffer,
+                  mimeType: jobLocal.mimeType,
+              }
+            : await this.resolveJobMedia(
+                  job.resultUrl,
+                  job.providerJobId,
+                  job.toolId,
+              );
 
-        const media = await this.resolveJobMedia(
-            job.resultUrl,
-            job.providerJobId,
-            job.toolId,
-        );
-
+        const media = await this.prepareTopazPlayback(job.toolId, raw);
         this.setCachedMedia(job.id, media.buffer, media.mimeType);
         this.tempPublicMedia.put({
             buffer: media.buffer,
@@ -95,6 +95,13 @@ export class JobMediaResolverService {
                 getAuthHeadersForUrl(resultUrl),
             );
         } catch (remoteError) {
+            if (toolId === AiToolId.TOPAZ && providerJobId) {
+                const refreshed =
+                    await this.topazProvider.fetchResultMedia(providerJobId);
+                if (refreshed) {
+                    return refreshed;
+                }
+            }
             if (toolId === AiToolId.SEEDANCE && providerJobId) {
                 const status =
                     await this.bytePlusProvider.getJobStatus(providerJobId);
@@ -161,6 +168,10 @@ export class JobMediaResolverService {
             return this.higgsfieldProvider.fetchResultMedia(providerJobId);
         }
 
+        if (toolId === AiToolId.TOPAZ && providerJobId) {
+            return this.topazProvider.fetchResultMedia(providerJobId);
+        }
+
         return null;
     }
 
@@ -185,6 +196,25 @@ export class JobMediaResolverService {
                 ? 'png'
                 : 'jpg';
         return `${base}.${ext}`;
+    }
+
+    /** HEVC/MOV from Topaz does not play in Telegram WebView or sendVideo. */
+    private async prepareTopazPlayback(
+        toolId: AiToolId,
+        media: ResolvedJobMedia,
+    ): Promise<ResolvedJobMedia> {
+        if (toolId !== AiToolId.TOPAZ || media.mimeType.startsWith('image/')) {
+            return media;
+        }
+        try {
+            const buffer = await transcodeVideoToH264(media.buffer, {
+                timeoutMs: 180_000,
+                fitSideRange: { minSide: 64, maxSide: 4096 },
+            });
+            return { buffer, mimeType: 'video/mp4' };
+        } catch {
+            return media;
+        }
     }
 
     private parseElevenLabsDubbingUrl(url: string): { mimeType: string } {

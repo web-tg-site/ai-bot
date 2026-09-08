@@ -20,6 +20,7 @@ import {
     toUserFacingError,
 } from '@/common/services/bot/errors/bot-error.mapper';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
+import { transcodeVideoToH264 } from '@/common/utils/transcode-video-h264';
 import { isElevenLabsDubbingResultUrl } from '../providers/elevenlabs.provider';
 import { UserAiToolSettingsModelService } from '@/common/models/user-ai-tool-settings';
 import {
@@ -231,15 +232,41 @@ export class AiJobCron {
         jobId: string,
         resolved: AiGenerationResult,
         resultUrl: string | null | undefined,
+        toolId?: AiToolId,
     ): Promise<void> {
+        const toPlayable = async (
+            buffer: Buffer,
+            mimeType: string,
+        ): Promise<{ buffer: Buffer; mimeType: string }> => {
+            if (
+                toolId !== AiToolId.TOPAZ ||
+                resolved.type !== 'video' ||
+                mimeType.startsWith('image/')
+            ) {
+                return { buffer, mimeType };
+            }
+            try {
+                const playable = await transcodeVideoToH264(buffer, {
+                    timeoutMs: 180_000,
+                    fitSideRange: { minSide: 64, maxSide: 4096 },
+                });
+                return { buffer: playable, mimeType: 'video/mp4' };
+            } catch {
+                return { buffer, mimeType };
+            }
+        };
+
         if (resolved.buffer?.length) {
-            this.tempPublicMedia.put({
-                buffer: resolved.buffer,
-                mimeType:
-                    resolved.mimeType ??
+            const playable = await toPlayable(
+                resolved.buffer,
+                resolved.mimeType ??
                     (resolved.type === 'video'
                         ? 'video/mp4'
                         : 'application/octet-stream'),
+            );
+            this.tempPublicMedia.put({
+                buffer: playable.buffer,
+                mimeType: playable.mimeType,
                 fileName: `job-${jobId.slice(0, 8)}`,
                 jobId,
             });
@@ -255,13 +282,17 @@ export class AiJobCron {
         }
 
         try {
-            const { buffer, mimeType } = await downloadRemoteFile(
+            const downloaded = await downloadRemoteFile(
                 url,
                 getAuthHeadersForUrl(url),
             );
+            const playable = await toPlayable(
+                downloaded.buffer,
+                resolved.mimeType ?? downloaded.mimeType,
+            );
             this.tempPublicMedia.put({
-                buffer,
-                mimeType: resolved.mimeType ?? mimeType,
+                buffer: playable.buffer,
+                mimeType: playable.mimeType,
                 fileName: `job-${jobId.slice(0, 8)}`,
                 jobId,
             });
@@ -292,7 +323,12 @@ export class AiJobCron {
 
             const resultJson = resolved.resultJson ?? result.resultJson;
 
-            await this.ensureJobMediaCached(job.id, resolved, resultUrl);
+            await this.ensureJobMediaCached(
+                job.id,
+                resolved,
+                resultUrl,
+                job.toolId as AiToolId,
+            );
 
             // Persist URL first so mini-app polling is not blocked by Telegram delivery.
             await this.aiJobService.updateJobStatus(
