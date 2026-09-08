@@ -33,7 +33,11 @@ import {
     isPdfDocument,
     isPlainTextDocument,
 } from '@/common/utils/document-file.util';
-import { extractOfficeText } from '@/common/utils/extract-office-text.util';
+import { compressReferenceImage } from '@/common/utils/compress-reference-image';
+import {
+    extractOfficeContent,
+    type OfficeExtractedContent,
+} from '@/common/utils/extract-office-text.util';
 import {
     attachmentMentionSystemHint,
     formatAttachmentMention,
@@ -537,7 +541,7 @@ export class OpenRouterProvider {
                 'If the question is about current events, prices, weather, news, or anything time-sensitive, use web search. ' +
                 'Do not invent up-to-date facts. Always reply in English by default, even if an attached document is in another language. Switch language only when the user explicitly asks. ' +
                 'When images are attached, you can see and analyze them (including people) and should give concrete visual feedback — do not claim you cannot see images. ' +
-                'When a PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx) or text document is attached, you can read and analyze its contents — do not claim the file is unreadable binary. ' +
+                'When a PDF, Word, Excel, PowerPoint or text document is attached, you can read it. Office files are pre-extracted into text (and slide images for PPTX) before they reach you. Never say you cannot read PPTX/DOCX/XLSX, never call them unreadable binary, and never ask the user to convert to PDF — analyze the extracted contents. ' +
                 `${attachmentMentionSystemHint('en-US')} ` +
                 'Use Markdown formatting (bold, lists, code) when it improves readability.'
             );
@@ -548,7 +552,7 @@ export class OpenRouterProvider {
             'Если вопрос касается текущих событий, цен, погоды, новостей или другой актуальной информации — используй поиск в интернете. ' +
             'Не выдумывай актуальные факты. По умолчанию всегда отвечай на русском, даже если прикреплённый документ на другом языке. Переходи на другой язык только если пользователь явно попросил. ' +
             'Если в сообщении есть изображения — ты их видишь и должен анализировать (в том числе людей, например для стилевых советов), а не отвечать, что не видишь изображения. ' +
-            'Если прикреплён PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx) или текстовый документ — ты можешь читать и анализировать его содержимое, не отвечай, что файл «сырые бинарные данные». ' +
+            'Если прикреплён PDF, Word, Excel, PowerPoint или текстовый документ — ты его читаешь. Office-файлы заранее превращаются в текст (для PPTX ещё и в картинки слайдов). Никогда не говори, что не умеешь читать PPTX/DOCX/XLSX, не называй их «сырыми бинарными данными» и не проси конвертировать в PDF — анализируй извлечённое содержимое. ' +
             `${attachmentMentionSystemHint('ru-RU')} ` +
             'Используй Markdown-форматирование (жирный текст, списки, код), когда это улучшает читаемость.'
         );
@@ -869,9 +873,7 @@ export class OpenRouterProvider {
         return parts;
     }
 
-    private hasOpenRouterFileParts(
-        content: OpenRouterMessageContent,
-    ): boolean {
+    private hasOpenRouterFileParts(content: OpenRouterMessageContent): boolean {
         if (typeof content === 'string') {
             return false;
         }
@@ -880,13 +882,19 @@ export class OpenRouterProvider {
 
     /**
      * PDF → OpenRouter `type: "file"` (Claude native / file-parser).
-     * DOCX/XLSX/PPTX → local text extraction (sending Office binaries through
-     * OpenRouter file-parser often hangs until client timeout).
+     * DOCX/XLSX/PPTX → local text (+ PPTX slide rasters). Sending Office
+     * binaries through OpenRouter file-parser often hangs until client timeout.
      */
     private async buildDocumentParts(
         file: AiFileInput,
         localeTag: 'ru-RU' | 'en-US',
-    ): Promise<Array<{ type: 'text'; text: string } | OpenRouterFilePart>> {
+    ): Promise<
+        Array<
+            | { type: 'text'; text: string }
+            | { type: 'image_url'; image_url: { url: string } }
+            | OpenRouterFilePart
+        >
+    > {
         if (file.buffer.byteLength > MAX_DOCUMENT_BYTES) {
             throw new Error(
                 localeTag === 'en-US'
@@ -911,26 +919,27 @@ export class OpenRouterProvider {
         }
 
         try {
-            const officeText = await extractOfficeText(
+            const office = await extractOfficeContent(
                 file.buffer,
                 file.fileName,
                 file.mimeType,
             );
-            if (officeText != null) {
-                const sliced = officeText.slice(0, MAX_OFFICE_TEXT_CHARS);
-                const truncated =
-                    officeText.length > MAX_OFFICE_TEXT_CHARS
-                        ? localeTag === 'en-US'
-                            ? '\n\n[Document truncated for length.]'
-                            : '\n\n[Документ обрезан из‑за длины.]'
-                        : '';
+            if (office) {
+                const parts = await this.partsFromOfficeContent(
+                    file,
+                    office,
+                    localeTag,
+                );
+                if (parts.length) {
+                    return parts;
+                }
                 return [
                     {
                         type: 'text',
                         text:
                             localeTag === 'en-US'
-                                ? `Contents of ${file.fileName ?? 'document'}:\n${sliced}${truncated}`
-                                : `Содержимое файла ${file.fileName ?? 'document'}:\n${sliced}${truncated}`,
+                                ? `The file "${file.fileName ?? 'document'}" was opened, but no text or slide images could be extracted.`
+                                : `Файл «${file.fileName ?? 'document'}» открыт, но текст и картинки слайдов извлечь не удалось.`,
                     },
                 ];
             }
@@ -977,6 +986,72 @@ export class OpenRouterProvider {
                         : `[Прикреплён файл «${file.fileName ?? 'document'}» — в этом чате разбираются PDF, DOCX, XLSX, PPTX и текстовые файлы. Сохраните документ в одном из этих форматов и отправьте снова.]`,
             },
         ];
+    }
+
+    private async partsFromOfficeContent(
+        file: AiFileInput,
+        office: OfficeExtractedContent,
+        localeTag: 'ru-RU' | 'en-US',
+    ): Promise<
+        Array<
+            | { type: 'text'; text: string }
+            | { type: 'image_url'; image_url: { url: string } }
+        >
+    > {
+        const sliced = office.text.slice(0, MAX_OFFICE_TEXT_CHARS);
+        const truncated =
+            office.text.length > MAX_OFFICE_TEXT_CHARS
+                ? localeTag === 'en-US'
+                    ? '\n\n[Document truncated for length.]'
+                    : '\n\n[Документ обрезан из‑за длины.]'
+                : '';
+        const hasText = Boolean(sliced.trim());
+        if (!hasText && !office.images.length) {
+            return [];
+        }
+
+        const name = file.fileName ?? 'document';
+        const header =
+            localeTag === 'en-US'
+                ? hasText
+                    ? `Extracted contents of "${name}" (already parsed — do not say you cannot read PPTX/DOCX/XLSX and do not ask for a PDF):\n${sliced}${truncated}`
+                    : `No extractable text in "${name}". Slide images follow. Do not say you cannot read PPTX and do not ask for a PDF.`
+                : hasText
+                  ? `Извлечённое содержимое «${name}» (файл уже прочитан — не говори, что не умеешь читать PPTX/DOCX/XLSX, и не проси PDF):\n${sliced}${truncated}`
+                  : `В «${name}» нет извлекаемого текста. Ниже изображения слайдов. Не говори, что не умеешь читать PPTX, и не проси PDF.`;
+
+        const parts: Array<
+            | { type: 'text'; text: string }
+            | { type: 'image_url'; image_url: { url: string } }
+        > = [{ type: 'text', text: header }];
+
+        for (const image of office.images) {
+            let compressed;
+            try {
+                compressed = await compressReferenceImage({
+                    buffer: image.buffer,
+                    mimeType: image.mimeType,
+                    fileName: image.fileName,
+                });
+            } catch {
+                continue;
+            }
+            parts.push({
+                type: 'text',
+                text:
+                    localeTag === 'en-US'
+                        ? `[Slide ${image.slideIndex}]`
+                        : `[Слайд ${image.slideIndex}]`,
+            });
+            parts.push({
+                type: 'image_url',
+                image_url: {
+                    url: `data:${compressed.mimeType};base64,${compressed.buffer.toString('base64')}`,
+                },
+            });
+        }
+
+        return parts;
     }
 
     private toImageResult(url: string): AiGenerationResult {

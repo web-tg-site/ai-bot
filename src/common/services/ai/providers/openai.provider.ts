@@ -20,6 +20,8 @@ import {
     guessDocumentMime,
     isOpenAiBinaryDocument,
 } from '@/common/utils/document-file.util';
+import { compressReferenceImage } from '@/common/utils/compress-reference-image';
+import { extractOfficeContent } from '@/common/utils/extract-office-text.util';
 import {
     attachmentMentionSystemHint,
     formatAttachmentMention,
@@ -251,14 +253,12 @@ export class OpenAiProvider {
             }
 
             if (isAudioMedia(file.mimeType, file.fileName)) {
-                parts.push(
-                    await this.buildAudioPart(file, localeTag, mention),
-                );
+                parts.push(await this.buildAudioPart(file, localeTag, mention));
                 continue;
             }
 
             parts.push({ type: 'input_text', text: mention });
-            parts.push(this.buildDocumentPart(file, localeTag));
+            parts.push(...(await this.buildDocumentParts(file, localeTag)));
         }
 
         return parts.length ? parts : prompt || ' ';
@@ -335,10 +335,10 @@ export class OpenAiProvider {
         return { type: 'input_text', text };
     }
 
-    private buildDocumentPart(
+    private async buildDocumentParts(
         file: AiFileInput,
         localeTag: 'ru-RU' | 'en-US',
-    ): InputPart {
+    ): Promise<InputPart[]> {
         if (file.buffer.byteLength > MAX_DOCUMENT_BYTES) {
             throw new Error(
                 localeTag === 'en-US'
@@ -350,21 +350,83 @@ export class OpenAiProvider {
         if (isOpenAiBinaryDocument(file)) {
             const filename = file.fileName || fallbackDocumentName(file);
             const mime = guessDocumentMime(filename, file.mimeType);
-            return {
-                type: 'input_file',
-                filename,
-                file_data: `data:${mime};base64,${file.buffer.toString('base64')}`,
-            };
+            const parts: InputPart[] = [
+                {
+                    type: 'input_file',
+                    filename,
+                    file_data: `data:${mime};base64,${file.buffer.toString('base64')}`,
+                },
+            ];
+            await this.appendPptxSlideImages(parts, file, localeTag);
+            return parts;
         }
 
         const textContent = file.buffer.toString('utf-8').slice(0, 12000);
-        return {
-            type: 'input_text',
-            text:
-                localeTag === 'en-US'
-                    ? `Contents of ${file.fileName ?? 'document'}:\n${textContent}`
-                    : `Содержимое файла ${file.fileName ?? 'document'}:\n${textContent}`,
-        };
+        return [
+            {
+                type: 'input_text',
+                text:
+                    localeTag === 'en-US'
+                        ? `Contents of ${file.fileName ?? 'document'}:\n${textContent}`
+                        : `Содержимое файла ${file.fileName ?? 'document'}:\n${textContent}`,
+            },
+        ];
+    }
+
+    private async appendPptxSlideImages(
+        parts: InputPart[],
+        file: AiFileInput,
+        localeTag: 'ru-RU' | 'en-US',
+    ): Promise<void> {
+        try {
+            const office = await extractOfficeContent(
+                file.buffer,
+                file.fileName,
+                file.mimeType,
+            );
+            if (office?.kind !== 'pptx' || !office.images.length) {
+                return;
+            }
+            parts.push({
+                type: 'input_text',
+                text:
+                    localeTag === 'en-US'
+                        ? 'Slide images extracted from the presentation (use these for visual/layout feedback):'
+                        : 'Изображения со слайдов презентации (для визуальной оценки макета):',
+            });
+            for (const image of office.images) {
+                let compressed;
+                try {
+                    compressed = await compressReferenceImage({
+                        buffer: image.buffer,
+                        mimeType: image.mimeType,
+                        fileName: image.fileName,
+                    });
+                } catch {
+                    continue;
+                }
+                parts.push({
+                    type: 'input_text',
+                    text:
+                        localeTag === 'en-US'
+                            ? `[Slide ${image.slideIndex}]`
+                            : `[Слайд ${image.slideIndex}]`,
+                });
+                parts.push({
+                    type: 'input_image',
+                    image_url: `data:${compressed.mimeType};base64,${compressed.buffer.toString('base64')}`,
+                    detail: 'auto',
+                });
+            }
+        } catch (error) {
+            this.logger.warn(
+                {
+                    err: error instanceof Error ? error.message : String(error),
+                    fileName: file.fileName,
+                },
+                'PPTX slide image extraction failed',
+            );
+        }
     }
 
     private async transcribeAudio(
@@ -555,6 +617,7 @@ export class OpenAiProvider {
                 'If the question is about current events, prices, weather, news, or anything time-sensitive, use web search. ' +
                 'Do not invent up-to-date facts. Always reply in English by default, even if an attached document is in another language. Switch language only when the user explicitly asks. ' +
                 'When images, video frames, audio transcripts or documents are attached, analyze them (including people) and give concrete feedback — do not claim you cannot see or hear them. ' +
+                'You can read PDF, Word, Excel and PowerPoint. Never say you cannot read PPTX and never ask the user to convert the file to PDF. ' +
                 `${attachmentMentionSystemHint('en-US')} ` +
                 'You can generate images when the user asks to draw, illustrate, edit or create a picture. ' +
                 'Use Markdown formatting (bold, lists, code) when it improves readability.'
@@ -567,6 +630,7 @@ export class OpenAiProvider {
             'Если вопрос касается текущих событий, цен, погоды, новостей или другой актуальной информации — используй поиск в интернете. ' +
             'Не выдумывай актуальные факты. По умолчанию всегда отвечай на русском, даже если прикреплённый документ на другом языке. Переходи на другой язык только если пользователь явно попросил. ' +
             'Если в сообщении есть изображения, кадры видео, транскрипт аудио или документы — анализируй их (в том числе людей) и давай конкретную обратную связь, а не отвечай, что не видишь вложения. ' +
+            'Ты читаешь PDF, Word, Excel и PowerPoint. Никогда не говори, что не умеешь читать PPTX, и не проси конвертировать файл в PDF. ' +
             `${attachmentMentionSystemHint('ru-RU')} ` +
             'Если пользователь просит нарисовать, проиллюстрировать или отредактировать картинку — сгенерируй изображение. ' +
             'Используй Markdown-форматирование (жирный текст, списки, код), когда это улучшает читаемость.'
