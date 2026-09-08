@@ -5,6 +5,7 @@ import {
 import { getVideoQualityLabel } from '@/common/config/video-editor-capabilities.config';
 import { AiGenerationInput, AiToolId } from '@/common/services/ai/types';
 import { getToolLabel } from '@/common/services/bot/i18n';
+import { stripAttachmentMentionManifest } from '@/common/services/bot/utils/image-references';
 import { formatNumber } from '@/common/services/bot/i18n/format';
 import { UserLanguage } from '@/generated/prisma/enums';
 
@@ -37,10 +38,16 @@ export function formatSendPromptMessage(
     prompt: string,
     editorLabel?: string | null,
 ): string {
+    const userPrompt = stripAttachmentMentionManifest(prompt);
     const editor = editorLabel?.trim()
         ? `Редактор: ${escapeHtml(editorLabel.trim())}\n\n`
         : '';
-    return `📝 Промпт из мини-приложения:\n\n${editor}📍 Ваш запрос:\n${formatCopyablePromptBlock(prompt)}`;
+    if (!userPrompt) {
+        return editor
+            ? `📝 Промпт из мини-приложения:\n\n${editor}`.trimEnd()
+            : '';
+    }
+    return `📝 Промпт из мини-приложения:\n\n${editor}📍 Ваш запрос:\n${formatCopyablePromptBlock(userPrompt)}`;
 }
 
 function getLocaleTag(language?: UserLanguage | null): 'ru-RU' | 'en-US' {
@@ -219,5 +226,6 @@ export function resolveMiniAppJobPrompt(
     inputJson?: unknown,
 ): string {
     const input = (inputJson ?? {}) as AiGenerationInput;
-    return prompt?.trim() || input.prompt?.trim() || '';
+    const raw = prompt?.trim() || input.prompt?.trim() || '';
+    return stripAttachmentMentionManifest(raw);
 }
