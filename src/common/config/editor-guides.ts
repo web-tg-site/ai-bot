@@ -234,18 +234,27 @@ const RU: Partial<Record<AiToolId, string>> = {
 4. Запусти генерацию.`,
 
     [AiToolId.HEYGEN]: `🗣️ HeyGen
-Создавай видео с виртуальным ведущим — аватар произносит твой текст.
+Создавай видео с виртуальным ведущим — аватар или твоё фото произносит текст.
 
-- ✍️ Пишешь текст — аватар произносит его в видео
-- 👤 Можно выбрать лицо (аватар) и голос
-- 📸 Можно загрузить своё фото — получится «говорящая голова»
-- 📐 Формат видео берётся из загруженного кадра (отдельный выбор не нужен)
-- 📢 Удобно для рекламы, обучения и объясняющих роликов
+- ✍️ Текст — сценарий: ведущий произнесёт его в ролике
+- 🎤 Можно прикрепить своё аудио — тогда речь возьмётся из файла
+- 👤 Аватар — лицо из каталога HeyGen
+- 📸 Своё фото — говорящая голова; выбор аватара тогда скрывается
+- 🎙️ Голос — тембр речи (нужен, если нет своего аудио)
+- ⚙️ Параметры — движок, субтитры, фон, выразительность, скорость и тон
+
+Параметры — что за что
+- 🧠 Движок — модель лица: аватар 3, 4 или 5. Чем выше номер, тем естественнее. Для своего фото не показывается
+- 💬 Субтитры — текст речи прямо на ролике
+- 🎨 Фон — как в кадре, без фона или цветной
+- 😊 Выразительность — насколько живая мимика. Есть у аватара 4 и у своего фото
+- ⏱️ Скорость речи — быстрее или медленнее (для своего аудио не нужна)
+- 🎶 Высота тона — выше или ниже голос (для своего аудио не нужна)
 
 Как пользоваться
-1. Впиши текст, который должен сказать ведущий.
-2. Выбери аватар и голос (или загрузи своё фото).
-3. При необходимости открой настройки в кнопке «HeyGen».
+1. Напиши текст речи или прикрепи аудио.
+2. Выбери аватар и голос — или загрузи своё фото.
+3. При желании открой параметры.
 4. Запусти генерацию.`,
 
     [AiToolId.TOPAZ]: `✨ Topaz
@@ -543,18 +552,27 @@ How to use
 4. Run generation.`,
 
     [AiToolId.HEYGEN]: `🗣️ HeyGen
-Create videos with a virtual host — the avatar speaks your text.
+Create videos with a virtual host — an avatar or your photo speaks the text.
 
-- ✍️ You write text — the avatar speaks it in the video
-- 👤 Choose a face (avatar) and voice
-- 📸 Upload your photo — get a "talking head"
-- 📐 Video format follows the uploaded frame (no separate aspect picker)
-- 📢 Great for ads, training and explainer videos
+- ✍️ The text is the script: the host speaks it in the video
+- 🎤 You can attach your own audio — then speech comes from the file
+- 👤 Avatar — a face from the HeyGen catalog
+- 📸 Your photo becomes a talking head; the avatar picker is hidden then
+- 🎙️ Voice — the speaking timbre (needed if you don't attach audio)
+- ⚙️ Settings — engine, captions, background, expressiveness, speed and pitch
+
+Settings — what each one does
+- 🧠 Engine — face model: avatar 3, 4 or 5. Higher number looks more natural. Hidden for your own photo
+- 💬 Captions — speech text burned into the video
+- 🎨 Background — as in the frame, no background, or a solid color
+- 😊 Expressiveness — how lively the face is. Available for avatar 4 and your photo
+- ⏱️ Speech speed — faster or slower (not used with your own audio)
+- 🎶 Pitch — higher or lower voice (not used with your own audio)
 
 How to use
-1. Enter the script the host should say.
-2. Choose avatar and voice (or upload your photo).
-3. Optionally open settings in the "HeyGen" button.
+1. Write the speech text or attach audio.
+2. Choose an avatar and voice — or upload your photo.
+3. Optionally open settings.
 4. Run generation.`,
 
     [AiToolId.TOPAZ]: `✨ Topaz
