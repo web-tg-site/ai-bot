@@ -15,6 +15,11 @@ import {
     toPersistedInputJson,
 } from '../utils/persist-generation-input';
 import { stripAttachmentMentionManifest } from '@/common/services/bot/utils/image-references';
+import { reviveGenerationInput } from '../failover/model-failover.helpers';
+import {
+    isProviderCapacityError,
+    nextCapacityRetry,
+} from './provider-capacity-retry';
 
 export type JobListItem = {
     id: string;
@@ -74,7 +79,7 @@ export class AiJobService {
             throw new Error('INSUFFICIENT_TOKENS');
         }
 
-        const providerJob = await this.aiService.createJob(
+        const submitted = await this.submitOrQueueCapacityRetry(
             params.toolId,
             params.input,
         );
@@ -91,7 +96,7 @@ export class AiJobService {
             data: {
                 userId: params.userId,
                 toolId: params.toolId,
-                providerJobId: providerJob.providerJobId,
+                providerJobId: submitted.providerJobId,
                 status: JobStatus.PENDING,
                 tokenCost,
                 inputJson: toPersistedInputJson(params.input, {
@@ -101,6 +106,8 @@ export class AiJobService {
                 notifyTelegram: params.notifyTelegram ?? true,
                 sessionId: params.sessionId ?? null,
                 statusMessageId: params.statusMessageId ?? null,
+                providerRetryCount: submitted.providerRetryCount,
+                providerRetryAt: submitted.providerRetryAt,
             },
         });
 
@@ -108,7 +115,7 @@ export class AiJobService {
             {
                 jobId: job.id,
                 toolId: params.toolId,
-                providerJobId: providerJob.providerJobId,
+                providerJobId: submitted.providerJobId,
                 tokenCost,
             },
             `AI job created [${params.toolId}]`,
@@ -132,7 +139,7 @@ export class AiJobService {
         failoverFromToolId?: string | null;
         failoverTriedToolIds?: string[];
     }) {
-        const providerJob = await this.aiService.createJob(
+        const submitted = await this.submitOrQueueCapacityRetry(
             params.toolId,
             params.input,
         );
@@ -141,9 +148,11 @@ export class AiJobService {
             data: {
                 userId: params.userId,
                 toolId: params.toolId,
-                providerJobId: providerJob.providerJobId,
+                providerJobId: submitted.providerJobId,
                 status: JobStatus.PENDING,
                 tokenCost: params.tokenCost,
+                providerRetryCount: submitted.providerRetryCount,
+                providerRetryAt: submitted.providerRetryAt,
                 inputJson: toPersistedInputJson(params.input, {
                     includeFiles: true,
                 }),
@@ -191,6 +200,8 @@ export class AiJobService {
                 pollErrorCount: 0,
                 lastPolledAt: null,
                 staleReminderSent: false,
+                providerRetryCount: 0,
+                providerRetryAt: null,
                 failoverNotice: params.failoverNotice,
                 failoverFromToolId: params.failoverFromToolId,
                 failoverTriedToolIds: params.failoverTriedToolIds,
@@ -300,6 +311,10 @@ export class AiJobService {
         return this.prismaService.aiGenerationJob.findMany({
             where: {
                 status: { in: [JobStatus.PENDING, JobStatus.PROCESSING] },
+                OR: [
+                    { providerRetryAt: null },
+                    { providerRetryAt: { lte: new Date() } },
+                ],
             },
             include: {
                 user: {
@@ -469,6 +484,120 @@ export class AiJobService {
 
         if (status === JobStatus.COMPLETED || status === JobStatus.FAILED) {
             await this.stripInputFiles(jobId);
+        }
+    }
+
+    async scheduleCapacityRetry(jobId: string, retryCount: number) {
+        const retry = nextCapacityRetry(retryCount);
+        if (retry.action === 'give_up') {
+            return null;
+        }
+
+        await this.prismaService.aiGenerationJob.update({
+            where: { id: jobId },
+            data: {
+                status: JobStatus.PROCESSING,
+                errorMessage: null,
+                providerRetryCount: retry.retryCount,
+                providerRetryAt: retry.retryAt,
+            },
+        });
+
+        this.logger.warn(
+            {
+                jobId,
+                retryCount: retry.retryCount,
+                retryAt: retry.retryAt.toISOString(),
+            },
+            'Provider at capacity — silent retry scheduled',
+        );
+
+        return retry;
+    }
+
+    async resubmitAfterCapacityRetry(params: {
+        jobId: string;
+        toolId: AiToolId;
+        inputJson: unknown;
+        retryCount: number;
+    }): Promise<'submitted' | 'rescheduled' | 'give_up' | { error: string }> {
+        const input = reviveGenerationInput(params.inputJson);
+
+        try {
+            const providerJob = await this.aiService.createJob(
+                params.toolId,
+                input,
+            );
+            await this.prismaService.aiGenerationJob.update({
+                where: { id: params.jobId },
+                data: {
+                    providerJobId: providerJob.providerJobId,
+                    status: JobStatus.PENDING,
+                    errorMessage: null,
+                    providerRetryAt: null,
+                    pollAttempts: 0,
+                    pollErrorCount: 0,
+                    lastPolledAt: null,
+                },
+            });
+            this.logger.info(
+                {
+                    jobId: params.jobId,
+                    toolId: params.toolId,
+                    providerJobId: providerJob.providerJobId,
+                    retryCount: params.retryCount,
+                },
+                'Provider capacity retry submitted',
+            );
+            return 'submitted';
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : String(error);
+            if (!isProviderCapacityError(message)) {
+                return { error: message };
+            }
+            const retry = await this.scheduleCapacityRetry(
+                params.jobId,
+                params.retryCount,
+            );
+            return retry ? 'rescheduled' : 'give_up';
+        }
+    }
+
+    private async submitOrQueueCapacityRetry(
+        toolId: AiToolId,
+        input: AiGenerationInput,
+    ): Promise<{
+        providerJobId: string | null;
+        providerRetryCount: number;
+        providerRetryAt: Date | null;
+    }> {
+        try {
+            const providerJob = await this.aiService.createJob(toolId, input);
+            return {
+                providerJobId: providerJob.providerJobId,
+                providerRetryCount: 0,
+                providerRetryAt: null,
+            };
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : String(error);
+            const retry = nextCapacityRetry(0);
+            if (
+                !isProviderCapacityError(message) ||
+                retry.action === 'give_up'
+            ) {
+                throw error;
+            }
+            this.logger.warn(
+                { toolId, retryCount: retry.retryCount },
+                'Provider at capacity on create — queued silent retry',
+            );
+            return {
+                providerJobId: null,
+                providerRetryCount: retry.retryCount,
+                providerRetryAt: retry.retryAt,
+            };
         }
     }
 

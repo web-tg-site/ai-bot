@@ -186,6 +186,8 @@ export const AiGenerationJobScalarFieldEnum = {
   pollErrorCount: 'pollErrorCount',
   lastPolledAt: 'lastPolledAt',
   staleReminderSent: 'staleReminderSent',
+  providerRetryCount: 'providerRetryCount',
+  providerRetryAt: 'providerRetryAt',
   notifyTelegram: 'notifyTelegram',
   statusMessageId: 'statusMessageId',
   sessionId: 'sessionId',

@@ -12,3 +12,8 @@ export const AI_JOB_POLL_BATCH_SIZE = 50;
 
 /** Stale-job reminder threshold (3 minutes). */
 export const AI_JOB_STALE_REMINDER_MS = 3 * 60 * 1000;
+
+/** Silent resubmits when the provider is at capacity (user still sees waiting). */
+export const AI_JOB_CAPACITY_RETRY_MAX = 3;
+
+export const AI_JOB_CAPACITY_RETRY_DELAY_MS = 60_000;

@@ -78,7 +78,6 @@ describe('bot-error.mapper', () => {
         it.each([
             'Sharpii upstream error',
             'Topaz processing failed',
-            'Midjourney queue full',
             'Higgsfield HTTP 500',
             'OpenRouter rate limit',
             'HeyGen generation failed',
@@ -91,6 +90,14 @@ describe('bot-error.mapper', () => {
             'Image generation failed',
         ])('PROVIDER: %s', (msg) => {
             expect(classifyBotError(msg)).toBe(BotErrorCode.PROVIDER);
+        });
+
+        it.each([
+            'No available capacity — please retry shortly',
+            'Midjourney queue full',
+            'provider overloaded',
+        ])('CONFIG (capacity): %s', (msg) => {
+            expect(classifyBotError(msg)).toBe(BotErrorCode.CONFIG);
         });
 
         it('UNKNOWN for unrecognized messages', () => {
@@ -143,9 +150,9 @@ describe('bot-error.mapper', () => {
                     ru,
                 ),
             ).toMatch(/параметр|голос|настройк/i);
-            expect(
-                toUserFacingError('voice_id is required', ru),
-            ).toMatch(/Выберите голос/i);
+            expect(toUserFacingError('voice_id is required', ru)).toMatch(
+                /Выберите голос/i,
+            );
         });
 
         it('keeps Russian user validation tips that mention the tool name', () => {
@@ -166,6 +173,14 @@ describe('bot-error.mapper', () => {
             expect(isUserInputValidationError(msg)).toBe(false);
             expect(isFailoverEligibleError(msg)).toBe(true);
         });
+
+        it.each([
+            'No available capacity — please retry shortly',
+            'Midjourney queue full',
+        ])('does not failover for capacity: %s', (msg) => {
+            expect(isUserInputValidationError(msg)).toBe(false);
+            expect(isFailoverEligibleError(msg)).toBe(false);
+        });
     });
 
     describe('toUserFacingError', () => {
@@ -179,6 +194,15 @@ describe('bot-error.mapper', () => {
             expect(toUserFacingError('NO_SUBSCRIPTION', ru)).toBe(
                 ru.aiResult.noSubscription,
             );
+        });
+
+        it('hides raw capacity errors behind the generic outage copy', () => {
+            expect(
+                toUserFacingError(
+                    'No available capacity — please retry shortly',
+                    ru,
+                ),
+            ).toBe(ru.aiResult.errorByCode[10]);
         });
 
         it('returns safety error for PROHIBITED_CONTENT', () => {
@@ -311,9 +335,9 @@ describe('bot-error.mapper', () => {
         });
 
         it('localizes Railway Application failed to respond', () => {
-            expect(
-                toUserFacingError('Application failed to respond', ru),
-            ).toBe(ru.aiResult.errorByCode[BotErrorCode.CONFIG]);
+            expect(toUserFacingError('Application failed to respond', ru)).toBe(
+                ru.aiResult.errorByCode[BotErrorCode.CONFIG],
+            );
         });
 
         it('passes through user-friendly Russian messages', () => {

@@ -1,5 +1,6 @@
 import { I18nBundle } from '../i18n/types';
 import { ru } from '../i18n/locales/ru';
+import { isProviderCapacityError } from '@/common/services/ai/jobs/provider-capacity-retry';
 
 export enum BotErrorCode {
     UNKNOWN = 1,
@@ -44,6 +45,10 @@ export function isUserInputValidationError(rawMessage: string): boolean {
 
     const detail = stripProviderPrefix(message);
 
+    if (isProviderCapacityError(message)) {
+        return false;
+    }
+
     if (
         /INSUFFICIENT_TOKENS|NO_SUBSCRIPTION|API_KEY|not configured|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|HTTP\s*[45]\d\d|Insufficient credits|queue full|generation timed out|превысила максимальное время/i.test(
             detail,
@@ -86,6 +91,10 @@ export function classifyBotError(rawMessage: string): BotErrorCode {
 
     if (message === 'INSUFFICIENT_TOKENS') {
         return BotErrorCode.INSUFFICIENT_TOKENS;
+    }
+
+    if (isProviderCapacityError(message)) {
+        return BotErrorCode.CONFIG;
     }
 
     if (isUserInputValidationError(message)) {
@@ -164,6 +173,10 @@ function isRussianI18n(i18n: I18nBundle): boolean {
 
 /** Readable validation / constraint messages from providers (after stripping brand). */
 function isActionableProviderDetail(detail: string): boolean {
+    if (isProviderCapacityError(detail)) {
+        return false;
+    }
+
     if (detail.length < 12 || detail.length > 320) {
         return false;
     }
@@ -511,6 +524,10 @@ export function toUserFacingError(
 
     if (stripped === 'INSUFFICIENT_TOKENS') {
         return i18n.aiResult.insufficientTokens;
+    }
+
+    if (isProviderCapacityError(stripped)) {
+        return i18n.aiResult.errorByCode[BotErrorCode.CONFIG];
     }
 
     if (stripped === 'NO_SUBSCRIPTION') {

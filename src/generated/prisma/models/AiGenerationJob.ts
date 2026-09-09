@@ -30,6 +30,7 @@ export type AiGenerationJobAvgAggregateOutputType = {
   tokenCost: number | null
   pollAttempts: number | null
   pollErrorCount: number | null
+  providerRetryCount: number | null
   statusMessageId: number | null
 }
 
@@ -37,6 +38,7 @@ export type AiGenerationJobSumAggregateOutputType = {
   tokenCost: number | null
   pollAttempts: number | null
   pollErrorCount: number | null
+  providerRetryCount: number | null
   statusMessageId: number | null
 }
 
@@ -53,6 +55,8 @@ export type AiGenerationJobMinAggregateOutputType = {
   pollErrorCount: number | null
   lastPolledAt: Date | null
   staleReminderSent: boolean | null
+  providerRetryCount: number | null
+  providerRetryAt: Date | null
   notifyTelegram: boolean | null
   statusMessageId: number | null
   sessionId: string | null
@@ -76,6 +80,8 @@ export type AiGenerationJobMaxAggregateOutputType = {
   pollErrorCount: number | null
   lastPolledAt: Date | null
   staleReminderSent: boolean | null
+  providerRetryCount: number | null
+  providerRetryAt: Date | null
   notifyTelegram: boolean | null
   statusMessageId: number | null
   sessionId: string | null
@@ -101,6 +107,8 @@ export type AiGenerationJobCountAggregateOutputType = {
   pollErrorCount: number
   lastPolledAt: number
   staleReminderSent: number
+  providerRetryCount: number
+  providerRetryAt: number
   notifyTelegram: number
   statusMessageId: number
   sessionId: number
@@ -118,6 +126,7 @@ export type AiGenerationJobAvgAggregateInputType = {
   tokenCost?: true
   pollAttempts?: true
   pollErrorCount?: true
+  providerRetryCount?: true
   statusMessageId?: true
 }
 
@@ -125,6 +134,7 @@ export type AiGenerationJobSumAggregateInputType = {
   tokenCost?: true
   pollAttempts?: true
   pollErrorCount?: true
+  providerRetryCount?: true
   statusMessageId?: true
 }
 
@@ -141,6 +151,8 @@ export type AiGenerationJobMinAggregateInputType = {
   pollErrorCount?: true
   lastPolledAt?: true
   staleReminderSent?: true
+  providerRetryCount?: true
+  providerRetryAt?: true
   notifyTelegram?: true
   statusMessageId?: true
   sessionId?: true
@@ -164,6 +176,8 @@ export type AiGenerationJobMaxAggregateInputType = {
   pollErrorCount?: true
   lastPolledAt?: true
   staleReminderSent?: true
+  providerRetryCount?: true
+  providerRetryAt?: true
   notifyTelegram?: true
   statusMessageId?: true
   sessionId?: true
@@ -189,6 +203,8 @@ export type AiGenerationJobCountAggregateInputType = {
   pollErrorCount?: true
   lastPolledAt?: true
   staleReminderSent?: true
+  providerRetryCount?: true
+  providerRetryAt?: true
   notifyTelegram?: true
   statusMessageId?: true
   sessionId?: true
@@ -302,6 +318,8 @@ export type AiGenerationJobGroupByOutputType = {
   pollErrorCount: number
   lastPolledAt: Date | null
   staleReminderSent: boolean
+  providerRetryCount: number
+  providerRetryAt: Date | null
   notifyTelegram: boolean
   statusMessageId: number | null
   sessionId: string | null
@@ -351,6 +369,8 @@ export type AiGenerationJobWhereInput = {
   pollErrorCount?: Prisma.IntFilter<"AiGenerationJob"> | number
   lastPolledAt?: Prisma.DateTimeNullableFilter<"AiGenerationJob"> | Date | string | null
   staleReminderSent?: Prisma.BoolFilter<"AiGenerationJob"> | boolean
+  providerRetryCount?: Prisma.IntFilter<"AiGenerationJob"> | number
+  providerRetryAt?: Prisma.DateTimeNullableFilter<"AiGenerationJob"> | Date | string | null
   notifyTelegram?: Prisma.BoolFilter<"AiGenerationJob"> | boolean
   statusMessageId?: Prisma.IntNullableFilter<"AiGenerationJob"> | number | null
   sessionId?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
@@ -378,6 +398,8 @@ export type AiGenerationJobOrderByWithRelationInput = {
   pollErrorCount?: Prisma.SortOrder
   lastPolledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   staleReminderSent?: Prisma.SortOrder
+  providerRetryCount?: Prisma.SortOrder
+  providerRetryAt?: Prisma.SortOrderInput | Prisma.SortOrder
   notifyTelegram?: Prisma.SortOrder
   statusMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   sessionId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -408,6 +430,8 @@ export type AiGenerationJobWhereUniqueInput = Prisma.AtLeast<{
   pollErrorCount?: Prisma.IntFilter<"AiGenerationJob"> | number
   lastPolledAt?: Prisma.DateTimeNullableFilter<"AiGenerationJob"> | Date | string | null
   staleReminderSent?: Prisma.BoolFilter<"AiGenerationJob"> | boolean
+  providerRetryCount?: Prisma.IntFilter<"AiGenerationJob"> | number
+  providerRetryAt?: Prisma.DateTimeNullableFilter<"AiGenerationJob"> | Date | string | null
   notifyTelegram?: Prisma.BoolFilter<"AiGenerationJob"> | boolean
   statusMessageId?: Prisma.IntNullableFilter<"AiGenerationJob"> | number | null
   sessionId?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
@@ -435,6 +459,8 @@ export type AiGenerationJobOrderByWithAggregationInput = {
   pollErrorCount?: Prisma.SortOrder
   lastPolledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   staleReminderSent?: Prisma.SortOrder
+  providerRetryCount?: Prisma.SortOrder
+  providerRetryAt?: Prisma.SortOrderInput | Prisma.SortOrder
   notifyTelegram?: Prisma.SortOrder
   statusMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   sessionId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -469,6 +495,8 @@ export type AiGenerationJobScalarWhereWithAggregatesInput = {
   pollErrorCount?: Prisma.IntWithAggregatesFilter<"AiGenerationJob"> | number
   lastPolledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AiGenerationJob"> | Date | string | null
   staleReminderSent?: Prisma.BoolWithAggregatesFilter<"AiGenerationJob"> | boolean
+  providerRetryCount?: Prisma.IntWithAggregatesFilter<"AiGenerationJob"> | number
+  providerRetryAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AiGenerationJob"> | Date | string | null
   notifyTelegram?: Prisma.BoolWithAggregatesFilter<"AiGenerationJob"> | boolean
   statusMessageId?: Prisma.IntNullableWithAggregatesFilter<"AiGenerationJob"> | number | null
   sessionId?: Prisma.StringNullableWithAggregatesFilter<"AiGenerationJob"> | string | null
@@ -494,6 +522,8 @@ export type AiGenerationJobCreateInput = {
   pollErrorCount?: number
   lastPolledAt?: Date | string | null
   staleReminderSent?: boolean
+  providerRetryCount?: number
+  providerRetryAt?: Date | string | null
   notifyTelegram?: boolean
   statusMessageId?: number | null
   sessionId?: string | null
@@ -521,6 +551,8 @@ export type AiGenerationJobUncheckedCreateInput = {
   pollErrorCount?: number
   lastPolledAt?: Date | string | null
   staleReminderSent?: boolean
+  providerRetryCount?: number
+  providerRetryAt?: Date | string | null
   notifyTelegram?: boolean
   statusMessageId?: number | null
   sessionId?: string | null
@@ -546,6 +578,8 @@ export type AiGenerationJobUpdateInput = {
   pollErrorCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastPolledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  providerRetryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  providerRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   statusMessageId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -573,6 +607,8 @@ export type AiGenerationJobUncheckedUpdateInput = {
   pollErrorCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastPolledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  providerRetryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  providerRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   statusMessageId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -599,6 +635,8 @@ export type AiGenerationJobCreateManyInput = {
   pollErrorCount?: number
   lastPolledAt?: Date | string | null
   staleReminderSent?: boolean
+  providerRetryCount?: number
+  providerRetryAt?: Date | string | null
   notifyTelegram?: boolean
   statusMessageId?: number | null
   sessionId?: string | null
@@ -624,6 +662,8 @@ export type AiGenerationJobUpdateManyMutationInput = {
   pollErrorCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastPolledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  providerRetryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  providerRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   statusMessageId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -650,6 +690,8 @@ export type AiGenerationJobUncheckedUpdateManyInput = {
   pollErrorCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastPolledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  providerRetryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  providerRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   statusMessageId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -686,6 +728,8 @@ export type AiGenerationJobCountOrderByAggregateInput = {
   pollErrorCount?: Prisma.SortOrder
   lastPolledAt?: Prisma.SortOrder
   staleReminderSent?: Prisma.SortOrder
+  providerRetryCount?: Prisma.SortOrder
+  providerRetryAt?: Prisma.SortOrder
   notifyTelegram?: Prisma.SortOrder
   statusMessageId?: Prisma.SortOrder
   sessionId?: Prisma.SortOrder
@@ -701,6 +745,7 @@ export type AiGenerationJobAvgOrderByAggregateInput = {
   tokenCost?: Prisma.SortOrder
   pollAttempts?: Prisma.SortOrder
   pollErrorCount?: Prisma.SortOrder
+  providerRetryCount?: Prisma.SortOrder
   statusMessageId?: Prisma.SortOrder
 }
 
@@ -717,6 +762,8 @@ export type AiGenerationJobMaxOrderByAggregateInput = {
   pollErrorCount?: Prisma.SortOrder
   lastPolledAt?: Prisma.SortOrder
   staleReminderSent?: Prisma.SortOrder
+  providerRetryCount?: Prisma.SortOrder
+  providerRetryAt?: Prisma.SortOrder
   notifyTelegram?: Prisma.SortOrder
   statusMessageId?: Prisma.SortOrder
   sessionId?: Prisma.SortOrder
@@ -740,6 +787,8 @@ export type AiGenerationJobMinOrderByAggregateInput = {
   pollErrorCount?: Prisma.SortOrder
   lastPolledAt?: Prisma.SortOrder
   staleReminderSent?: Prisma.SortOrder
+  providerRetryCount?: Prisma.SortOrder
+  providerRetryAt?: Prisma.SortOrder
   notifyTelegram?: Prisma.SortOrder
   statusMessageId?: Prisma.SortOrder
   sessionId?: Prisma.SortOrder
@@ -754,6 +803,7 @@ export type AiGenerationJobSumOrderByAggregateInput = {
   tokenCost?: Prisma.SortOrder
   pollAttempts?: Prisma.SortOrder
   pollErrorCount?: Prisma.SortOrder
+  providerRetryCount?: Prisma.SortOrder
   statusMessageId?: Prisma.SortOrder
 }
 
@@ -825,6 +875,8 @@ export type AiGenerationJobCreateWithoutUserInput = {
   pollErrorCount?: number
   lastPolledAt?: Date | string | null
   staleReminderSent?: boolean
+  providerRetryCount?: number
+  providerRetryAt?: Date | string | null
   notifyTelegram?: boolean
   statusMessageId?: number | null
   sessionId?: string | null
@@ -850,6 +902,8 @@ export type AiGenerationJobUncheckedCreateWithoutUserInput = {
   pollErrorCount?: number
   lastPolledAt?: Date | string | null
   staleReminderSent?: boolean
+  providerRetryCount?: number
+  providerRetryAt?: Date | string | null
   notifyTelegram?: boolean
   statusMessageId?: number | null
   sessionId?: string | null
@@ -905,6 +959,8 @@ export type AiGenerationJobScalarWhereInput = {
   pollErrorCount?: Prisma.IntFilter<"AiGenerationJob"> | number
   lastPolledAt?: Prisma.DateTimeNullableFilter<"AiGenerationJob"> | Date | string | null
   staleReminderSent?: Prisma.BoolFilter<"AiGenerationJob"> | boolean
+  providerRetryCount?: Prisma.IntFilter<"AiGenerationJob"> | number
+  providerRetryAt?: Prisma.DateTimeNullableFilter<"AiGenerationJob"> | Date | string | null
   notifyTelegram?: Prisma.BoolFilter<"AiGenerationJob"> | boolean
   statusMessageId?: Prisma.IntNullableFilter<"AiGenerationJob"> | number | null
   sessionId?: Prisma.StringNullableFilter<"AiGenerationJob"> | string | null
@@ -930,6 +986,8 @@ export type AiGenerationJobCreateManyUserInput = {
   pollErrorCount?: number
   lastPolledAt?: Date | string | null
   staleReminderSent?: boolean
+  providerRetryCount?: number
+  providerRetryAt?: Date | string | null
   notifyTelegram?: boolean
   statusMessageId?: number | null
   sessionId?: string | null
@@ -955,6 +1013,8 @@ export type AiGenerationJobUpdateWithoutUserInput = {
   pollErrorCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastPolledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  providerRetryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  providerRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   statusMessageId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -980,6 +1040,8 @@ export type AiGenerationJobUncheckedUpdateWithoutUserInput = {
   pollErrorCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastPolledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  providerRetryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  providerRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   statusMessageId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1005,6 +1067,8 @@ export type AiGenerationJobUncheckedUpdateManyWithoutUserInput = {
   pollErrorCount?: Prisma.IntFieldUpdateOperationsInput | number
   lastPolledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   staleReminderSent?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  providerRetryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  providerRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notifyTelegram?: Prisma.BoolFieldUpdateOperationsInput | boolean
   statusMessageId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1033,6 +1097,8 @@ export type AiGenerationJobSelect<ExtArgs extends runtime.Types.Extensions.Inter
   pollErrorCount?: boolean
   lastPolledAt?: boolean
   staleReminderSent?: boolean
+  providerRetryCount?: boolean
+  providerRetryAt?: boolean
   notifyTelegram?: boolean
   statusMessageId?: boolean
   sessionId?: boolean
@@ -1060,6 +1126,8 @@ export type AiGenerationJobSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   pollErrorCount?: boolean
   lastPolledAt?: boolean
   staleReminderSent?: boolean
+  providerRetryCount?: boolean
+  providerRetryAt?: boolean
   notifyTelegram?: boolean
   statusMessageId?: boolean
   sessionId?: boolean
@@ -1087,6 +1155,8 @@ export type AiGenerationJobSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   pollErrorCount?: boolean
   lastPolledAt?: boolean
   staleReminderSent?: boolean
+  providerRetryCount?: boolean
+  providerRetryAt?: boolean
   notifyTelegram?: boolean
   statusMessageId?: boolean
   sessionId?: boolean
@@ -1114,6 +1184,8 @@ export type AiGenerationJobSelectScalar = {
   pollErrorCount?: boolean
   lastPolledAt?: boolean
   staleReminderSent?: boolean
+  providerRetryCount?: boolean
+  providerRetryAt?: boolean
   notifyTelegram?: boolean
   statusMessageId?: boolean
   sessionId?: boolean
@@ -1125,7 +1197,7 @@ export type AiGenerationJobSelectScalar = {
   updatedAt?: boolean
 }
 
-export type AiGenerationJobOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "toolId" | "providerJobId" | "status" | "tokenCost" | "inputJson" | "resultUrl" | "resultJson" | "errorMessage" | "pollAttempts" | "pollErrorCount" | "lastPolledAt" | "staleReminderSent" | "notifyTelegram" | "statusMessageId" | "sessionId" | "failoverNotice" | "failoverFromToolId" | "failoverTriedToolIds" | "prompt" | "createdAt" | "updatedAt", ExtArgs["result"]["aiGenerationJob"]>
+export type AiGenerationJobOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "toolId" | "providerJobId" | "status" | "tokenCost" | "inputJson" | "resultUrl" | "resultJson" | "errorMessage" | "pollAttempts" | "pollErrorCount" | "lastPolledAt" | "staleReminderSent" | "providerRetryCount" | "providerRetryAt" | "notifyTelegram" | "statusMessageId" | "sessionId" | "failoverNotice" | "failoverFromToolId" | "failoverTriedToolIds" | "prompt" | "createdAt" | "updatedAt", ExtArgs["result"]["aiGenerationJob"]>
 export type AiGenerationJobInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -1159,6 +1231,11 @@ export type $AiGenerationJobPayload<ExtArgs extends runtime.Types.Extensions.Int
     pollErrorCount: number
     lastPolledAt: Date | null
     staleReminderSent: boolean
+    /**
+     * Silent provider resubmits when the upstream queue is full (capacity errors).
+     */
+    providerRetryCount: number
+    providerRetryAt: Date | null
     /**
      * When false (mini-app), skip Telegram delivery of result / completion text.
      */
@@ -1627,6 +1704,8 @@ export interface AiGenerationJobFieldRefs {
   readonly pollErrorCount: Prisma.FieldRef<"AiGenerationJob", 'Int'>
   readonly lastPolledAt: Prisma.FieldRef<"AiGenerationJob", 'DateTime'>
   readonly staleReminderSent: Prisma.FieldRef<"AiGenerationJob", 'Boolean'>
+  readonly providerRetryCount: Prisma.FieldRef<"AiGenerationJob", 'Int'>
+  readonly providerRetryAt: Prisma.FieldRef<"AiGenerationJob", 'DateTime'>
   readonly notifyTelegram: Prisma.FieldRef<"AiGenerationJob", 'Boolean'>
   readonly statusMessageId: Prisma.FieldRef<"AiGenerationJob", 'Int'>
   readonly sessionId: Prisma.FieldRef<"AiGenerationJob", 'String'>

@@ -39,6 +39,10 @@ import type { ApiframeResultJson } from '@/common/config/apiframe.config';
 import { ModelFailoverService } from '../failover/model-failover.service';
 import { Markup } from 'telegraf';
 import { isFailoverEligibleTool } from '../failover/model-failover.helpers';
+import {
+    isProviderCapacityError,
+    nextCapacityRetry,
+} from './provider-capacity-retry';
 type PendingJob = Awaited<ReturnType<AiJobService['getPendingJobs']>>[number];
 
 @Injectable()
@@ -46,6 +50,7 @@ export class AiJobCron {
     private isPolling = false;
     private readonly deliveringJobIds = new Set<string>();
     private readonly fallbackJobIds = new Set<string>();
+    private readonly resubmittingJobIds = new Set<string>();
 
     constructor(
         @InjectPinoLogger(AiJobCron.name)
@@ -125,7 +130,8 @@ export class AiJobCron {
 
                 if (
                     this.deliveringJobIds.has(job.id) ||
-                    this.fallbackJobIds.has(job.id)
+                    this.fallbackJobIds.has(job.id) ||
+                    this.resubmittingJobIds.has(job.id)
                 ) {
                     continue;
                 }
@@ -139,6 +145,16 @@ export class AiJobCron {
 
     private async pollSingleJob(job: PendingJob) {
         const botService = this.getBotService();
+        const retryAtMs = job.providerRetryAt?.getTime() ?? 0;
+
+        if (retryAtMs > Date.now()) {
+            return;
+        }
+
+        if (!job.providerJobId || retryAtMs > 0) {
+            await this.retryCapacityJob(botService, job);
+            return;
+        }
 
         try {
             const status = await this.aiService.getJobStatus(
@@ -195,6 +211,17 @@ export class AiJobCron {
                 );
 
                 if (
+                    isProviderCapacityError(errorMessage) &&
+                    nextCapacityRetry(job.providerRetryCount).action === 'retry'
+                ) {
+                    await this.aiJobService.scheduleCapacityRetry(
+                        job.id,
+                        job.providerRetryCount,
+                    );
+                    return;
+                }
+
+                if (
                     isFailoverEligibleTool(toolId) &&
                     job.user.autoModelFailover !== false
                 ) {
@@ -213,18 +240,59 @@ export class AiJobCron {
             }
         } catch (error) {
             this.logJobError(job, 'poll', error);
+            const message =
+                error instanceof Error ? error.message : String(error);
+
+            if (
+                isProviderCapacityError(message) &&
+                nextCapacityRetry(job.providerRetryCount).action === 'retry'
+            ) {
+                await this.aiJobService.scheduleCapacityRetry(
+                    job.id,
+                    job.providerRetryCount,
+                );
+                return;
+            }
+
             await this.aiJobService.recordPollAttempt(job.id, true);
 
             const nextErrorCount = (job.pollErrorCount ?? 0) + 1;
             if (nextErrorCount >= AI_JOB_MAX_POLL_ERRORS) {
-                const message =
-                    error instanceof Error ? error.message : String(error);
                 await this.failJob(
                     botService,
                     job,
                     `Не удалось проверить статус генерации: ${message}`,
                 );
             }
+        }
+    }
+
+    private async retryCapacityJob(botService: BotService, job: PendingJob) {
+        this.resubmittingJobIds.add(job.id);
+        try {
+            const result = await this.aiJobService.resubmitAfterCapacityRetry({
+                jobId: job.id,
+                toolId: job.toolId as AiToolId,
+                inputJson: job.inputJson,
+                retryCount: job.providerRetryCount,
+            });
+
+            if (result === 'submitted' || result === 'rescheduled') {
+                return;
+            }
+
+            const errorMessage =
+                result === 'give_up'
+                    ? 'No available capacity — please retry shortly'
+                    : result.error;
+            await this.failJob(botService, job, errorMessage);
+        } catch (error) {
+            this.logJobError(job, 'poll', error);
+            const message =
+                error instanceof Error ? error.message : String(error);
+            await this.failJob(botService, job, message);
+        } finally {
+            this.resubmittingJobIds.delete(job.id);
         }
     }
 

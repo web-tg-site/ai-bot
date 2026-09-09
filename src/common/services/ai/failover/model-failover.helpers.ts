@@ -9,6 +9,7 @@ import {
     classifyBotError,
     isUserInputValidationError,
 } from '@/common/services/bot/errors/bot-error.mapper';
+import { isProviderCapacityError } from '../jobs/provider-capacity-retry';
 import { getI18n, getToolLabel } from '@/common/services/bot/i18n';
 import { UserLanguage } from '@/generated/prisma/enums';
 import { AiGenerationInput, AiInputType, AiToolId } from '../types';
@@ -31,6 +32,10 @@ export function isFailoverEligibleTool(toolId: AiToolId): boolean {
 export function isFailoverEligibleError(rawMessage: string): boolean {
     // User fixed the wrong file / duration / size — show the tip, don't hop models.
     if (isUserInputValidationError(rawMessage)) {
+        return false;
+    }
+
+    if (isProviderCapacityError(rawMessage)) {
         return false;
     }
 

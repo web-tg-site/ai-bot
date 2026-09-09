@@ -168,6 +168,9 @@ model AiGenerationJob {
   pollErrorCount Int      @default(0)
   lastPolledAt  DateTime?
   staleReminderSent Boolean @default(false)
+  /// Silent provider resubmits when the upstream queue is full (capacity errors).
+  providerRetryCount Int       @default(0)
+  providerRetryAt    DateTime?
   /// When false (mini-app), skip Telegram delivery of result / completion text.
   notifyTelegram Boolean  @default(true)
   /// Telegram id of the "generation started" message, deleted once the result is delivered.
