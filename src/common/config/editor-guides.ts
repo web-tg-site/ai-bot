@@ -103,13 +103,13 @@ const RU: Partial<Record<AiToolId, string>> = {
 
 - ✍️ Опиши, что хочешь увидеть — получишь 4 картинки сразу
 - 📸 Можно прикрепить до 10 фото-референсов
-- ✨ Качество: черновик, стандартное или детальное (насколько тщательно рисует)
-- 📐 Размер задаётся форматом кадра — отдельного выбора разрешения у Midjourney нет
+- 📐 Выбери разрешение: 720p, 1K или 2K
+- 📐 Формат кадра задаёт пропорции картинки
 
 Как пользоваться
 1. Опиши картинку простыми словами.
 2. При необходимости прикрепи фото.
-3. Выбери формат и качество.
+3. Выбери формат и разрешение.
 4. Запусти генерацию и подожди сетку.
 5. Нажми #1, #2, #3 или #4 — выбери один кадр.`,
 
@@ -420,13 +420,13 @@ Draws images from descriptions — first shows a grid of 4 variants.
 - 🔀 V1–V4 — create similar variants of the selected one
 - ↔️ You can pan the frame or zoom out
 - 🖌️ You can mask an area and repaint only that part
-- ✨ Quality: draft, standard or detailed (render effort)
-- 📐 Size follows the frame aspect ratio — Midjourney has no separate resolution picker
+- 📐 Choose resolution: 720p, 1K or 2K
+- 📐 Frame aspect sets the image proportions
 
 How to use
 1. Describe the image in simple words.
 2. Optionally attach photo references.
-3. Choose format and quality.
+3. Choose format and resolution.
 4. Run generation and wait for the grid.
 5. Tap U to pick one image, or V for similar variants.
 6. Want to refine? Use pan, zoom or inpaint.`,

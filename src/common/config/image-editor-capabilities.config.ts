@@ -158,10 +158,11 @@ export const MIDJOURNEY_Q_VALUES: Record<
 };
 
 /**
- * Chip / picker labels are resolution-style (720p, 1K, …). Midjourney is the
- * exception: `--q` is render effort, not pixel size.
+ * Chip / picker labels are always size-style (`720p`, `1K`, `2K`, …).
+ * Internal API may still send `quality` / Midjourney `--q` — the user never sees that.
  * - Flux: pixel base 768 / 1024 / 1440 → 768p / 1K / 1.5K
  * - GPT Images: OpenAI `quality`; closest size tiers 1K / 1.5K / 2K
+ * - Midjourney: `--q` 0.5 / 1 / 2 → 720p / 1K / 2K
  */
 const IMAGE_QUALITY_LABELS: Record<string, { ru: string; en: string }> = {
     auto: { ru: 'Авто', en: 'Auto' },
@@ -177,9 +178,9 @@ const FLUX_QUALITY_LABELS: Record<string, { ru: string; en: string }> = {
 };
 
 const MIDJOURNEY_QUALITY_LABELS: Record<string, { ru: string; en: string }> = {
-    low: { ru: 'Черновик', en: 'Draft' },
-    medium: { ru: 'Стандартное', en: 'Standard' },
-    high: { ru: 'Детальное', en: 'Detailed' },
+    low: { ru: '720p', en: '720p' },
+    medium: { ru: '1K', en: '1K' },
+    high: { ru: '2K', en: '2K' },
 };
 
 export function formatImageQualityLabel(
