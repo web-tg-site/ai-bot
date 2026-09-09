@@ -300,14 +300,13 @@ export class AiJobCron {
         jobId: string,
         resolved: AiGenerationResult,
         resultUrl: string | null | undefined,
-        toolId?: AiToolId,
+        _toolId?: AiToolId,
     ): Promise<void> {
         const toPlayable = async (
             buffer: Buffer,
             mimeType: string,
         ): Promise<{ buffer: Buffer; mimeType: string }> => {
             if (
-                toolId !== AiToolId.TOPAZ ||
                 resolved.type !== 'video' ||
                 mimeType.startsWith('image/')
             ) {

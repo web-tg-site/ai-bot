@@ -63,7 +63,7 @@ export class JobMediaResolverService {
                   job.toolId,
               );
 
-        const media = await this.prepareTopazPlayback(job.toolId, raw);
+        const media = await this.prepareWebPlayback(job.toolId, raw);
         this.setCachedMedia(job.id, media.buffer, media.mimeType);
         this.tempPublicMedia.put({
             buffer: media.buffer,
@@ -198,12 +198,21 @@ export class JobMediaResolverService {
         return `${base}.${ext}`;
     }
 
-    /** HEVC/MOV from Topaz does not play in Telegram WebView or sendVideo. */
-    private async prepareTopazPlayback(
+    /**
+     * Telegram WebView cannot play HEVC/non-faststart MP4 (Topaz, some Seedance).
+     * Skip when already H.264-compatible — ffmpeg probe returns early.
+     */
+    private async prepareWebPlayback(
         toolId: AiToolId,
         media: ResolvedJobMedia,
     ): Promise<ResolvedJobMedia> {
-        if (toolId !== AiToolId.TOPAZ || media.mimeType.startsWith('image/')) {
+        if (media.mimeType.startsWith('image/') || media.mimeType.startsWith('audio/')) {
+            return media;
+        }
+        if (
+            !media.mimeType.startsWith('video/') &&
+            !this.isVideoTool(toolId)
+        ) {
             return media;
         }
         try {
