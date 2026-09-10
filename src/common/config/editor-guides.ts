@@ -234,28 +234,29 @@ const RU: Partial<Record<AiToolId, string>> = {
 4. Запусти генерацию.`,
 
     [AiToolId.HEYGEN]: `🗣️ HeyGen
-Создавай видео с виртуальным ведущим — аватар или твоё фото произносит текст.
+Создавай видео с виртуальным ведущим: готовый аватар или своё фото — говорящий персонаж.
 
 - ✍️ Текст — сценарий: ведущий произнесёт его в ролике
-- 🎤 Можно прикрепить своё аудио — тогда речь возьмётся из файла
-- 👤 Аватар — лицо из каталога HeyGen
-- 📸 Своё фото — говорящая голова; выбор аватара тогда скрывается
-- 🎙️ Голос — тембр речи (нужен, если нет своего аудио)
-- ⚙️ Параметры — движок, субтитры, фон, выразительность, скорость и тон
+- 🎤 Аудио — можно загрузить свою запись; речь возьмётся из файла
+- 👤 Аватар — лицо ведущего из каталога HeyGen
+- 📸 Своё фото — говорящий персонаж; при своём фото «Аватар» недоступен
+- 🎙️ Голос — тембр, если нет своего аудио
+- ⚙️ Настройки — субтитры, фон, модель, выразительность и другие параметры
 
-Параметры — что за что
-- 🧠 Движок — модель лица: аватар 3, 4 или 5. Чем выше номер, тем естественнее. Для своего фото не показывается
-- 💬 Субтитры — текст речи прямо на ролике
-- 🎨 Фон — как в кадре, без фона или цветной
-- 😊 Выразительность — насколько живая мимика. Есть у аватара 4 и у своего фото
-- ⏱️ Скорость речи — быстрее или медленнее (для своего аудио не нужна)
-- 🎶 Высота тона — выше или ниже голос (для своего аудио не нужна)
+⚙️ Настройки: что за что отвечает
+- 🧠 Движок — реалистичность лица и движений: Аватар 3, 4 или 5. Новее обычно естественнее. Для своего фото может быть недоступен
+- 💬 Субтитры — текст речи прямо на видео
+- 🎨 Фон — как в кадре, прозрачный или свой цвет
+- 😊 Выразительность — эмоциональность мимики. Есть у Аватара 4 и у своего фото
+- ⏱️ Скорость речи — быстрее или медленнее; со своим аудио не нужна
+- 🎶 Высота тона — выше или ниже голос; со своим аудио не нужна
+- 🤚 Описание движения — жесты и поза. Например: «лёгкий наклон головы, естественные движения рук, спокойная поза». Для Аватара 3 недоступно
 
-Как пользоваться
-1. Напиши текст речи или прикрепи аудио.
-2. Выбери аватар и голос — или загрузи своё фото.
-3. При желании открой параметры.
-4. Запусти генерацию.`,
+🎬 Как создать видео
+1. Добавь речь — текст сценария или аудиофайл.
+2. Выбери ведущего — аватар и голос или своё фото.
+3. При желании открой «Настройки» — субтитры, фон, модель, выразительность и остальное.
+4. Запусти генерацию — HeyGen сделает видео с виртуальным ведущим.`,
 
     [AiToolId.TOPAZ]: `✨ Topaz
 Не рисует новое — улучшает уже готовое фото или видео.
@@ -552,28 +553,29 @@ How to use
 4. Run generation.`,
 
     [AiToolId.HEYGEN]: `🗣️ HeyGen
-Create videos with a virtual host — an avatar or your photo speaks the text.
+Create videos with a virtual host: a catalog avatar or your photo as a talking character.
 
-- ✍️ The text is the script: the host speaks it in the video
-- 🎤 You can attach your own audio — then speech comes from the file
+- ✍️ Text — the script the host speaks in the video
+- 🎤 Audio — upload your own recording; speech comes from the file
 - 👤 Avatar — a face from the HeyGen catalog
-- 📸 Your photo becomes a talking head; the avatar picker is hidden then
-- 🎙️ Voice — the speaking timbre (needed if you don't attach audio)
-- ⚙️ Settings — engine, captions, background, expressiveness, speed and pitch
+- 📸 Your photo — a talking character; the Avatar picker is unavailable then
+- 🎙️ Voice — timbre when you are not using your own audio
+- ⚙️ Settings — captions, background, engine, expressiveness and more
 
-Settings — what each one does
-- 🧠 Engine — face model: avatar 3, 4 or 5. Higher number looks more natural. Hidden for your own photo
-- 💬 Captions — speech text burned into the video
-- 🎨 Background — as in the frame, no background, or a solid color
-- 😊 Expressiveness — how lively the face is. Available for avatar 4 and your photo
-- ⏱️ Speech speed — faster or slower (not used with your own audio)
-- 🎶 Pitch — higher or lower voice (not used with your own audio)
+⚙️ Settings: what each control does
+- 🧠 Engine — face realism and motion: Avatar 3, 4 or 5. Newer usually looks more natural. May be unavailable for your own photo
+- 💬 Captions — speech text shown on the video
+- 🎨 Background — as in the frame, transparent, or a solid color
+- 😊 Expressiveness — how emotional the face is. Available for Avatar 4 and your photo
+- ⏱️ Speech speed — faster or slower; not used with your own audio
+- 🎶 Pitch — higher or lower voice; not used with your own audio
+- 🤚 Motion description — gestures and pose. Example: “slight head tilt, natural hand motion, calm posture”. Unavailable for Avatar 3
 
-How to use
-1. Write the speech text or attach audio.
-2. Choose an avatar and voice — or upload your photo.
-3. Optionally open settings.
-4. Run generation.`,
+🎬 How to create a video
+1. Add speech — script text or an audio file.
+2. Choose a host — avatar and voice, or your photo.
+3. Optionally open Settings — captions, background, engine, expressiveness and the rest.
+4. Run generation — HeyGen builds the video with the virtual host.`,
 
     [AiToolId.TOPAZ]: `✨ Topaz
 Doesn't create new content — improves existing photos or videos.
