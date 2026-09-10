@@ -23,8 +23,15 @@ const MIME_BY_EXT: Record<string, string> = {
     m4a: 'audio/mp4',
     ogg: 'audio/ogg',
     oga: 'audio/ogg',
+    opus: 'audio/opus',
     aac: 'audio/aac',
     flac: 'audio/flac',
+    wma: 'audio/x-ms-wma',
+    caf: 'audio/x-caf',
+    aiff: 'audio/aiff',
+    aif: 'audio/aiff',
+    amr: 'audio/amr',
+    mpga: 'audio/mpeg',
 };
 
 const mimeFromFileName = (

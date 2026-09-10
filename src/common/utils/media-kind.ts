@@ -1,4 +1,5 @@
-const AUDIO_EXT = /\.(mp3|wav|m4a|ogg|oga|aac|flac|webm)$/i;
+const AUDIO_EXT =
+    /\.(mp3|wav|m4a|ogg|oga|opus|aac|flac|webm|wma|caf|aiff?|amr|mpga)$/i;
 const VIDEO_EXT = /\.(mp4|mov|webm|mkv|m4v)$/i;
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif|bmp|tiff?|heic|heif)$/i;
 
@@ -19,6 +20,13 @@ export function isVideoMedia(
     fileName?: string,
 ): boolean {
     const mime = mimeType?.toLowerCase() ?? '';
+    // audio/webm (and similar) must not be treated as video just because of .webm
+    if (mime.startsWith('audio/') || mime === 'application/ogg') {
+        return false;
+    }
+    if (mime.startsWith('image/')) {
+        return false;
+    }
     if (mime.startsWith('video/')) return true;
     if (mime === 'application/octet-stream' || !mime) {
         return VIDEO_EXT.test(fileName ?? '');

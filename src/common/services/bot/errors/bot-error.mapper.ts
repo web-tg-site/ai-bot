@@ -297,6 +297,16 @@ function localizeActionableProviderDetail(
     }
 
     if (
+        /unsupported audio format|audio format not supported|accepted.*(?:mp3|wav)|не удалось подготовить аудио/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'Не удалось подготовить аудио. Загрузите MP3, WAV, OGG, M4A или голосовое сообщение — мы конвертируем автоматически.'
+            : 'Could not prepare the audio. Upload MP3, WAV, OGG, M4A, or a voice message — we convert automatically.';
+    }
+
+    if (
         /Image pixel is invalid|invalid image pixel|pixel is invalid/i.test(
             detail,
         )
