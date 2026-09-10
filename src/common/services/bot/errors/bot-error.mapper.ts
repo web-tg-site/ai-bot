@@ -58,7 +58,7 @@ export function isUserInputValidationError(rawMessage: string): boolean {
     }
 
     if (
-        /Видео-референс|Обрежьте клип|обрежь клип|С видео-референсом нужен|нужен промпт|только одно видео|не больше \d+\s*МБ|должен быть от|должна быть от|Разрешение видео|Кадровая частота|принимает не больше|принимает только|Загрузите фото|Загрузите видео|загрузите фото|загрузите видео|Отправьте текстовый промпт|Прикреплённый файл слишком|Поза с фото|Поза из видео|не подходит|Convert the document|Сохраните документ|не смог прочитать фото|не смог прочитать видео|Фото для Kling|Слишком вытянутое фото|Image pixel is invalid|get the contents of the file|Выберите голос|Extra input|invalid_parameter|voice(?:_id)? (?:is )?required|select (?:a )?voice/i.test(
+        /Видео-референс|Обрежьте клип|обрежь клип|С видео-референсом нужен|нужен промпт|только одно видео|не больше \d+\s*МБ|должен быть от|должна быть от|Разрешение видео|Кадровая частота|принимает не больше|принимает только|Загрузите фото|Загрузите видео|загрузите фото|загрузите видео|Отправьте текстовый промпт|Прикреплённый файл слишком|Поза с фото|Поза из видео|не подходит|Convert the document|Сохраните документ|не смог прочитать фото|не смог прочитать видео|Фото для Kling|Слишком вытянутое фото|Image pixel is invalid|get the contents of the file|Выберите голос|Extra input|invalid_parameter|voice(?:_id)? (?:is )?required|select (?:a )?voice|use case is currently not supported/i.test(
             detail,
         )
     ) {
@@ -161,6 +161,32 @@ const PROVIDER_NAME_LEAK =
 
 function stripProviderPrefix(message: string): string {
     return message.replace(PROVIDER_NAME_PREFIX, '').trim();
+}
+
+/** Google GenAI often throws the whole JSON body as Error.message. */
+function unwrapProviderErrorMessage(message: string): string {
+    const trimmed = message.trim();
+    if (!trimmed.startsWith('{') || !trimmed.includes('"message"')) {
+        return message;
+    }
+    try {
+        const parsed = JSON.parse(trimmed) as {
+            error?: { message?: unknown };
+            message?: unknown;
+        };
+        const nested =
+            typeof parsed.error?.message === 'string'
+                ? parsed.error.message
+                : typeof parsed.message === 'string'
+                  ? parsed.message
+                  : null;
+        if (nested?.trim()) {
+            return nested.trim();
+        }
+    } catch {
+        // keep original
+    }
+    return message;
 }
 
 function containsProviderLeak(message: string): boolean {
@@ -327,6 +353,17 @@ function localizeActionableProviderDetail(
     }
 
     if (
+        /use case is currently not supported|not supported\. Please refer to Gemini|INVALID_ARGUMENT/i.test(
+            detail,
+        ) &&
+        /use case|Gemini API documentation|model offering/i.test(detail)
+    ) {
+        return ru
+            ? 'Такая комбинация настроек Veo не поддерживается. Для перехода между двумя фото нужна длительность 8 сек (мы выставим её автоматически).'
+            : 'This Veo setting combination is not supported. A two-photo transition requires 8 seconds (we set it automatically).';
+    }
+
+    if (
         /extra inputs? are not permitted|invalid_parameter|invalid parameter/i.test(
             detail,
         )
@@ -472,6 +509,16 @@ function matchKnownFallback(
     i18n: I18nBundle,
 ): string | undefined {
     if (
+        /use case is currently not supported|refer to Gemini API documentation for current model offering/i.test(
+            message,
+        )
+    ) {
+        return isRussianI18n(i18n)
+            ? 'Такая комбинация настроек Veo не поддерживается. Для перехода между двумя фото нужна длительность 8 сек (мы выставим её автоматически).'
+            : 'This Veo setting combination is not supported. A two-photo transition requires 8 seconds (we set it automatically).';
+    }
+
+    if (
         /Application failed to respond|failed to forward request to upstream|Bad Gateway|Service Unavailable|Gateway Timeout|HTTP 502|HTTP 503|HTTP 504/i.test(
             message,
         )
@@ -526,7 +573,9 @@ export function toUserFacingError(
     rawMessage: string,
     i18n: I18nBundle = ru,
 ): string {
-    const stripped = stripTechnicalErrorDetails(rawMessage);
+    const stripped = unwrapProviderErrorMessage(
+        stripTechnicalErrorDetails(rawMessage),
+    );
 
     if (!stripped) {
         return i18n.aiResult.errorByCode[BotErrorCode.UNKNOWN];

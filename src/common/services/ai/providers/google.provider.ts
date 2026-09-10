@@ -349,9 +349,21 @@ export class GoogleProvider {
             resolution = '720p';
         }
 
+        // Resolve frames before duration: Gemini only accepts lastFrame at 8s.
+        const { first, last } =
+            !isExtend && !hasExplicitRefs
+                ? this.resolveFirstLastFrames(
+                      input.files ?? [],
+                      images,
+                      roles,
+                      hasFirstLast,
+                  )
+                : { first: undefined, last: undefined };
+
         const needsFixedEight =
             isExtend ||
             hasExplicitRefs ||
+            Boolean(last) ||
             resolution === '1080p' ||
             resolution === '4k';
 
@@ -453,13 +465,6 @@ export class GoogleProvider {
             });
         }
 
-        const { first, last } = this.resolveFirstLastFrames(
-            input.files ?? [],
-            images,
-            roles,
-            hasFirstLast,
-        );
-
         if (last && !first) {
             throw new Error(
                 'Last frame требует first frame — прикрепите стартовый кадр',
@@ -468,6 +473,7 @@ export class GoogleProvider {
 
         if (last) {
             config.lastFrame = this.toGeminiImage(last);
+            config.durationSeconds = 8;
         }
 
         return this.getClient().models.generateVideos({

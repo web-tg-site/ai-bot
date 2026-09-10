@@ -155,6 +155,19 @@ describe('bot-error.mapper', () => {
             );
         });
 
+        it('localizes Veo unsupported use-case JSON from Gemini', () => {
+            const raw = JSON.stringify({
+                error: {
+                    code: 400,
+                    message:
+                        'Your use case is currently not supported. Please refer to Gemini API documentation for current model offering.',
+                    status: 'INVALID_ARGUMENT',
+                },
+            });
+            expect(toUserFacingError(raw, ru)).toMatch(/8 сек|двух фото/i);
+            expect(isFailoverEligibleError(raw)).toBe(false);
+        });
+
         it('keeps Russian user validation tips that mention the tool name', () => {
             const msg =
                 'Фото для Kling должно быть не меньше 300×300 пикселей.';
