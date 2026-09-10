@@ -808,14 +808,14 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
         voicePickerSelected: (voiceName) => `✓ ${voiceName}`,
         keyboardUpdated: (toolName) => toolName,
         sendAsFileButton: (asFile) =>
-            asFile ? '✓ Audio file' : '🎙 Voice message',
+            asFile ? '✓ Send as file' : '📎 Send as file',
         sendAsFileChanged: (asFile) =>
             asFile
-                ? 'Results will be sent as an <b>audio file</b>'
+                ? 'Results will be sent as a <b>file</b> (downloadable)'
                 : 'Results will be sent as a <b>voice message</b>',
         deliveryLine: (asFile) =>
             asFile
-                ? 'Delivery: <b>audio file</b>'
+                ? 'Delivery: <b>file</b>'
                 : 'Delivery: <b>voice message</b>',
         durationLine: (seconds, tokens) =>
             `Duration: <b>${formatSunoDurationEn(seconds)}</b> · <b>${tokens}</b> tok.`,

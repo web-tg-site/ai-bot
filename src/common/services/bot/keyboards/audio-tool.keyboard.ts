@@ -209,6 +209,11 @@ function generateDurationCapableAudioReplyKeyboard(
 
     return Markup.keyboard([
         [i18n.voiceTool.settingsButton],
+        [
+            i18n.voiceTool.sendAsFileButton(
+                resolveVoiceSendAsFile(toolId, settings),
+            ),
+        ],
         [i18n.buttons.back],
     ]).resize();
 }

@@ -277,7 +277,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         const ext = mimeTypeToExtension(mimeType, 'mp3');
         const inputFile = bufferToInputFile(buffer, `audio.${ext}`);
         if (sendAsFile) {
-            await this.bot.telegram.sendAudio(chatId, inputFile);
+            await this.bot.telegram.sendDocument(chatId, inputFile);
             return;
         }
         await this.bot.telegram.sendVoice(

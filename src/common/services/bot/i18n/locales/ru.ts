@@ -817,14 +817,14 @@ ${getTariffIncludesText(type, plan, ru)}
         voicePickerSelected: (voiceName) => `✓ ${voiceName}`,
         keyboardUpdated: (toolName) => toolName,
         sendAsFileButton: (asFile) =>
-            asFile ? '✓ Аудиофайлом' : '🎙 Голосовым сообщением',
+            asFile ? '✓ Отправлять файлом' : '📎 Отправлять файлом',
         sendAsFileChanged: (asFile) =>
             asFile
-                ? 'Результат будет отправлен <b>аудиофайлом</b>'
+                ? 'Результат будет отправлен <b>файлом</b> (можно скачать)'
                 : 'Результат будет отправлен <b>голосовым сообщением</b>',
         deliveryLine: (asFile) =>
             asFile
-                ? 'Отправка: <b>аудиофайлом</b>'
+                ? 'Отправка: <b>файлом</b>'
                 : 'Отправка: <b>голосовым сообщением</b>',
         durationLine: (seconds, tokens) =>
             `Длительность: <b>${formatSunoDurationRu(seconds)}</b> · <b>${tokens}</b> ток.`,

@@ -4022,15 +4022,10 @@ async function sendGenerationResult(
                 result.voiceMimeType ?? 'audio/wav',
                 'wav',
             );
-            const inputFile = bufferToInputFile(
-                result.voiceBuffer,
-                `voice.${ext}`,
+            // Chat TTS: always a downloadable Telegram document.
+            await ctx.replyWithDocument(
+                bufferToInputFile(result.voiceBuffer, `audio.${ext}`),
             );
-            if (sendAsFile) {
-                await ctx.replyWithAudio(inputFile);
-            } else {
-                await ctx.replyWithVoice(inputFile);
-            }
         }
         await sendChatImages(ctx, result.images, sendAsFile, caption);
         return;

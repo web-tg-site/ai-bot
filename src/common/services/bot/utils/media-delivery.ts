@@ -254,8 +254,10 @@ export async function sendAudioBuffer(
     sendAsFile: boolean,
 ) {
     const ext = mimeTypeToExtension(mimeType ?? 'audio/mpeg', 'mp3');
+    const inputFile = bufferToInputFile(buffer, `audio.${ext}`);
     if (sendAsFile) {
-        await ctx.replyWithAudio(bufferToInputFile(buffer, `audio.${ext}`));
+        // Document = real downloadable file in Telegram (same as photo/video «файлом»).
+        await ctx.replyWithDocument(inputFile);
         return;
     }
     await ctx.replyWithVoice(bufferToInputFile(buffer, `voice.${ext}`));

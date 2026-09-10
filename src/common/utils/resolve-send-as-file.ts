@@ -3,8 +3,16 @@ import { ImageToolSettings } from '@/common/types/image-tool-settings.type';
 import { VideoToolSettings } from '@/common/types/video-tool-settings.type';
 import { VoiceToolSettings } from '@/common/types/voice-tool-settings.type';
 
+const AUDIO_FILE_DEFAULT_TOOLS = new Set<AiToolId>([
+    AiToolId.ELEVENLABS_VOICE,
+    AiToolId.VOICE_CLONE,
+    AiToolId.SOUND_GENERATOR,
+    AiToolId.SUNO,
+    AiToolId.VIDEO_TO_AUDIO,
+]);
+
 export function getDefaultSendAsFile(toolId: AiToolId): boolean {
-    return toolId === AiToolId.SOUND_GENERATOR || toolId === AiToolId.SUNO;
+    return AUDIO_FILE_DEFAULT_TOOLS.has(toolId);
 }
 
 export function resolveSendAsFile(
