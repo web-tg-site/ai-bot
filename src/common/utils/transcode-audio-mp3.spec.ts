@@ -11,7 +11,7 @@ async function ffmpegMake(
     await new Promise<void>((resolve, reject) => {
         const proc = spawn(
             'ffmpeg',
-            ['-y', ...args, outputPath],
+            ['-nostdin', '-y', ...args, outputPath],
             { stdio: 'ignore' },
         );
         proc.on('error', reject);
@@ -34,7 +34,7 @@ describe('transcodeAudioToMp3', () => {
         await rm(dir, { recursive: true, force: true });
     });
 
-    it('converts ogg/opus to mp3', async () => {
+    it('converts ogg/opus to mp3 quickly', async () => {
         const oggPath = join(dir, 'voice.ogg');
         const ogg = await ffmpegMake(
             [
@@ -49,16 +49,20 @@ describe('transcodeAudioToMp3', () => {
             ],
             oggPath,
         );
-        const out = await transcodeAudioToMp3(ogg);
+        const started = Date.now();
+        const out = await transcodeAudioToMp3(ogg, {
+            mimeType: 'audio/ogg',
+            fileName: 'voice.ogg',
+        });
+        expect(Date.now() - started).toBeLessThan(5_000);
         expect(out).not.toBe(ogg);
         expect(out.length).toBeGreaterThan(0);
-        // MPEG frame sync / ID3
         expect(out[0] === 0xff || out.toString('ascii', 0, 3) === 'ID3').toBe(
             true,
         );
     });
 
-    it('keeps wav without re-encode', async () => {
+    it('skips wav without ffmpeg', async () => {
         const wavPath = join(dir, 'sample.wav');
         const wav = await ffmpegMake(
             [
@@ -71,11 +75,14 @@ describe('transcodeAudioToMp3', () => {
             ],
             wavPath,
         );
-        const out = await transcodeAudioToMp3(wav);
+        const out = await transcodeAudioToMp3(wav, {
+            mimeType: 'audio/wav',
+            fileName: 'sample.wav',
+        });
         expect(out).toBe(wav);
     });
 
-    it('keeps mp3 without re-encode', async () => {
+    it('skips mp3 without ffmpeg', async () => {
         const mp3Path = join(dir, 'sample.mp3');
         const mp3 = await ffmpegMake(
             [
@@ -90,7 +97,10 @@ describe('transcodeAudioToMp3', () => {
             ],
             mp3Path,
         );
-        const out = await transcodeAudioToMp3(mp3);
+        const out = await transcodeAudioToMp3(mp3, {
+            mimeType: 'audio/mpeg',
+            fileName: 'sample.mp3',
+        });
         expect(out).toBe(mp3);
     });
 });

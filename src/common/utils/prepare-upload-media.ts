@@ -47,7 +47,10 @@ export async function prepareUploadMedia(
     }
 
     if (isAudioMedia(normalized.mimeType, normalized.fileName)) {
-        const buffer = await transcodeAudioToMp3(normalized.buffer);
+        const buffer = await transcodeAudioToMp3(normalized.buffer, {
+            mimeType: normalized.mimeType,
+            fileName: normalized.fileName,
+        });
         // Already MP3/WAV → buffer unchanged; keep original mime/name.
         if (buffer === normalized.buffer) {
             return normalized;
