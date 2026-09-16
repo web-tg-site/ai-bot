@@ -255,7 +255,7 @@ describe('bot-error.mapper', () => {
                 ),
             ).toBe(ru.aiResult.userErrors.contentPolicy);
             expect(ru.aiResult.userErrors.contentPolicy).toBe(
-                '400: Запрос заблокирован из-за правил о запрещённом контенте. Пожалуйста, измените свой запрос и попробуйте снова.',
+                'Запрос заблокирован из-за правил о запрещённом контенте. Пожалуйста, измените свой запрос и попробуйте снова.',
             );
         });
 
@@ -391,6 +391,40 @@ describe('bot-error.mapper', () => {
             expect(toUserFacingError('AxiosError', ru)).toBe(
                 ru.aiResult.errorByCode[BotErrorCode.UNKNOWN],
             );
+        });
+
+        it('never returns English "try again" dumps to RU users', () => {
+            const result = toUserFacingError(
+                'Something went wrong. Please try again later.',
+                ru,
+            );
+            expect(result).toMatch(/[а-яА-ЯёЁ]/);
+            expect(result).not.toMatch(/please try|something went wrong/i);
+        });
+
+        it('never returns English Midjourney dumps to RU users', () => {
+            const result = toUserFacingError(
+                'Midjourney: Job failed, please try again',
+                ru,
+            );
+            expect(result).toMatch(/[а-яА-ЯёЁ]/);
+            expect(result).not.toContain('Midjourney');
+            expect(result).not.toMatch(/please try/i);
+        });
+
+        it('localizes English aspect-ratio tips for RU', () => {
+            expect(
+                toUserFacingError('Invalid aspect ratio for this model', ru),
+            ).toMatch(/соотношение сторон/i);
+        });
+
+        it('localizes unknown English validation to a Russian tip', () => {
+            const result = toUserFacingError(
+                'Expected string, received null for field prompt',
+                ru,
+            );
+            expect(result).toMatch(/[а-яА-ЯёЁ]/);
+            expect(result).not.toMatch(/Expected string/i);
         });
 
         it('returns UNKNOWN code error for empty string', () => {

@@ -224,7 +224,7 @@ Select a tool below.`,
             safetyBlocked:
                 'The model blocked the request due to safety limits. Edit the prompt and try again.',
             contentPolicy:
-                '400: Request blocked due to prohibited content rules. Please modify your request and try again.',
+                'Request blocked due to prohibited content rules. Please modify your request and try again.',
             rateLimit: 'Too many requests. Wait a moment and try again.',
             voicePreviewFailed:
                 'Could not load the voice preview. Try again later.',

@@ -3,6 +3,7 @@ import { AiToolId, BotSession } from '@/common/services/ai';
 import { AiGenerationInput } from '@/common/services/ai/types';
 import type { ApiframeAction } from '@/common/config/apiframe.config';
 import { getI18nForUser } from '@/common/services/bot/i18n';
+import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
 import type { BotHandlerDeps } from '../types/bot-handler-deps.type';
 import {
     safeDeleteMessage,
@@ -22,6 +23,24 @@ function getSession(ctx: Context): BotSession {
         botCtx.session = {};
     }
     return botCtx.session;
+}
+
+async function replyGenerationError(
+    ctx: BotContext,
+    i18n: ReturnType<typeof getI18nForUser>,
+    error: unknown,
+) {
+    const message =
+        error instanceof Error ? error.message : 'Ошибка запуска';
+    if (message === 'INSUFFICIENT_TOKENS') {
+        await ctx.reply(i18n.aiResult.insufficientTokens, {
+            parse_mode: 'HTML',
+        });
+        return;
+    }
+    await ctx.reply(i18n.aiResult.error(toUserFacingError(message, i18n)), {
+        parse_mode: 'HTML',
+    });
 }
 
 /**
@@ -197,15 +216,7 @@ async function runImmediateMjAction(
             input,
         });
     } catch (error) {
-        const message =
-            error instanceof Error ? error.message : 'Ошибка запуска';
-        if (message === 'INSUFFICIENT_TOKENS') {
-            await ctx.reply(i18n.aiResult.insufficientTokens, {
-                parse_mode: 'HTML',
-            });
-            return;
-        }
-        await ctx.reply(i18n.aiResult.error(message), { parse_mode: 'HTML' });
+        await replyGenerationError(ctx, i18n, error);
     }
 }
 
@@ -304,15 +315,7 @@ async function runImmediateSunoAction(
             input,
         });
     } catch (error) {
-        const message =
-            error instanceof Error ? error.message : 'Ошибка запуска';
-        if (message === 'INSUFFICIENT_TOKENS') {
-            await ctx.reply(i18n.aiResult.insufficientTokens, {
-                parse_mode: 'HTML',
-            });
-            return;
-        }
-        await ctx.reply(i18n.aiResult.error(message), { parse_mode: 'HTML' });
+        await replyGenerationError(ctx, i18n, error);
     }
 }
 
@@ -416,17 +419,7 @@ export async function tryHandlePendingApiframeFollowUp(
                 input,
             });
         } catch (error) {
-            const message =
-                error instanceof Error ? error.message : 'Ошибка запуска';
-            if (message === 'INSUFFICIENT_TOKENS') {
-                await ctx.reply(i18n.aiResult.insufficientTokens, {
-                    parse_mode: 'HTML',
-                });
-            } else {
-                await ctx.reply(i18n.aiResult.error(message), {
-                    parse_mode: 'HTML',
-                });
-            }
+            await replyGenerationError(ctx, i18n, error);
         }
         return true;
     }
@@ -462,17 +455,7 @@ export async function tryHandlePendingApiframeFollowUp(
                 input,
             });
         } catch (error) {
-            const message =
-                error instanceof Error ? error.message : 'Ошибка запуска';
-            if (message === 'INSUFFICIENT_TOKENS') {
-                await ctx.reply(i18n.aiResult.insufficientTokens, {
-                    parse_mode: 'HTML',
-                });
-            } else {
-                await ctx.reply(i18n.aiResult.error(message), {
-                    parse_mode: 'HTML',
-                });
-            }
+            await replyGenerationError(ctx, i18n, error);
         }
         return true;
     }

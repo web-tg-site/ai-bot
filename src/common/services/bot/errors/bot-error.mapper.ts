@@ -206,7 +206,24 @@ const PROVIDER_NAME_PREFIX =
     /^(?:Kling(?:\s+API)?|BytePlus|Sharpii|Apiframe|Topaz|Midjourney|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|BFL|Luma|OpenAI)\s*:\s*/i;
 
 const PROVIDER_NAME_LEAK =
-    /Sharpii|Apiframe|Topaz|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|Google|BFL|Luma|Kling|BytePlus|openrouter|sharpii|apiframe|elevenlabs|kling|generativelanguage/i;
+    /Sharpii|Apiframe|Topaz|Midjourney|Higgsfield|OpenRouter|ElevenLabs|HeyGen|Suno|Gemini|Google|BFL|Luma|Kling|BytePlus|OpenAI|openrouter|sharpii|apiframe|elevenlabs|kling|generativelanguage|midjourney/i;
+
+function hasCyrillic(text: string): boolean {
+    return /[а-яА-ЯёЁ]/.test(text);
+}
+
+/** RU users must never see Latin-only provider dumps. */
+function ensureLocalizedForUser(
+    message: string,
+    i18n: I18nBundle,
+    rawMessage: string,
+): string {
+    if (!isRussianI18n(i18n) || hasCyrillic(message)) {
+        return message;
+    }
+    const code = classifyBotError(rawMessage);
+    return i18n.aiResult.errorByCode[code] ?? i18n.aiResult.errorByCode[1];
+}
 
 function stripProviderPrefix(message: string): string {
     return message.replace(PROVIDER_NAME_PREFIX, '').trim();
@@ -473,8 +490,40 @@ function localizeActionableProviderDetail(
             : 'Generation took too long. Please try again in a moment.';
     }
 
-    // Keep other actionable details, but never leak provider brand names.
-    return stripProviderPrefix(detail);
+    if (
+        /aspect ratio|invalid aspect|unsupported aspect/i.test(detail)
+    ) {
+        return ru
+            ? 'Неподдерживаемое соотношение сторон. Измените кадр или настройки и попробуйте снова.'
+            : 'Unsupported aspect ratio. Change the frame or settings and try again.';
+    }
+
+    if (
+        /face not detected|no face|faces? (?:were )?not (?:found|detected)/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'На фото не найдено лицо. Загрузите другой кадр, где лицо хорошо видно.'
+            : 'No face detected in the photo. Upload another frame where the face is clearly visible.';
+    }
+
+    if (
+        /no speech detected|speech not detected|could not (?:detect|find) speech/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'В аудио не обнаружена речь. Загрузите запись с голосом и попробуйте снова.'
+            : 'No speech detected in the audio. Upload a recording with speech and try again.';
+    }
+
+    // Never leak raw English provider dumps to RU users.
+    const cleaned = stripProviderPrefix(detail);
+    if (ru && !hasCyrillic(cleaned)) {
+        return 'Проверьте описание, файлы и параметры запроса — затем попробуйте снова.';
+    }
+    return cleaned;
 }
 
 function isUserFriendlyMessage(message: string): boolean {
@@ -490,7 +539,7 @@ function isUserFriendlyMessage(message: string): boolean {
 
     // Cyrillic tips we throw ourselves — show even if the text names the tool
     // ("Фото для Kling…"). Block only clearly technical dumps with a brand leak.
-    if (/[а-яА-ЯёЁ]/.test(stripped) && stripped.length > 15) {
+    if (hasCyrillic(stripped) && stripped.length > 15) {
         if (
             containsProviderLeak(stripped) &&
             /HTTP \d+|AxiosError|ECONNREFUSED|ETIMEDOUT|stack trace|at\s+\w+\s+\(/i.test(
@@ -502,16 +551,10 @@ function isUserFriendlyMessage(message: string): boolean {
         return true;
     }
 
+    // English is never "friendly" for the default RU audience — localization
+    // or a generic Russian fallback must handle it.
     if (containsProviderLeak(stripped)) {
         return false;
-    }
-
-    if (
-        /try again|please try|Попробуйте|Недостаточно|недоступен|недоступна|стороне провайдера/i.test(
-            stripped,
-        )
-    ) {
-        return true;
     }
 
     return false;
@@ -656,12 +699,12 @@ export function toUserFacingError(
 
     const safety = matchSafetyError(stripped, i18n);
     if (safety) {
-        return safety;
+        return ensureLocalizedForUser(safety, i18n, stripped);
     }
 
     const known = matchKnownFallback(stripped, i18n);
     if (known) {
-        return known;
+        return ensureLocalizedForUser(known, i18n, stripped);
     }
 
     // Our own validation tips are already written for humans (often in Russian and
@@ -669,14 +712,18 @@ export function toUserFacingError(
     // wrong" just because the brand name trips the provider-leak filter.
     // English provider constraint dumps still go through localization.
     if (isUserInputValidationError(stripped)) {
-        return localizeActionableProviderDetail(
-            stripProviderPrefix(stripped),
+        return ensureLocalizedForUser(
+            localizeActionableProviderDetail(
+                stripProviderPrefix(stripped),
+                i18n,
+            ),
             i18n,
+            stripped,
         );
     }
 
     if (isUserFriendlyMessage(stripped)) {
-        return stripped;
+        return ensureLocalizedForUser(stripped, i18n, stripped);
     }
 
     const providerDetail = stripProviderPrefix(stripped);
@@ -685,18 +732,28 @@ export function toUserFacingError(
         providerDetail !== stripped &&
         isActionableProviderDetail(providerDetail)
     ) {
-        return localizeActionableProviderDetail(providerDetail, i18n);
+        return ensureLocalizedForUser(
+            localizeActionableProviderDetail(providerDetail, i18n),
+            i18n,
+            stripped,
+        );
     }
 
     if (
         !containsProviderLeak(stripped) &&
         isActionableProviderDetail(stripped)
     ) {
-        return localizeActionableProviderDetail(stripped, i18n);
+        return ensureLocalizedForUser(
+            localizeActionableProviderDetail(stripped, i18n),
+            i18n,
+            stripped,
+        );
     }
 
     const code = classifyBotError(stripped);
-    return i18n.aiResult.errorByCode[code] ?? i18n.aiResult.errorByCode[1];
+    return (
+        i18n.aiResult.errorByCode[code] ?? i18n.aiResult.errorByCode[1]
+    );
 }
 
 export function formatUserBotError(error: unknown, i18n: I18nBundle): string {
