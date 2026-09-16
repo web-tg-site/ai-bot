@@ -291,14 +291,15 @@ const RU: Partial<Record<AiToolId, string>> = {
 Оживляет картинку или видео-референс в короткое кинематографичное видео.
 
 - 📸 Можно начать с одного фото
-- 🎬 Можно прикрепить фото или видео-референс
+- 🎬 Видео + текст — правка исходного ролика (длина как у исходника, не удлиняет)
 - 🔄 Можно задать начало и конец (два кадра)
+- ⏱️ Без видео: 5 или 10 секунд
 - ✍️ Опиши, куда едет камера и что делает объект
 
 Как пользоваться
 1. При желании добавь фото или видео.
 2. Напиши движение объекта и камеры.
-3. Выбери формат, длительность и стиль.
+3. Выбери формат и разрешение (длительность — если нет видео-референса).
 4. Запусти генерацию.`,
 
     [AiToolId.ELEVENLABS_VOICE]: `🎙️ ElevenLabs
@@ -612,14 +613,15 @@ How to use
 Animates a photo or video reference into a short cinematic clip.
 
 - 📸 You can start from one photo
-- 🎬 You can attach a photo or video reference
+- 🎬 Video + text — edits the source clip (same length, does not extend)
 - 🔄 You can set start and end frames (two images)
+- ⏱️ Without video: 5 or 10 seconds
 - ✍️ Describe where the camera moves and what the subject does
 
 How to use
 1. Optionally add a photo or video.
 2. Describe object and camera motion.
-3. Choose format, duration and style.
+3. Choose format and resolution (duration only if there is no video reference).
 4. Run generation.`,
 
     [AiToolId.ELEVENLABS_VOICE]: `🎙️ ElevenLabs

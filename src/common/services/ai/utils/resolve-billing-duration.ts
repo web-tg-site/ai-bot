@@ -106,6 +106,10 @@ export function resolveBillingDurationSeconds(
         case AiToolId.KLING:
             return resolveKlingBillingDuration(input);
         case AiToolId.LUMA_RAY:
+            // video_edit / reframe keep source length — don't bill the UI 5/10 picker.
+            if (hasVideoFile(input.files)) {
+                return 5;
+            }
             return requested <= 5 ? 5 : 10;
         case AiToolId.VEO:
             return resolveVeoBillingDuration(input);

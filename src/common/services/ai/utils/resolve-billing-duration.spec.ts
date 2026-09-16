@@ -83,6 +83,15 @@ describe('resolveBillingDurationSeconds', () => {
         ).toBe(10);
     });
 
+    it('Luma with video ref bills 5 (edit keeps source length)', () => {
+        expect(
+            resolveBillingDurationSeconds(AiToolId.LUMA_RAY, {
+                durationSeconds: 10,
+                files: [{ mimeType: 'video/mp4' }],
+            }),
+        ).toBe(5);
+    });
+
     it('Seedance clamps to 4–30', () => {
         expect(
             resolveBillingDurationSeconds(AiToolId.SEEDANCE, {
