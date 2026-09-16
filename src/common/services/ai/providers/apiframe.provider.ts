@@ -33,6 +33,7 @@ import {
     AiFileInput,
 } from '../types';
 import { TempPublicMediaService } from '../temp-public-media.service';
+import { buildMidjourneyImaginePrompt } from './midjourney-prompt';
 
 type ApiframeSubmitResponse = {
     jobId?: string;
@@ -198,19 +199,12 @@ export class ApiframeProvider {
             .slice(0, MIDJOURNEY_MAX_REFERENCES)
             .map((file) => this.publishTempUrl(file));
 
-        const rawPrompt = input.prompt?.trim();
-        if (!rawPrompt && !imageUrls.length) {
-            throw new Error('Midjourney requires a prompt');
-        }
-
         const q = midjourneyQualityToQParam(input.quality);
-        const promptWithoutQ = (rawPrompt ?? '')
-            .replace(/\s--q\s+[\d.]+/gi, '')
-            .trim();
-        const textPart =
-            promptWithoutQ ||
-            'Create an image consistent with the attached reference photos.';
-        const prompt = `${[...imageUrls, textPart].join(' ')} --q ${q}`;
+        const prompt = buildMidjourneyImaginePrompt({
+            imageUrls,
+            rawPrompt: input.prompt,
+            qualityQ: q,
+        });
 
         const body: Record<string, unknown> = {
             prompt,

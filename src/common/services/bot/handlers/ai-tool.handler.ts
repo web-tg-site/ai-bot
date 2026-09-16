@@ -5,7 +5,11 @@ import {
     StoredVoiceSample,
     StoredReference,
 } from '@/common/services/ai';
-import { AiFileInput, AiGenerationInput } from '@/common/services/ai/types';
+import {
+    AiFileInput,
+    AiGenerationInput,
+    AiGenerationResult,
+} from '@/common/services/ai/types';
 import {
     getToolById,
     AI_TOOLS_REGISTRY,
@@ -3365,7 +3369,8 @@ async function buildAiGenerationInput(
     const prompt =
         preparedFiles.length > 0 &&
         !isChatAssistantTool(toolId) &&
-        toolId !== AiToolId.HEYGEN
+        toolId !== AiToolId.HEYGEN &&
+        toolId !== AiToolId.MIDJOURNEY
             ? buildNumberedReferencePrompt(
                   promptText ||
                       (i18n.localeTag === 'en-US'
@@ -3765,7 +3770,7 @@ async function runGeneration(
         const statusMessage = await ctx.reply(i18n.aiResult.generating);
         statusMessageId = statusMessage.message_id;
 
-        let generationResult;
+        let generationResult: AiGenerationResult | undefined;
         let actualToolId = toolId;
         let actualCost = tokenCost;
         let failoverNotice: string | undefined;
@@ -3856,6 +3861,10 @@ async function runGeneration(
                     ],
                 ]),
             });
+        }
+
+        if (!generationResult) {
+            throw new Error('Generation result is missing');
         }
 
         if (!tokensAlreadySettled) {

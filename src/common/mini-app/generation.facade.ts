@@ -127,6 +127,7 @@ export class GenerationFacade {
         if (
             !isChatAssistantTool(params.toolId) &&
             params.toolId !== AiToolId.HEYGEN &&
+            params.toolId !== AiToolId.MIDJOURNEY &&
             input.files?.length &&
             !/Вложения \(теги для промпта\)|Attachments \(use these tags/.test(
                 input.prompt ?? '',

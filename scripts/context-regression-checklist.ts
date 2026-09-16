@@ -7,7 +7,7 @@
  *
  * Photo:
  * - Flux: 2 refs + edit prompt → edits follow refs
- * - Midjourney: prompt only (no refs by design)
+ * - Midjourney: photo + style prompt → single cohesive image (no split / extra people); refs via image URL
  *
  * Audio:
  * - Voice clone: sample + text → voice from sample
@@ -25,6 +25,7 @@ export const CONTEXT_REGRESSION_CHECKLIST = [
     'Kling: 3+ refs + prompt',
     'Higgsfield: 1 ref + prompt',
     'Flux: 2 refs + edit prompt',
+    'Midjourney: photo + style prompt (no split)',
     'Voice clone: sample + text',
     'GPT: image then follow-up question',
     'Async: early generating feedback',
