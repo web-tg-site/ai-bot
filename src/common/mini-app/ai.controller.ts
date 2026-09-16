@@ -55,7 +55,6 @@ import { GenerationFacade } from './generation.facade';
 import { ModuleRef } from '@nestjs/core';
 import { BotService } from '@/common/services/bot';
 import { AiJobService } from '@/common/services/ai/jobs/ai-job.service';
-import { normalizeUploadMime } from '@/common/utils/normalize-upload-mime';
 import { prepareUploadMedia } from '@/common/utils/prepare-upload-media';
 import { getI18n } from '@/common/services/bot/i18n';
 import { normalizeFluxImageMode } from '@/common/config/flux-image-modes.config';
@@ -546,7 +545,7 @@ export class AiController {
                     HttpStatus.BAD_REQUEST,
                 );
             }
-            if (parent.toolId !== body.toolId) {
+            if (parent.toolId !== (body.toolId as string)) {
                 throw new HttpException(
                     {
                         error: 'Инструмент не совпадает с родительской генерацией',
@@ -1058,12 +1057,44 @@ export class AiController {
             };
 
             if (type === 'video') {
-                await botService.sendVideoBuffer(
-                    current.telegramId,
-                    buffer,
-                    mimeType,
-                    false,
-                );
+                let videoSent = false;
+                try {
+                    await botService.sendVideoBuffer(
+                        current.telegramId,
+                        buffer,
+                        mimeType,
+                        false,
+                    );
+                    videoSent = true;
+                } catch {
+                    // continue — document delivery is the reliable path
+                }
+
+                try {
+                    await botService.sendVideoBuffer(
+                        current.telegramId,
+                        buffer,
+                        mimeType,
+                        true,
+                    );
+                } catch (fileError) {
+                    if (videoSent) {
+                        partialWarning =
+                            '⚠️ Видео отправлено, но файл не удалось отправить';
+                        await sendInfoMessage();
+                        return { ok: true };
+                    }
+                    const message =
+                        fileError instanceof Error
+                            ? fileError.message
+                            : 'Send failed';
+                    throw new Error(message);
+                }
+
+                if (!videoSent) {
+                    partialWarning =
+                        '⚠️ Видео не удалось отправить как ролик — слишком большое';
+                }
             } else if (type === 'audio') {
                 await botService.sendAudioBuffer(
                     current.telegramId,
