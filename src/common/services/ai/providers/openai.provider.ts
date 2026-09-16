@@ -35,6 +35,9 @@ const TRANSCRIBE_MODEL = 'gpt-4o-mini-transcribe';
 const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
 const PORTRAIT_ASPECT_RATIOS = new Set(['4:5', '3:4', '2:3', '9:16']);
 const IMAGE_QUALITIES = ['auto', 'low', 'medium', 'high'] as const;
+/** Keep identity stable on images.edit follow-ups (OpenAI has no multi-turn). */
+const GPT_IMAGE_EDIT_PRESERVE =
+    'Keep the exact same subjects, faces, identity, pose, composition and background. Change only what the user explicitly asks.';
 
 type GptImageQuality = (typeof IMAGE_QUALITIES)[number];
 type GptImageSize = '1024x1024' | '1536x1024' | '1024x1536';
@@ -229,7 +232,7 @@ export class OpenAiProvider {
         }
 
         for (let i = 0; i < files.length; i += 1) {
-            const file = files[i]!;
+            const file = files[i];
             const mention = formatAttachmentMention(
                 getAttachmentMentionKind(file),
                 getAttachmentMentionIndex1(files, i),
@@ -395,7 +398,7 @@ export class OpenAiProvider {
                         : 'Изображения со слайдов презентации (для визуальной оценки макета):',
             });
             for (const image of office.images) {
-                let compressed;
+                let compressed: AiFileInput;
                 try {
                     compressed = await compressReferenceImage({
                         buffer: image.buffer,
@@ -540,13 +543,16 @@ export class OpenAiProvider {
         hasImages: boolean,
     ): string {
         const trimmed = prompt?.trim() ?? '';
-        if (trimmed) {
-            return trimmed;
+        if (!trimmed) {
+            return hasImages ? 'Создай изображение по референсу' : '';
         }
         if (!hasImages) {
-            return '';
+            return trimmed;
         }
-        return 'Создай изображение по референсу';
+        if (trimmed.includes(GPT_IMAGE_EDIT_PRESERVE)) {
+            return trimmed;
+        }
+        return `${trimmed}\n\n${GPT_IMAGE_EDIT_PRESERVE}`;
     }
 
     private extractImages(response: {

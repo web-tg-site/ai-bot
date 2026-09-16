@@ -89,14 +89,15 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 📸 Добавь до 10 фото в качестве примеров или референсов
 - 🔤 Хорошо пишет текст на картинке (вывески, надписи)
 - 📐 Выбери разрешение: Авто, 1K, 1.5K или 2K
-- 📐 Формат кадра задаёт пропорции картинки
+- 📐 Формат кадра: 9:16, 16:9 или 1:1
+- 🔄 Продолжай редактирование — после генерации просто напиши, что изменить. Без новых файлов Sora продолжит с предыдущего кадра и постарается сохранить лица и композицию
 
 Как пользоваться
 1. Опиши, что нужно на картинке.
 2. При желании добавь фото-примеры.
 3. Выбери формат и разрешение.
 4. Запусти генерацию.
-5. Не понравился результат? Опиши, что изменить, и запусти снова.`,
+5. Не понравился результат? Опиши, что изменить, и запусти снова — без новых фото правка идёт от прошлого кадра.`,
 
     [AiToolId.MIDJOURNEY]: `🎨 Midjourney
 Рисует картинки по описанию — сначала показывает сетку из 4 вариантов.
@@ -403,14 +404,15 @@ Create and edit images from text with Sora.
 - 📸 Add up to 10 photos as examples or references
 - 🔤 Great at text on images (signs, labels)
 - 📐 Choose resolution: Auto, 1K, 1.5K or 2K
-- 📐 Frame aspect sets the image proportions
+- 📐 Frame aspect: 9:16, 16:9 or 1:1
+- 🔄 Keep editing — after generation, just write what to change. Without new files, Sora continues from the previous frame and tries to keep faces and composition
 
 How to use
 1. Describe what should be in the image.
 2. Optionally add photo references.
 3. Choose format and resolution.
 4. Run generation.
-5. Not happy with the result? Describe what to change and run again.`,
+5. Not happy with the result? Describe what to change and run again — without new photos, the edit continues from the last frame.`,
 
     [AiToolId.MIDJOURNEY]: `🎨 Midjourney
 Draws images from descriptions — first shows a grid of 4 variants.

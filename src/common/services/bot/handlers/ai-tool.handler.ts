@@ -3767,6 +3767,11 @@ async function runGeneration(
                             sendAsFile,
                             getToolLabel(failover.toolId, user.language),
                         );
+                        await rememberGptImagesResult(
+                            session,
+                            failover.toolId,
+                            failover.result,
+                        );
                         return;
                     }
                 }
@@ -3914,6 +3919,8 @@ async function runGeneration(
             getToolLabel(actualToolId, user.language),
         );
 
+        await rememberGptImagesResult(session, actualToolId, generationResult);
+
         if (
             isChatAssistantTool(actualToolId) &&
             session.ai?.activeConversationId &&
@@ -4021,6 +4028,29 @@ async function resolveSendAsFileForTool(
     }
 
     return false;
+}
+
+/**
+ * Sora (GPT Images) has no multi-turn API — seed the last output as the next
+ * edit reference so follow-ups like "add a hat" continue the same frame.
+ */
+async function rememberGptImagesResult(
+    session: BotSession,
+    toolId: AiToolId,
+    result: AiGenerationResult,
+) {
+    if (toolId !== AiToolId.GPT_IMAGES || !session.ai) {
+        return;
+    }
+    if (result.type !== 'image' || !result.buffer?.length) {
+        return;
+    }
+    const stored = await serializeReference({
+        buffer: result.buffer,
+        mimeType: result.mimeType || 'image/png',
+        fileName: 'previous-result.png',
+    });
+    session.ai.referenceFiles = [stored];
 }
 
 async function sendGenerationResult(
