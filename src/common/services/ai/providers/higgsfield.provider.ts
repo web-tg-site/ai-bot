@@ -188,6 +188,17 @@ export class HiggsfieldProvider {
             throw new Error('Higgsfield platform did not return request_id');
         }
 
+        this.logger.info(
+            {
+                requestId,
+                variant,
+                // DoP API ignores duration; clips are ~5s — billing uses 5.
+                effectiveDurationSeconds: 5,
+                requestedDurationSeconds: input.durationSeconds,
+            },
+            'Higgsfield DoP job created',
+        );
+
         return {
             providerJobId: `${PLATFORM_JOB_PREFIX}${requestId}`,
             estimatedTokenCost: 0,
@@ -345,8 +356,16 @@ export class HiggsfieldProvider {
             .map((item) => {
                 if (!item || typeof item !== 'object') return null;
                 const row = item as Record<string, unknown>;
-                const id = String(row.id ?? row.motion_id ?? '').trim();
-                const name = String(row.name ?? row.title ?? '').trim();
+                const idRaw = row.id ?? row.motion_id;
+                const nameRaw = row.name ?? row.title;
+                const id =
+                    typeof idRaw === 'string' || typeof idRaw === 'number'
+                        ? String(idRaw).trim()
+                        : '';
+                const name =
+                    typeof nameRaw === 'string' || typeof nameRaw === 'number'
+                        ? String(nameRaw).trim()
+                        : '';
                 if (!id || !name) return null;
                 const option: HiggsfieldMotionOption = {
                     id,

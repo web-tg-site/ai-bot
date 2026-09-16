@@ -25,6 +25,7 @@ import { VideoCapabilitiesService } from '@/common/services/ai/video-capabilitie
 import { isFailoverEligibleTool } from '@/common/services/ai/failover';
 import { parseDataUrl } from '@/common/utils/parse-data-url';
 import { buildNumberedReferencePrompt } from '@/common/services/bot/utils/image-references';
+import { resolveBillingDurationSeconds } from '@/common/services/ai/utils/resolve-billing-duration';
 
 export type GenerationRequest = {
     userId: string;
@@ -172,6 +173,16 @@ export class GenerationFacade {
 
         if (isVideoFlowTool(effectiveToolId) && input.videoStyleId) {
             input = this.applyVideoStyle(effectiveToolId, input);
+        }
+
+        if (isVideoFlowTool(effectiveToolId)) {
+            input = {
+                ...input,
+                durationSeconds: resolveBillingDurationSeconds(
+                    effectiveToolId,
+                    input,
+                ),
+            };
         }
 
         const toolForBilling = getToolById(effectiveToolId) ?? tool;

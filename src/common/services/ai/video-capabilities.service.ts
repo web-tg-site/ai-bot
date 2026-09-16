@@ -25,6 +25,10 @@ import {
     resolveUiAspectRatios,
 } from '@/common/config/aspect-ratio.config';
 import { getToolById } from '@/common/config/ai-tools.registry';
+import {
+    resolveBillingDurationSeconds,
+    type BillingDurationInput,
+} from './utils/resolve-billing-duration';
 
 export type VideoModelCapabilities = {
     aspectRatios: string[];
@@ -264,35 +268,20 @@ export class VideoCapabilitiesService implements OnModuleInit {
         return 'none';
     }
 
-    resolveProviderDuration(toolId: AiToolId, durationSeconds: number): number {
-        const modelDurations = this.getModelDurations(toolId);
-
-        if (toolId === AiToolId.VEO && modelDurations.length) {
-            return modelDurations.reduce((closest, value) =>
-                Math.abs(value - durationSeconds) <
-                Math.abs(closest - durationSeconds)
-                    ? value
-                    : closest,
-            );
-        }
-
-        if (toolId === AiToolId.KLING) {
-            return Math.min(15, Math.max(5, durationSeconds));
-        }
-
-        if (toolId === AiToolId.KLING_MOTION) {
-            return Math.min(30, Math.max(3, durationSeconds));
-        }
-
-        if (toolId === AiToolId.SEEDANCE) {
-            return Math.min(30, Math.max(4, durationSeconds));
-        }
-
-        if (toolId === AiToolId.LUMA_RAY) {
-            return durationSeconds <= 5 ? 5 : 10;
-        }
-
-        return durationSeconds;
+    /**
+     * Duration that the provider will actually use (and that billing must use).
+     * Pass full generation input when available so mode-specific caps apply
+     * (Higgsfield DoP, Kling Omni, Veo forced 8s).
+     */
+    resolveProviderDuration(
+        toolId: AiToolId,
+        durationSeconds: number,
+        input?: BillingDurationInput,
+    ): number {
+        return resolveBillingDurationSeconds(toolId, {
+            ...input,
+            durationSeconds: input?.durationSeconds ?? durationSeconds,
+        });
     }
 
     private getProviderMaxDuration(
@@ -365,7 +354,11 @@ export class VideoCapabilitiesService implements OnModuleInit {
             return tier === 5 || tier === 10;
         }
 
-        if (toolId === AiToolId.HIGGSFIELD || toolId === AiToolId.HEYGEN) {
+        if (toolId === AiToolId.HIGGSFIELD) {
+            return tier === 5 || tier === 10;
+        }
+
+        if (toolId === AiToolId.HEYGEN) {
             return tier === 5 || tier === 15;
         }
 

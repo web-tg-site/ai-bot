@@ -14,6 +14,7 @@ import {
     calculateToolTokenCost,
     getToolById,
 } from '@/common/config/ai-tools.registry';
+import { calculateVideoSettingsTokenCost } from '../utils/video-settings-token-cost';
 import {
     DEFAULT_HEYGEN_BACKGROUND_COLOR,
     DEFAULT_HEYGEN_BACKGROUND_MODE,
@@ -528,15 +529,17 @@ function generateDurationPickerKeyboard(
     },
 ) {
     const current = options.settings.durationSeconds ?? options.durations[0];
+    const toolId = tool?.id;
     const rows = chunkKeyboardRow(options.durations).map((chunk) =>
         chunk.map((seconds) => {
-            const credits = tool
-                ? calculateToolTokenCost(tool, {
-                      durationSeconds: seconds,
-                      resolution: options.settings.resolution,
-                      quality: options.settings.quality,
-                  })
-                : 0;
+            const credits =
+                toolId != null
+                    ? calculateVideoSettingsTokenCost(
+                          toolId,
+                          options.settings,
+                          { durationSeconds: seconds },
+                      )
+                    : 0;
             return seconds === current
                 ? i18n.videoTool.durationPickerSelected(seconds, credits)
                 : i18n.videoTool.durationPickerOption(seconds, credits);

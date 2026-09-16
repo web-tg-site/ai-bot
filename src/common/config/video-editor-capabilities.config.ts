@@ -247,7 +247,7 @@ export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
     [AiToolId.VEO]: [4, 6, 8],
     [AiToolId.SEEDANCE]: [5, 10, 15, 30],
     [AiToolId.LUMA_RAY]: [5, 10],
-    [AiToolId.HIGGSFIELD]: [5, 10, 15],
+    [AiToolId.HIGGSFIELD]: [5, 10],
     [AiToolId.HEYGEN]: [5, 15],
 };
 

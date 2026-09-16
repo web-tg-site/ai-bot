@@ -35,6 +35,7 @@ import {
     getVideoMaxVideoReferences,
     isVideoFlowTool,
 } from '@/common/config/video-editor-capabilities.config';
+import { resolveBillingDurationSeconds } from '@/common/services/ai/utils/resolve-billing-duration';
 import { ImageToolSettings } from '@/common/types/image-tool-settings.type';
 import {
     buildFluxImageAttachmentRoles,
@@ -3621,6 +3622,13 @@ async function runGeneration(
     >,
 ) {
     if (!ctx.from) return;
+
+    if (isVideoFlowTool(toolId)) {
+        input = {
+            ...input,
+            durationSeconds: resolveBillingDurationSeconds(toolId, input),
+        };
+    }
 
     const tokenCost = deps.tokenBillingService.calculateCost(tool, {
         durationSeconds: input.durationSeconds ?? tool.defaultDurationSeconds,

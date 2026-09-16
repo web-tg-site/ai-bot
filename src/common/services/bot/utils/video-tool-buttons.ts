@@ -27,6 +27,8 @@ import {
     calculateToolTokenCost,
     getToolById,
 } from '@/common/config/ai-tools.registry';
+import { resolveBillingDurationSeconds } from '@/common/services/ai/utils/resolve-billing-duration';
+import { calculateVideoSettingsTokenCost } from './video-settings-token-cost';
 import { I18nBundle, ru, en } from '../i18n';
 import {
     VideoKeyboardMode,
@@ -177,15 +179,12 @@ export function resolveVideoToolButtonAction(
     }
 
     if (options.keyboardMode === 'duration') {
-        const tool = getToolById(options.toolId);
         for (const seconds of options.durations) {
-            const credits = tool
-                ? calculateToolTokenCost(tool, {
-                      durationSeconds: seconds,
-                      resolution: options.currentSettings.resolution,
-                      quality: options.currentSettings.quality,
-                  })
-                : 0;
+            const credits = calculateVideoSettingsTokenCost(
+                options.toolId,
+                options.currentSettings,
+                { durationSeconds: seconds },
+            );
             if (
                 text ===
                     i18n.videoTool.durationPickerOption(seconds, credits) ||
@@ -612,12 +611,16 @@ export function buildVideoSummaryLine(
     const tool = getToolById(options.toolId);
     const duration =
         options.settings.durationSeconds ?? tool?.defaultDurationSeconds;
-    const credits =
-        tool && duration
-            ? calculateToolTokenCost(tool, {
+    const credits = tool
+        ? calculateVideoSettingsTokenCost(options.toolId, options.settings)
+        : undefined;
+    const billedDuration =
+        duration != null
+            ? resolveBillingDurationSeconds(options.toolId, {
                   durationSeconds: duration,
+                  higgsfieldMotionId: options.settings.higgsfieldMotionId,
                   resolution: options.settings.resolution,
-                  quality: options.settings.quality,
+                  veoMode: options.settings.veoMode,
               })
             : undefined;
 
@@ -641,7 +644,7 @@ export function buildVideoSummaryLine(
                       ),
                   )
                 : undefined,
-        durationSeconds: duration,
+        durationSeconds: billedDuration,
         styleLabel:
             options.settings.styleId && options.settings.styleId !== 'none'
                 ? getVideoStyleLabel(

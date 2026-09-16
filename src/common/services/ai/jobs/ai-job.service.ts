@@ -6,6 +6,8 @@ import { AiService } from '../ai.service';
 import { AiGenerationInput, AiToolId } from '../types';
 import { getToolById } from '@/common/config/ai-tools.registry';
 import { TokenBillingService } from '../billing/token-billing.service';
+import { resolveBillingDurationSeconds } from '../utils/resolve-billing-duration';
+import { isVideoFlowTool } from '@/common/config/video-editor-capabilities.config';
 import {
     AI_JOB_MAX_AGE_MS,
     AI_JOB_POLL_BATCH_SIZE,
@@ -63,12 +65,14 @@ export class AiJobService {
             throw new Error(`Unknown tool: ${params.toolId}`);
         }
 
+        const input = this.withBillingDuration(params.toolId, params.input);
+
         const tokenCost = this.tokenBillingService.calculateCost(tool, {
-            durationSeconds: params.input.durationSeconds,
-            topazScale: params.input.topazScale,
-            quality: params.input.quality,
-            resolution: params.input.resolution,
-            apiframeAction: params.input.apiframeAction,
+            durationSeconds: input.durationSeconds,
+            topazScale: input.topazScale,
+            quality: input.quality,
+            resolution: input.resolution,
+            apiframeAction: input.apiframeAction,
         });
 
         const balanceCheck = await this.tokenBillingService.checkBalance(
@@ -81,7 +85,7 @@ export class AiJobService {
 
         const submitted = await this.submitOrQueueCapacityRetry(
             params.toolId,
-            params.input,
+            input,
         );
 
         const deductResult = await this.tokenBillingService.commit(
@@ -99,10 +103,10 @@ export class AiJobService {
                 providerJobId: submitted.providerJobId,
                 status: JobStatus.PENDING,
                 tokenCost,
-                inputJson: toPersistedInputJson(params.input, {
+                inputJson: toPersistedInputJson(input, {
                     includeFiles: true,
                 }),
-                prompt: jobPromptForDb(params.input),
+                prompt: jobPromptForDb(input),
                 notifyTelegram: params.notifyTelegram ?? true,
                 sessionId: params.sessionId ?? null,
                 statusMessageId: params.statusMessageId ?? null,
@@ -117,6 +121,7 @@ export class AiJobService {
                 toolId: params.toolId,
                 providerJobId: submitted.providerJobId,
                 tokenCost,
+                durationSeconds: input.durationSeconds,
             },
             `AI job created [${params.toolId}]`,
         );
@@ -562,6 +567,20 @@ export class AiJobService {
             );
             return retry ? 'rescheduled' : 'give_up';
         }
+    }
+
+    private withBillingDuration(
+        toolId: AiToolId,
+        input: AiGenerationInput,
+    ): AiGenerationInput {
+        if (!isVideoFlowTool(toolId)) {
+            return input;
+        }
+
+        return {
+            ...input,
+            durationSeconds: resolveBillingDurationSeconds(toolId, input),
+        };
     }
 
     private async submitOrQueueCapacityRetry(
