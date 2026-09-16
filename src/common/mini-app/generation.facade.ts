@@ -27,6 +27,14 @@ import { parseDataUrl } from '@/common/utils/parse-data-url';
 import { buildNumberedReferencePrompt } from '@/common/services/bot/utils/image-references';
 import { resolveBillingDurationSeconds } from '@/common/services/ai/utils/resolve-billing-duration';
 
+/** Tools that speak `prompt` aloud — never prepend @file / attachment manifesto. */
+const SKIP_ATTACHMENT_MANIFEST_TOOLS = new Set<AiToolId>([
+    AiToolId.HEYGEN,
+    AiToolId.MIDJOURNEY,
+    AiToolId.VOICE_CLONE,
+    AiToolId.ELEVENLABS_VOICE,
+]);
+
 export type GenerationRequest = {
     userId: string;
     telegramId: string;
@@ -127,8 +135,7 @@ export class GenerationFacade {
 
         if (
             !isChatAssistantTool(params.toolId) &&
-            params.toolId !== AiToolId.HEYGEN &&
-            params.toolId !== AiToolId.MIDJOURNEY &&
+            !SKIP_ATTACHMENT_MANIFEST_TOOLS.has(params.toolId) &&
             input.files?.length &&
             !/Вложения \(теги для промпта\)|Attachments \(use these tags/.test(
                 input.prompt ?? '',

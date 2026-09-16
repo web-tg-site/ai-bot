@@ -17,6 +17,7 @@ import {
 } from '../types';
 import { AiToolId } from '../types';
 import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
+import { stripAttachmentMentionManifest } from '@/common/services/bot/utils/image-references';
 
 export function stripSharpiiErrorMessage(message: string): string {
     return message.split('\n\nID запроса:')[0].trim();
@@ -106,7 +107,7 @@ export class SharpiiProvider {
         const isVideo = tool.category === 'video';
         const path = isVideo ? '/v1/videos/generate' : '/v1/images/generate';
         const model = isVideo
-            ? this.resolveSharpiiVideoModel(toolId, tool.model, input)
+            ? this.resolveSharpiiVideoModel(toolId, tool.model)
             : this.resolveSharpiiImageModel(toolId, tool.model, input);
         const body = this.buildVideoImageRequestBody(
             toolId,
@@ -244,12 +245,19 @@ export class SharpiiProvider {
         input: AiGenerationInput,
         model: string,
     ): Promise<AiGenerationResult> {
+        const text = stripAttachmentMentionManifest(input.prompt ?? '')
+            .trim()
+            .slice(0, 5000);
+        if (!text) {
+            throw new Error('Отправьте текст для озвучки');
+        }
+
         const response = await this.post<SharpiiTaskSubmitResponse>(
             '/v1/audio/speech',
             {
                 model,
                 voice: this.ttsVoice,
-                text: (input.prompt ?? '').slice(0, 5000),
+                text,
                 format: 'mp3',
             },
         );
@@ -281,7 +289,10 @@ export class SharpiiProvider {
             );
         }
 
-        if (!input.prompt) {
+        const speechText = stripAttachmentMentionManifest(input.prompt ?? '')
+            .trim()
+            .slice(0, 5000);
+        if (!speechText) {
             throw new Error(
                 'Отправьте текст для озвучки клонированным голосом',
             );
@@ -291,7 +302,7 @@ export class SharpiiProvider {
             '/v1/audio/voice-clone',
             {
                 model,
-                text: input.prompt.slice(0, 5000),
+                text: speechText,
                 audio_url: this.toDataUrl(sample),
                 custom_voice_id:
                     input.customVoiceId ?? `bot-clone-${randomUUID()}`,
@@ -631,7 +642,6 @@ export class SharpiiProvider {
     private resolveSharpiiVideoModel(
         _toolId: AiToolId,
         defaultModel: string,
-        _input: AiGenerationInput,
     ): string {
         return defaultModel;
     }

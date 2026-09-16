@@ -19,6 +19,7 @@ import {
     mapElevenLabsUseCase,
     resolveElevenLabsVoiceLabels,
 } from '@/common/config/elevenlabs-voices.config';
+import { stripAttachmentMentionManifest } from '@/common/services/bot/utils/image-references';
 
 export type { ElevenLabsVoiceOption };
 
@@ -338,9 +339,9 @@ export class ElevenLabsProvider {
     private async textToSpeech(
         input: AiGenerationInput,
     ): Promise<AiGenerationResult> {
-        const text = (input.prompt ?? '').slice(0, MAX_TEXT_LENGTH);
+        const text = this.resolveSpeechText(input.prompt);
 
-        if (!text.trim()) {
+        if (!text) {
             throw new Error('Отправьте текст для озвучки');
         }
 
@@ -391,7 +392,8 @@ export class ElevenLabsProvider {
             );
         }
 
-        if (!input.prompt) {
+        const speechText = this.resolveSpeechText(input.prompt);
+        if (!speechText) {
             throw new Error(
                 'Отправьте текст для озвучки клонированным голосом',
             );
@@ -425,7 +427,7 @@ export class ElevenLabsProvider {
         }
 
         try {
-            const buffer = await this.synthesizeSpeech(voiceId, input.prompt);
+            const buffer = await this.synthesizeSpeech(voiceId, speechText);
 
             return {
                 type: 'audio',
@@ -437,17 +439,25 @@ export class ElevenLabsProvider {
         }
     }
 
+    /** Spoken text only — never the attachment @file / @image manifesto. */
+    private resolveSpeechText(prompt: string | undefined): string {
+        return stripAttachmentMentionManifest(prompt ?? '')
+            .trim()
+            .slice(0, MAX_TEXT_LENGTH);
+    }
+
     private async generateSoundEffect(
         input: AiGenerationInput,
     ): Promise<AiGenerationResult> {
-        if (!input.prompt?.trim()) {
+        const userPrompt = stripAttachmentMentionManifest(
+            input.prompt ?? '',
+        ).trim();
+        if (!userPrompt) {
             throw new Error('Опишите звук, который нужно сгенерировать');
         }
 
         const apiPrompt =
-            await this.openRouterProvider.prepareSoundEffectPrompt(
-                input.prompt,
-            );
+            await this.openRouterProvider.prepareSoundEffectPrompt(userPrompt);
         const durationSeconds = Math.min(
             22,
             Math.max(0.5, input.durationSeconds ?? this.sfxDurationSeconds),
@@ -455,7 +465,7 @@ export class ElevenLabsProvider {
 
         this.logger.info(
             {
-                userPrompt: input.prompt.trim().slice(0, 200),
+                userPrompt: userPrompt.slice(0, 200),
                 apiPrompt: apiPrompt.slice(0, 300),
                 durationSeconds,
                 promptInfluence: this.sfxPromptInfluence,

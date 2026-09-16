@@ -3392,7 +3392,9 @@ async function buildAiGenerationInput(
         preparedFiles.length > 0 &&
         !isChatAssistantTool(toolId) &&
         toolId !== AiToolId.HEYGEN &&
-        toolId !== AiToolId.MIDJOURNEY
+        toolId !== AiToolId.MIDJOURNEY &&
+        toolId !== AiToolId.VOICE_CLONE &&
+        toolId !== AiToolId.ELEVENLABS_VOICE
             ? buildNumberedReferencePrompt(
                   promptText ||
                       (i18n.localeTag === 'en-US'
