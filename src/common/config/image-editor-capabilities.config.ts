@@ -75,7 +75,7 @@ export type ImageModelCapabilities = {
 };
 
 export const STATIC_IMAGE_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
-    [AiToolId.GPT_IMAGES]: [...UI_ASPECT_RATIOS],
+    [AiToolId.GPT_IMAGES]: ['9:16', '16:9', '1:1'],
     [AiToolId.FLUX]: [...UI_ASPECT_RATIOS],
     [AiToolId.NANO_BANANA]: [...NANO_BANANA_ASPECT_RATIOS],
     [AiToolId.SEEDREAM]: [...UI_ASPECT_RATIOS],
