@@ -247,12 +247,11 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
                         ...extra,
                         ...(caption ? { caption } : {}),
                     }),
-                sendDocument: (file) =>
-                    this.bot.telegram.sendDocument(
-                        chatId,
-                        file,
-                        caption ? { caption } : undefined,
-                    ),
+                sendDocument: (file, extra) =>
+                    this.bot.telegram.sendDocument(chatId, file, {
+                        ...extra,
+                        ...(caption ? { caption } : {}),
+                    }),
             },
             buffer,
             mimeType,

@@ -147,8 +147,11 @@ export async function sendVideoBuffer(
                     ...extra,
                     ...(caption ? { caption } : {}),
                 }),
-            sendDocument: (file) =>
-                ctx.replyWithDocument(file, caption ? { caption } : undefined),
+            sendDocument: (file, extra) =>
+                ctx.replyWithDocument(file, {
+                    ...extra,
+                    ...(caption ? { caption } : {}),
+                }),
         },
         buffer,
         mimeType,
@@ -164,6 +167,7 @@ export async function deliverVideoBuffer(
         ) => Promise<unknown>;
         sendDocument: (
             file: ReturnType<typeof bufferToInputFile>,
+            extra?: { disable_content_type_detection?: boolean },
         ) => Promise<unknown>;
     },
     buffer: Buffer,
@@ -188,6 +192,16 @@ export async function deliverVideoBuffer(
         return;
     }
 
+    if (sendAsFile) {
+        // Original bytes as a downloadable file. Without this flag Telegram
+        // often re-detects MP4 and shows another inline video bubble.
+        const ext = mimeTypeToExtension(mimeType, 'mp4');
+        await api.sendDocument(bufferToInputFile(buffer, `video.${ext}`), {
+            disable_content_type_detection: true,
+        });
+        return;
+    }
+
     let payload = buffer;
     try {
         payload = await remuxVideoForTelegram(buffer);
@@ -196,15 +210,12 @@ export async function deliverVideoBuffer(
     }
 
     const inputFile = bufferToInputFile(payload, 'video.mp4');
-    if (sendAsFile) {
-        await api.sendDocument(inputFile);
-        return;
-    }
-
     try {
         await api.sendVideo(inputFile, { supports_streaming: true });
     } catch {
-        await api.sendDocument(inputFile);
+        await api.sendDocument(inputFile, {
+            disable_content_type_detection: true,
+        });
     }
 }
 

@@ -1057,19 +1057,9 @@ export class AiController {
             };
 
             if (type === 'video') {
-                let videoSent = false;
-                try {
-                    await botService.sendVideoBuffer(
-                        current.telegramId,
-                        buffer,
-                        mimeType,
-                        false,
-                    );
-                    videoSent = true;
-                } catch {
-                    // continue — document delivery is the reliable path
-                }
-
+                // File first (downloadable), then compressed preview — MP4 documents
+                // without disable_content_type_detection look like another video bubble.
+                let fileSent = false;
                 try {
                     await botService.sendVideoBuffer(
                         current.telegramId,
@@ -1077,23 +1067,35 @@ export class AiController {
                         mimeType,
                         true,
                     );
-                } catch (fileError) {
-                    if (videoSent) {
+                    fileSent = true;
+                } catch {
+                    // continue — try compressed video
+                }
+
+                try {
+                    await botService.sendVideoBuffer(
+                        current.telegramId,
+                        buffer,
+                        mimeType,
+                        false,
+                    );
+                } catch (videoError) {
+                    if (fileSent) {
                         partialWarning =
-                            '⚠️ Видео отправлено, но файл не удалось отправить';
+                            '⚠️ Файл отправлен, но ролик не удалось отправить';
                         await sendInfoMessage();
                         return { ok: true };
                     }
                     const message =
-                        fileError instanceof Error
-                            ? fileError.message
+                        videoError instanceof Error
+                            ? videoError.message
                             : 'Send failed';
                     throw new Error(message);
                 }
 
-                if (!videoSent) {
+                if (!fileSent) {
                     partialWarning =
-                        '⚠️ Видео не удалось отправить как ролик — слишком большое';
+                        '⚠️ Файл не удалось отправить — слишком большое видео';
                 }
             } else if (type === 'audio') {
                 await botService.sendAudioBuffer(
