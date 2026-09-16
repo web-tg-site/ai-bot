@@ -1931,11 +1931,21 @@ async function handleVideoToolButtonPress(
     }
 
     if (action.type === 'set_resolution') {
+        const resolutionPatch: {
+            resolution: string;
+            durationSeconds?: number;
+        } = { resolution: action.value };
+        if (
+            toolId === AiToolId.VEO &&
+            (action.value === '1080p' || action.value === '4k')
+        ) {
+            resolutionPatch.durationSeconds = 8;
+        }
         const nextSettings =
             await deps.userAiToolSettingsModelService.upsertVideoSettings(
                 user.id,
                 toolId,
-                { resolution: action.value },
+                resolutionPatch,
             );
         session.ai.toolSettings = nextSettings;
         session.ai.videoKeyboardMode = 'settings';
@@ -1957,8 +1967,19 @@ async function handleVideoToolButtonPress(
             localeTag: i18n.localeTag,
             capabilitiesService: deps.videoCapabilitiesService,
         });
+        const resolutionNote =
+            toolId === AiToolId.VEO &&
+            (action.value === '1080p' || action.value === '4k')
+                ? i18n.localeTag === 'en-US'
+                    ? '\n⏱️ 1080p/4K → duration locked to 8 seconds.'
+                    : '\n⏱️ 1080p/4K → длительность зафиксирована на 8 секунд.'
+                : '';
         await ctx.reply(
-            [i18n.videoTool.resolutionChanged(action.value, tokens), summary]
+            [
+                i18n.videoTool.resolutionChanged(action.value, tokens) +
+                    resolutionNote,
+                summary,
+            ]
                 .filter(Boolean)
                 .join('\n\n'),
             {

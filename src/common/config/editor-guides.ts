@@ -209,6 +209,7 @@ const RU: Partial<Record<AiToolId, string>> = {
 - ✍️ Опиши сцену — получишь видео на 4, 6 или 8 секунд
 - 📐 Формат: широкий (16:9) или вертикальный сторис (9:16)
 - 🎞️ Разрешение: 720p, 1080p или 4K
+- ⏱️ 720p — 4/6/8 сек; 1080p и 4K — только 8 сек
 - 📸 Одно фото — видео начнётся с этого кадра
 - 🔄 Два фото — плавный переход от первого ко второму (только 8 сек)
 - 🖼️ До 3 фото-примеров — «как должно выглядеть»
@@ -529,6 +530,7 @@ Create short videos from text — audio is included in the clip.
 - ✍️ Describe the scene — get a 4, 6 or 8 second video
 - 📐 Format: widescreen (16:9) or vertical stories (9:16)
 - 🎞️ Resolution: 720p, 1080p or 4K
+- ⏱️ 720p — 4/6/8s; 1080p and 4K — 8s only
 - 📸 One photo — video starts from that frame
 - 🔄 Two photos — smooth transition from first to second (8 seconds only)
 - 🖼️ Up to 3 reference photos — "how it should look"
