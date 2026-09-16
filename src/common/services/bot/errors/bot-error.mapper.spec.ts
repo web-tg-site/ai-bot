@@ -151,10 +151,25 @@ describe('bot-error.mapper', () => {
                     'Extra input are not permitted (invalid_parameter)',
                     ru,
                 ),
-            ).toMatch(/параметр|голос|настройк/i);
+            ).toMatch(/фото|лицо|голос|настройк/i);
             expect(toUserFacingError('voice_id is required', ru)).toMatch(
                 /Выберите голос/i,
             );
+        });
+
+        it('localizes blurry / unreadable face photo errors', () => {
+            expect(
+                toUserFacingError('Photo is too blurry to detect face', ru),
+            ).toMatch(/размыт|лицо|портрет/i);
+            expect(toUserFacingError('No face detected in image', ru)).toMatch(
+                /лицо|портрет/i,
+            );
+            expect(
+                toUserFacingError(
+                    'Не удалось разобрать лицо на фото. Нужен чёткий портрет анфас: без сильного размытия, с хорошим светом и хорошо видимым лицом. Также проверьте голос в настройках.',
+                    ru,
+                ),
+            ).toMatch(/размыт|лицо|портрет/i);
         });
 
         it('localizes Veo unsupported use-case JSON from Gemini', () => {

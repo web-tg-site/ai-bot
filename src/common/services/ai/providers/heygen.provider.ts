@@ -207,15 +207,32 @@ export class HeyGenProvider {
 
         await this.applySpeech(body, speechScript, audio, voiceId, true);
 
-        const response = await this.post<{ data: { video_id: string } }>(
-            '/v3/videos',
-            body,
-        );
+        try {
+            const response = await this.post<{ data: { video_id: string } }>(
+                '/v3/videos',
+                body,
+            );
 
-        return {
-            providerJobId: response.data.video_id,
-            estimatedTokenCost: 0,
-        };
+            return {
+                providerJobId: response.data.video_id,
+                estimatedTokenCost: 0,
+            };
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : String(error);
+            if (
+                /extra inputs? are not permitted|invalid_parameter|invalid parameter/i.test(
+                    message,
+                )
+            ) {
+                // Image/talking-photo path: HeyGen often returns a generic
+                // invalid_parameter when the face is unreadable (blurry/dark).
+                throw new Error(
+                    'Не удалось разобрать лицо на фото. Нужен чёткий портрет анфас: без сильного размытия, с хорошим светом и хорошо видимым лицом. Также проверьте голос в настройках.',
+                );
+            }
+            throw error;
+        }
     }
 
     /** Spoken text only — never the attachment @image / @file manifesto. */

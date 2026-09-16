@@ -77,7 +77,7 @@ export function isUserInputValidationError(rawMessage: string): boolean {
     }
 
     if (
-        /Видео-референс|Обрежьте клип|обрежь клип|С видео-референсом нужен|нужен промпт|только одно видео|не больше \d+\s*МБ|должен быть от|должна быть от|Разрешение видео|Кадровая частота|принимает не больше|принимает только|Загрузите фото|Загрузите видео|загрузите фото|загрузите видео|Отправьте текстовый промпт|Прикреплённый файл слишком|Поза с фото|Поза из видео|не подходит|Convert the document|Сохраните документ|не смог прочитать фото|не смог прочитать видео|Фото для Kling|Слишком вытянутое фото|Image pixel is invalid|get the contents of the file|Выберите голос|Extra input|invalid_parameter|voice(?:_id)? (?:is )?required|select (?:a )?voice|use case is currently not supported/i.test(
+        /Видео-референс|Обрежьте клип|обрежь клип|С видео-референсом нужен|нужен промпт|только одно видео|не больше \d+\s*МБ|должен быть от|должна быть от|Разрешение видео|Кадровая частота|принимает не больше|принимает только|Загрузите фото|Загрузите видео|загрузите фото|загрузите видео|Отправьте текстовый промпт|Прикреплённый файл слишком|Поза с фото|Поза из видео|не подходит|Convert the document|Сохраните документ|не смог прочитать фото|не смог прочитать видео|Фото для Kling|Слишком вытянутое фото|Image pixel is invalid|get the contents of the file|Выберите голос|Extra input|invalid_parameter|voice(?:_id)? (?:is )?required|select (?:a )?voice|use case is currently not supported|blur(?:ry|red)?|no face|missing faces|face not/i.test(
             detailWithoutHttp,
         )
     ) {
@@ -430,13 +430,23 @@ function localizeActionableProviderDetail(
     }
 
     if (
+        /blur(?:ry|red)?|out of focus|low[- ]?quality (?:face|image|photo)|face (?:is )?(?:too )?(?:small|unclear|blur|dark)|unclear face|poor (?:image|photo) quality|face quality|cannot detect(?: a)? face|could(?:n'?t| not) detect(?: a)? face|failed to (?:detect|track) (?:your )?face|missing faces|no human face|face not (?:clear|visible|detected)|no face|faces? (?:were )?not (?:found|detected)|not clearly visible|photo (?:is )?(?:too )?(?:blur|dark|unclear)/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'Не удалось разобрать лицо на фото. Нужен чёткий портрет анфас: без сильного размытия, с хорошим светом и хорошо видимым лицом.'
+            : 'Could not read the face in the photo. Use a clear front-facing portrait: not blurry, well lit, with the face fully visible.';
+    }
+
+    if (
         /extra inputs? are not permitted|invalid_parameter|invalid parameter/i.test(
             detail,
         )
     ) {
         return ru
-            ? 'Неверные параметры запроса. Проверьте, что выбраны голос и нужные настройки, и попробуйте снова.'
-            : 'Invalid request parameters. Check that a voice and the required settings are selected, then try again.';
+            ? 'Неверные параметры запроса. Если загружали своё фото — нужно чёткое лицо анфас без размытия; также проверьте голос и настройки.'
+            : 'Invalid request parameters. If you uploaded your own photo, use a clear front-facing face without blur; also check the voice and settings.';
     }
 
     if (
@@ -490,22 +500,10 @@ function localizeActionableProviderDetail(
             : 'Generation took too long. Please try again in a moment.';
     }
 
-    if (
-        /aspect ratio|invalid aspect|unsupported aspect/i.test(detail)
-    ) {
+    if (/aspect ratio|invalid aspect|unsupported aspect/i.test(detail)) {
         return ru
             ? 'Неподдерживаемое соотношение сторон. Измените кадр или настройки и попробуйте снова.'
             : 'Unsupported aspect ratio. Change the frame or settings and try again.';
-    }
-
-    if (
-        /face not detected|no face|faces? (?:were )?not (?:found|detected)/i.test(
-            detail,
-        )
-    ) {
-        return ru
-            ? 'На фото не найдено лицо. Загрузите другой кадр, где лицо хорошо видно.'
-            : 'No face detected in the photo. Upload another frame where the face is clearly visible.';
     }
 
     if (
@@ -751,9 +749,7 @@ export function toUserFacingError(
     }
 
     const code = classifyBotError(stripped);
-    return (
-        i18n.aiResult.errorByCode[code] ?? i18n.aiResult.errorByCode[1]
-    );
+    return i18n.aiResult.errorByCode[code] ?? i18n.aiResult.errorByCode[1];
 }
 
 export function formatUserBotError(error: unknown, i18n: I18nBundle): string {
