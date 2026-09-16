@@ -1,16 +1,26 @@
 import { stripAttachmentMentionManifest } from '@/common/services/bot/utils/image-references';
 
-/** Stabilizer for MJ image prompts — reduces split / before-after / extra people. */
-export const MIDJOURNEY_REF_ANTI_SPLIT_SUFFIX =
-    'single cohesive image, no split panels, no side-by-side comparison, no extra people, keep the same subject';
+/** Keep MJ glued to the reference photo (0–2). */
+export const MIDJOURNEY_REF_IMAGE_WEIGHT = 2;
+
+/**
+ * Negative terms Midjourney understands via `--no`.
+ * Targets split/collage layouts and invented people on style-transfer.
+ */
+export const MIDJOURNEY_REF_NO_TERMS =
+    'people, person, human, man, woman, girl, boy, child, face, collage, split panel, diptych, triptych, side by side, before and after, grid layout, comic panel, multiple panels, comparison';
+
+/** Positive framing appended when image refs are present. */
+export const MIDJOURNEY_REF_STYLE_HINT =
+    'single full-frame image of the exact same subject from the reference photo only, no extra subjects';
 
 const DEFAULT_REF_PROMPT =
-    'Create an image consistent with the attached reference photos.';
+    'reimagine the reference photo in the requested style, keep the exact same subject';
 
 /**
  * Builds the Apiframe Midjourney imagine prompt:
- * `<imageUrls…> <user text> [anti-split] --q <q>`
- * Strips the bot/mini-app attachment manifesto so MJ never sees @image tags.
+ * `<imageUrls…> <user text>, <hint> --iw N --no … --q <q>`
+ * Strips attachment manifesto / @image tags so MJ never sees bot meta-text.
  */
 export function buildMidjourneyImaginePrompt(params: {
     imageUrls: readonly string[];
@@ -19,7 +29,12 @@ export function buildMidjourneyImaginePrompt(params: {
 }): string {
     const { imageUrls, qualityQ } = params;
     const cleaned = stripAttachmentMentionManifest(params.rawPrompt ?? '')
+        .replace(/@(?:image|video|file)\d+/gi, '')
         .replace(/\s--q\s+[\d.]+/gi, '')
+        .replace(/\s--iw\s+[\d.]+/gi, '')
+        // Strip a prior --no … block up to the next flag or end of string.
+        .replace(/\s--no\b[\s\S]*?(?=\s--[a-z]|$)/gi, '')
+        .replace(/\s+/g, ' ')
         .trim();
 
     let textPart = cleaned || (imageUrls.length ? DEFAULT_REF_PROMPT : '');
@@ -29,9 +44,10 @@ export function buildMidjourneyImaginePrompt(params: {
 
     if (imageUrls.length) {
         textPart = textPart
-            ? `${textPart} ${MIDJOURNEY_REF_ANTI_SPLIT_SUFFIX}`
-            : MIDJOURNEY_REF_ANTI_SPLIT_SUFFIX;
+            ? `${textPart}, ${MIDJOURNEY_REF_STYLE_HINT}`
+            : MIDJOURNEY_REF_STYLE_HINT;
+        return `${[...imageUrls, textPart].join(' ')} --iw ${MIDJOURNEY_REF_IMAGE_WEIGHT} --no ${MIDJOURNEY_REF_NO_TERMS} --q ${qualityQ}`;
     }
 
-    return `${[...imageUrls, textPart].filter(Boolean).join(' ')} --q ${qualityQ}`;
+    return `${textPart} --q ${qualityQ}`;
 }

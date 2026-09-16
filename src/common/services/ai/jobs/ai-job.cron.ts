@@ -478,17 +478,7 @@ export class AiJobCron {
             resultJson?.kind === 'midjourney_grid' &&
             resultJson.images?.length
         ) {
-            if (resultJson.gridUrl) {
-                await this.sendResult(
-                    botService,
-                    job.user.telegramId,
-                    job.toolId as AiToolId,
-                    'image',
-                    { url: resultJson.gridUrl },
-                    sendAsFile,
-                    `${caption} (сетка)`,
-                );
-            }
+            // Send individual tiles only — the 2×2 gridUrl looks like one broken collage.
             for (let i = 0; i < Math.min(resultJson.images.length, 4); i++) {
                 await this.sendResult(
                     botService,

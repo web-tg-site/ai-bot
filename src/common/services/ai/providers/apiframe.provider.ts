@@ -23,6 +23,7 @@ import {
     MIDJOURNEY_MAX_REFERENCES,
 } from '@/common/config/image-editor-capabilities.config';
 import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
+import { mimeTypeToExtension } from '@/common/utils/parse-data-url';
 import {
     AiGenerationInput,
     AiGenerationResult,
@@ -238,7 +239,12 @@ export class ApiframeProvider {
             mimeType: file.mimeType,
             fileName: file.fileName,
         });
-        return `${this.publicBaseUrl}/api/public/tmp/${id}`;
+        // Midjourney image prompts often ignore URLs without an image extension.
+        const fromName = file.fileName?.match(/\.(jpe?g|png|webp|gif)$/i)?.[0];
+        const ext = fromName
+            ? fromName.toLowerCase().replace(/\.jpeg$/i, '.jpg')
+            : `.${mimeTypeToExtension(file.mimeType || 'image/jpeg', 'jpg')}`;
+        return `${this.publicBaseUrl}/api/public/tmp/${id}${ext}`;
     }
 
     private async createSunoJob(
@@ -535,9 +541,10 @@ export class ApiframeProvider {
 
             return {
                 type: 'image',
-                url: result.gridUrl || images[0],
+                // Prefer a single tile as the canonical result — not the 2×2 collage.
+                url: images[0],
                 additionalUrls: isGrid
-                    ? images
+                    ? images.slice(1)
                     : images.length > 1
                       ? images.slice(1)
                       : undefined,

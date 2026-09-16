@@ -12,7 +12,9 @@ export class PublicTmpController {
 
     @Get(':id')
     serve(@Param('id') id: string, @Res() res: Response) {
-        const entry = this.tempPublicMedia.get(id);
+        // Accept optional image extension so Midjourney image-prompt URLs work.
+        const lookupId = id.replace(/\.(jpe?g|png|webp|gif)$/i, '');
+        const entry = this.tempPublicMedia.get(lookupId);
         if (!entry) {
             throw new NotFoundException('File expired or not found');
         }
