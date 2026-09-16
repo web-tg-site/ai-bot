@@ -224,7 +224,7 @@ Select a tool below.`,
             safetyBlocked:
                 'The model blocked the request due to safety limits. Edit the prompt and try again.',
             contentPolicy:
-                'The request did not pass the content policy check. Edit the prompt and try again.',
+                '400: Request blocked due to prohibited content rules. Please modify your request and try again.',
             rateLimit: 'Too many requests. Wait a moment and try again.',
             voicePreviewFailed:
                 'Could not load the voice preview. Try again later.',
@@ -578,8 +578,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             `Aspect: ${formatAspectRatioLabelEn(ratio)}`,
         resolutionChanged: (resolution, tokens) =>
             `${resolution} (${tokens} tokens)`,
-        qualityChanged: (label, tokens) =>
-            `${label} (${tokens} tokens)`,
+        qualityChanged: (label, tokens) => `${label} (${tokens} tokens)`,
         fluxModePickerOption: (label) => label,
         fluxModePickerSelected: (label) => `✓ ${label}`,
         fluxModeChanged: (label) => `Flux mode: <b>${label}</b>`,
@@ -690,8 +689,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             `Aspect: ${formatAspectRatioLabelEn(ratio)}`,
         resolutionChanged: (resolution, tokens) =>
             `${resolution} (${tokens} tokens)`,
-        qualityChanged: (label, tokens) =>
-            `${label} (${tokens} tokens)`,
+        qualityChanged: (label, tokens) => `${label} (${tokens} tokens)`,
         durationToolbarButton: (seconds, credits) =>
             `⏱ ${seconds}s · ${credits} tok.`,
         durationPickerOption: (seconds, credits) =>
@@ -814,9 +812,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
                 ? 'Results will be sent as a <b>file</b> (downloadable)'
                 : 'Results will be sent as a <b>voice message</b>',
         deliveryLine: (asFile) =>
-            asFile
-                ? 'Delivery: <b>file</b>'
-                : 'Delivery: <b>voice message</b>',
+            asFile ? 'Delivery: <b>file</b>' : 'Delivery: <b>voice message</b>',
         durationLine: (seconds, tokens) =>
             `Duration: <b>${formatSunoDurationEn(seconds)}</b> · <b>${tokens}</b> tok.`,
         durationPickerOption: (seconds, tokens) =>

@@ -35,6 +35,16 @@ export function stripTechnicalErrorDetails(message: string): string {
     return message.split('\n\nID запроса:')[0].trim();
 }
 
+/** Strip HTTP status noise so "(HTTP 400)" does not mask user-fixable tips. */
+function stripHttpStatusNoise(message: string): string {
+    return message
+        .replace(/\(?\s*HTTP\s*[45]\d\d\s*\)?/gi, ' ')
+        .replace(/\bstatus(?:\s+code)?\s*[45]\d\d\b/gi, ' ')
+        .replace(/^\s*\d{3}\s*:\s*/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 /**
  * Errors the user can fix by changing the prompt/file — not provider outages.
  * Failover must not redirect these to another model.
@@ -44,22 +54,31 @@ export function isUserInputValidationError(rawMessage: string): boolean {
     if (!message) return false;
 
     const detail = stripProviderPrefix(message);
+    const detailWithoutHttp = stripHttpStatusNoise(detail);
 
     if (isProviderCapacityError(message)) {
         return false;
     }
 
     if (
-        /INSUFFICIENT_TOKENS|NO_SUBSCRIPTION|API_KEY|not configured|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|HTTP\s*[45]\d\d|Insufficient credits|queue full|generation timed out|превысила максимальное время/i.test(
-            detail,
+        /INSUFFICIENT_TOKENS|NO_SUBSCRIPTION|API_KEY|not configured|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|Insufficient credits|queue full|generation timed out|превысила максимальное время/i.test(
+            detailWithoutHttp,
         )
+    ) {
+        return false;
+    }
+
+    // Bare HTTP status / generic provider HTTP failure — not a user tip.
+    if (
+        !detailWithoutHttp ||
+        /^(?:Сбой на стороне провайдера\.?)?$/i.test(detailWithoutHttp)
     ) {
         return false;
     }
 
     if (
         /Видео-референс|Обрежьте клип|обрежь клип|С видео-референсом нужен|нужен промпт|только одно видео|не больше \d+\s*МБ|должен быть от|должна быть от|Разрешение видео|Кадровая частота|принимает не больше|принимает только|Загрузите фото|Загрузите видео|загрузите фото|загрузите видео|Отправьте текстовый промпт|Прикреплённый файл слишком|Поза с фото|Поза из видео|не подходит|Convert the document|Сохраните документ|не смог прочитать фото|не смог прочитать видео|Фото для Kling|Слишком вытянутое фото|Image pixel is invalid|get the contents of the file|Выберите голос|Extra input|invalid_parameter|voice(?:_id)? (?:is )?required|select (?:a )?voice|use case is currently not supported/i.test(
-            detail,
+            detailWithoutHttp,
         )
     ) {
         return true;
@@ -67,7 +86,16 @@ export function isUserInputValidationError(rawMessage: string): boolean {
 
     if (
         /Video duration|длительность видео|короче \d|не должна превышать|must be at least|должна быть не меньше|Pose from photo|Pose from video|trim the clip|Upload a (?:photo|video|longer)|reference video|motion video must|file is too large|must be (?:at least|under|between|from)|too large|resolution must|fps must|aspect ratio|extra inputs? are not permitted|invalid parameter|missing (?:required )?field|field required/i.test(
-            detail,
+            detailWithoutHttp,
+        )
+    ) {
+        return true;
+    }
+
+    // Likeness / IP / sensitive input — user can change the photo or prompt.
+    if (
+        /real person|public figure|likeness|SensitiveContent|sensitive content|licensed character|copyright|trademark|intellectual property|ip\s+violation/i.test(
+            detailWithoutHttp,
         )
     ) {
         return true;
@@ -75,9 +103,9 @@ export function isUserInputValidationError(rawMessage: string): boolean {
 
     // Localized constraint details from providers (duration/size/format), after brand strip.
     if (
-        isActionableProviderDetail(detail) &&
+        isActionableProviderDetail(detailWithoutHttp) &&
         /duration|seconds|\d+\s*s\b|file size|too large|too small|resolution|aspect|format|invalid|must be|required|upload|orientation|fps|dimension|width|height|mb\b|длин|секунд|разрешен|формат|загруз|обреж|кадр/i.test(
-            detail,
+            detailWithoutHttp,
         )
     ) {
         return true;
@@ -144,10 +172,31 @@ export function classifyBotError(rawMessage: string): BotErrorCode {
     return BotErrorCode.UNKNOWN;
 }
 
+const CONTENT_POLICY_PATTERN =
+    /blocked the request|request blocked|blocked due to|blocked by|content polic(?:y|ies)|prohibited content|safety filter|moderation|sensitive.?content/i;
+
+/** 400 + blocked/rejected/prohibited — typical provider content refusals. */
+const CONTENT_POLICY_400_PATTERN =
+    /(?:^|\b)400\b[^.\n]{0,80}(?:block|prohibit|reject|safety|moderat|content)|(?:block|prohibit|reject|safety|moderat|sensitive.?content)[^.\n]{0,80}(?:HTTP\s*)?400\b/i;
+
 function isContentPolicyMessage(message: string): boolean {
     return (
         SAFETY_REASON_PATTERN.test(message) ||
-        /blocked the request|blocked by|content policy|safety filter|moderation/i.test(
+        CONTENT_POLICY_PATTERN.test(message) ||
+        CONTENT_POLICY_400_PATTERN.test(message)
+    );
+}
+
+/** Exported for failover: client content/request refusals must not hop models. */
+export function isClientContentRejectionError(rawMessage: string): boolean {
+    const message = stripTechnicalErrorDetails(rawMessage);
+    if (!message) return false;
+    if (isContentPolicyMessage(message)) return true;
+    return (
+        /(?:HTTP\s*400|status(?:\s+code)?\s*400|(?:^|\b)400\s*:)/i.test(
+            message,
+        ) &&
+        /bad request|blocked|prohibit|reject|sensitive|invalid.?argument|safety|moderat|content/i.test(
             message,
         )
     );
@@ -491,11 +540,23 @@ function matchSafetyError(
     }
 
     if (
-        /blocked the request|blocked by|safety filter|content policy|moderation/i.test(
-            message,
-        )
+        CONTENT_POLICY_PATTERN.test(message) ||
+        CONTENT_POLICY_400_PATTERN.test(message)
     ) {
-        if (/content policy/i.test(message)) {
+        // Likeness / IP tips are more specific — leave for localizeActionableProviderDetail.
+        if (
+            /real person|public figure|likeness|licensed character|copyright|trademark|intellectual property/i.test(
+                message,
+            )
+        ) {
+            return undefined;
+        }
+        if (
+            /content polic(?:y|ies)|prohibited content|request blocked|blocked due to/i.test(
+                message,
+            ) ||
+            CONTENT_POLICY_400_PATTERN.test(message)
+        ) {
             return i18n.aiResult.userErrors.contentPolicy;
         }
         return i18n.aiResult.userErrors.safetyBlocked;

@@ -7,6 +7,7 @@ import {
 import {
     BotErrorCode,
     classifyBotError,
+    isClientContentRejectionError,
     isUserInputValidationError,
 } from '@/common/services/bot/errors/bot-error.mapper';
 import { isProviderCapacityError } from '../jobs/provider-capacity-retry';
@@ -36,6 +37,11 @@ export function isFailoverEligibleError(rawMessage: string): boolean {
     }
 
     if (isProviderCapacityError(rawMessage)) {
+        return false;
+    }
+
+    // Content policy / HTTP 400 content refusals — user must edit the request.
+    if (isClientContentRejectionError(rawMessage)) {
         return false;
     }
 

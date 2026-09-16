@@ -226,7 +226,7 @@ export const ru: I18nBundle = {
             safetyBlocked:
                 'Модель отклонила запрос из‑за ограничений безопасности. Измените описание и попробуйте снова.',
             contentPolicy:
-                'Запрос не прошёл проверку политики контента. Измените описание и попробуйте снова.',
+                '400: Запрос заблокирован из-за правил о запрещённом контенте. Пожалуйста, измените свой запрос и попробуйте снова.',
             rateLimit:
                 'Слишком много запросов. Подождите немного и попробуйте снова.',
             voicePreviewFailed:
@@ -584,8 +584,7 @@ ${getTariffIncludesText(type, plan, ru)}
             `Формат: ${formatAspectRatioLabelRu(ratio)}`,
         resolutionChanged: (resolution, tokens) =>
             `${resolution} (${tokens} токенов)`,
-        qualityChanged: (label, tokens) =>
-            `${label} (${tokens} токенов)`,
+        qualityChanged: (label, tokens) => `${label} (${tokens} токенов)`,
         fluxModePickerOption: (label) => label,
         fluxModePickerSelected: (label) => `✓ ${label}`,
         fluxModeChanged: (label) => `Режим Flux: <b>${label}</b>`,
@@ -698,8 +697,7 @@ ${getTariffIncludesText(type, plan, ru)}
             `Формат: ${formatAspectRatioLabelRu(ratio)}`,
         resolutionChanged: (resolution, tokens) =>
             `${resolution} (${tokens} токенов)`,
-        qualityChanged: (label, tokens) =>
-            `${label} (${tokens} токенов)`,
+        qualityChanged: (label, tokens) => `${label} (${tokens} токенов)`,
         durationToolbarButton: (seconds, credits) =>
             `⏱ ${seconds} сек · ${credits} ток.`,
         durationPickerOption: (seconds, credits) =>

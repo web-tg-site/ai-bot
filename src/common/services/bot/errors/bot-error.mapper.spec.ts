@@ -71,6 +71,8 @@ describe('bot-error.mapper', () => {
             'HARASSMENT',
             'DANGEROUS_CONTENT',
             'IMAGE_SAFETY violation',
+            '400: Request blocked due to prohibited content policies. Please modify your request and try again.',
+            'Request blocked due to prohibited content',
         ])('CONTENT_POLICY: %s', (msg) => {
             expect(classifyBotError(msg)).toBe(BotErrorCode.CONTENT_POLICY);
         });
@@ -194,6 +196,15 @@ describe('bot-error.mapper', () => {
             expect(isUserInputValidationError(msg)).toBe(false);
             expect(isFailoverEligibleError(msg)).toBe(false);
         });
+
+        it.each([
+            '400: Request blocked due to prohibited content policies. Please modify your request and try again.',
+            'Request blocked due to prohibited content',
+            'InputImageSensitiveContentDetected: The image may contain a real person (HTTP 400)',
+            'Request rejected due to licensed character copyright (HTTP 400)',
+        ])('does not failover for user/content 400: %s', (msg) => {
+            expect(isFailoverEligibleError(msg)).toBe(false);
+        });
     });
 
     describe('toUserFacingError', () => {
@@ -236,6 +247,18 @@ describe('bot-error.mapper', () => {
             );
         });
 
+        it('maps English 400 prohibited-content block to Russian contentPolicy', () => {
+            expect(
+                toUserFacingError(
+                    '400: Request blocked due to prohibited content policies. Please modify your request and try again.',
+                    ru,
+                ),
+            ).toBe(ru.aiResult.userErrors.contentPolicy);
+            expect(ru.aiResult.userErrors.contentPolicy).toBe(
+                '400: Запрос заблокирован из-за правил о запрещённом контенте. Пожалуйста, измените свой запрос и попробуйте снова.',
+            );
+        });
+
         it('maps real-person blocks separately from franchise characters', () => {
             const result = toUserFacingError(
                 'InputImageSensitiveContentDetected: The image may contain a real person (HTTP 400)',
@@ -243,6 +266,11 @@ describe('bot-error.mapper', () => {
             );
             expect(result).toMatch(/реальных людей/i);
             expect(result).not.toMatch(/фильмов и игр/i);
+            expect(
+                isFailoverEligibleError(
+                    'InputImageSensitiveContentDetected: The image may contain a real person (HTTP 400)',
+                ),
+            ).toBe(false);
         });
 
         it('maps franchise / licensed character blocks to film-game message', () => {
