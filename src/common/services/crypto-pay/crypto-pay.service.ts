@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
+import { AxiosError } from 'axios';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '@/common/services/prisma';
@@ -146,40 +147,100 @@ export class CryptoPayService {
             invoiceBody.paid_btn_url = paidBtnUrl;
         }
 
-        const response = await firstValueFrom(
-            this.httpService.post<CryptoPayApiResponse<CryptoPayInvoice>>(
-                `${CRYPTOBOT_API_URL}/createInvoice`,
-                invoiceBody,
-                {
-                    headers: {
-                        'Crypto-Pay-API-Token': this.apiToken,
+        let invoice: CryptoPayInvoice;
+
+        try {
+            const response = await firstValueFrom(
+                this.httpService.post<CryptoPayApiResponse<CryptoPayInvoice>>(
+                    `${CRYPTOBOT_API_URL}/createInvoice`,
+                    invoiceBody,
+                    {
+                        headers: {
+                            'Crypto-Pay-API-Token': this.apiToken,
+                        },
                     },
-                },
-            ),
-        );
-
-        const invoice = response.data.result;
-
-        if (!response.data.ok || !invoice) {
-            const errorName = response.data.error?.name ?? 'unknown_error';
-            this.logger.error(
-                { error: response.data.error },
-                'Crypto Pay createInvoice failed',
+                ),
             );
-            throw new Error(`Crypto Pay error: ${errorName}`);
+
+            const result = response.data.result;
+
+            if (!response.data.ok || !result) {
+                const errorName = response.data.error?.name ?? 'unknown_error';
+                this.logger.error(
+                    {
+                        error: response.data.error,
+                        userId: params.userId,
+                        amountUsd: params.amountUsd,
+                        subscribeType: params.subscribeType,
+                        subscribePlan: params.subscribePlan,
+                    },
+                    'Crypto Pay createInvoice failed',
+                );
+                throw new Error(`Crypto Pay error: ${errorName}`);
+            }
+
+            invoice = result;
+        } catch (error) {
+            if (
+                !(error instanceof Error) ||
+                !error.message.startsWith('Crypto Pay error:')
+            ) {
+                const axiosError =
+                    error instanceof AxiosError ? error : undefined;
+                const responseData: unknown = axiosError?.response?.data;
+                let apiError: unknown = responseData;
+                if (
+                    responseData &&
+                    typeof responseData === 'object' &&
+                    'error' in responseData
+                ) {
+                    apiError = responseData.error;
+                }
+
+                this.logger.error(
+                    {
+                        err:
+                            error instanceof Error
+                                ? error.message
+                                : String(error),
+                        status: axiosError?.response?.status,
+                        apiError,
+                        userId: params.userId,
+                        amountUsd: params.amountUsd,
+                        subscribeType: params.subscribeType,
+                        subscribePlan: params.subscribePlan,
+                    },
+                    'Crypto Pay createInvoice failed',
+                );
+            }
+
+            throw error instanceof Error ? error : new Error(String(error));
         }
 
-        await this.prismaService.payment.create({
-            data: {
-                userId: params.userId,
-                provider: PaymentProvider.CRYPTO_PAY,
-                cryptoPayInvoiceId: BigInt(invoice.invoice_id),
-                orderId,
-                subscribeType: params.subscribeType,
-                subscribePlan: params.subscribePlan,
-                amountUsd: String(params.amountUsd),
-            },
-        });
+        try {
+            await this.prismaService.payment.create({
+                data: {
+                    userId: params.userId,
+                    provider: PaymentProvider.CRYPTO_PAY,
+                    cryptoPayInvoiceId: BigInt(invoice.invoice_id),
+                    orderId,
+                    subscribeType: params.subscribeType,
+                    subscribePlan: params.subscribePlan,
+                    amountUsd: String(params.amountUsd),
+                },
+            });
+        } catch (error) {
+            this.logger.error(
+                {
+                    err: error instanceof Error ? error.message : String(error),
+                    invoiceId: invoice.invoice_id,
+                    orderId,
+                    userId: params.userId,
+                },
+                'Crypto Pay payment DB create failed after invoice',
+            );
+            throw error instanceof Error ? error : new Error(String(error));
+        }
 
         return {
             botInvoiceUrl: resolveSendPaymentUrl(invoice),
