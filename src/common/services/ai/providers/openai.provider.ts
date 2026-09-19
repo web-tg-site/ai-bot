@@ -153,7 +153,7 @@ export class OpenAiProvider {
         const messages: EasyMessage[] = [];
 
         if (input.chatHistory?.length) {
-            for (const msg of input.chatHistory.slice(-10)) {
+            for (const msg of input.chatHistory) {
                 if (msg.role === 'system') {
                     continue;
                 }

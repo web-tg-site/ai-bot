@@ -159,7 +159,7 @@ export class OpenRouterProvider {
             throw new Error(`Model not configured for ${toolId}`);
         }
 
-        const { images, videos, audios } = splitMediaFiles(input.files);
+        const { images, videos } = splitMediaFiles(input.files);
         const hasVisualMedia = images.length > 0 || videos.length > 0;
         const prompt = this.resolveGenerationPrompt(
             input.prompt,
@@ -450,7 +450,7 @@ export class OpenRouterProvider {
         ];
 
         if (input.chatHistory?.length) {
-            for (const msg of input.chatHistory.slice(-10)) {
+            for (const msg of input.chatHistory) {
                 if (msg.role === 'system') {
                     continue;
                 }
@@ -823,7 +823,7 @@ export class OpenRouterProvider {
         }
 
         for (let i = 0; i < files.length; i += 1) {
-            const file = files[i]!;
+            const file = files[i];
             const mention = formatAttachmentMention(
                 getAttachmentMentionKind(file),
                 getAttachmentMentionIndex1(files, i),
@@ -1026,7 +1026,7 @@ export class OpenRouterProvider {
         > = [{ type: 'text', text: header }];
 
         for (const image of office.images) {
-            let compressed;
+            let compressed: AiFileInput;
             try {
                 compressed = await compressReferenceImage({
                     buffer: image.buffer,

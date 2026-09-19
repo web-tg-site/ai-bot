@@ -4,7 +4,8 @@ import { AiChatMessage, AiToolId } from '@/common/services/ai/types';
 import { parseGptMediaMessage } from '@/common/utils/gpt-message-content';
 
 const DEFAULT_TITLE = 'Новый чат';
-const MAX_CONTEXT_MESSAGES = 20;
+/** How many recent messages of the current chat are sent to the model. */
+export const MAX_CONTEXT_MESSAGES = 100;
 const MAX_CONVERSATIONS = 50;
 
 @Injectable()
@@ -88,17 +89,18 @@ export class GptConversationModelService {
     }
 
     async getMessages(conversationId: string): Promise<AiChatMessage[]> {
+        // Newest N — asc+take would keep the oldest messages and drop recent ones.
         const messages = await this.prismaService.gptMessage.findMany({
             where: { conversationId },
-            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
             take: MAX_CONTEXT_MESSAGES,
         });
 
         const ordered = [...messages].sort((left, right) => {
-            const byTime =
-                left.createdAt.getTime() - right.createdAt.getTime();
+            const byTime = left.createdAt.getTime() - right.createdAt.getTime();
             if (byTime !== 0) return byTime;
-            if (left.role === right.role) return left.id.localeCompare(right.id);
+            if (left.role === right.role)
+                return left.id.localeCompare(right.id);
             return left.role === 'user' ? -1 : 1;
         });
 
