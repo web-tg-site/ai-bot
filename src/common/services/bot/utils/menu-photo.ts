@@ -3,7 +3,7 @@ import { join } from 'path';
 import { Context } from 'telegraf';
 import { ExtraReplyMessage } from 'node_modules/telegraf/typings/telegram-types';
 import { AiToolId } from '@/common/services/ai';
-import { replyHtmlChunks, splitTelegramMessage } from './telegram-html-reply';
+import { replyHtmlChunks } from './telegram-html-reply';
 
 const TELEGRAM_CAPTION_MAX_LENGTH = 1024;
 
@@ -71,7 +71,7 @@ export async function replyMenuPhoto(
     );
 }
 
-/** Photo + HTML text (chunked). Keyboard goes on the last text/caption message. */
+/** Photo with tool title as caption; instruction/body as a follow-up message. */
 export async function replyToolMenuPhoto(
     ctx: Context,
     toolId: AiToolId,
@@ -84,21 +84,24 @@ export async function replyToolMenuPhoto(
         return;
     }
 
-    const parts = splitTelegramMessage(text);
+    const splitAt = text.indexOf('\n\n');
+    const title = splitAt === -1 ? text : text.slice(0, splitAt).trimEnd();
+    const body = splitAt === -1 ? '' : text.slice(splitAt + 2).trimStart();
+
     const source = createReadStream(getPublicAssetPath(filename));
+    const caption =
+        title.length <= TELEGRAM_CAPTION_MAX_LENGTH ? title : undefined;
+    const followUp = body || (caption ? '' : text);
 
-    if (parts.length === 1 && parts[0].length <= TELEGRAM_CAPTION_MAX_LENGTH) {
-        await ctx.replyWithPhoto(
-            { source },
-            {
-                caption: parts[0],
-                parse_mode: 'HTML',
-                ...extra,
-            },
-        );
-        return;
+    await ctx.replyWithPhoto(
+        { source },
+        {
+            ...(caption ? { caption, parse_mode: 'HTML' as const } : undefined),
+            ...(!followUp && extra ? extra : {}),
+        },
+    );
+
+    if (followUp) {
+        await replyHtmlChunks(ctx, followUp, extra);
     }
-
-    await ctx.replyWithPhoto({ source });
-    await replyHtmlChunks(ctx, text, extra);
 }
