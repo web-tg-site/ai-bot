@@ -68,7 +68,7 @@ import {
     isVisualMedia,
 } from '@/common/utils/media-kind';
 import { prepareUploadMediaList } from '@/common/utils/prepare-upload-media';
-import { replyHtmlChunks } from '../utils/telegram-html-reply';
+import { replyToolMenuPhoto } from '../utils/menu-photo';
 import {
     safeDeleteMessage,
     safeEditMessageText,
@@ -491,8 +491,9 @@ async function selectTool(
             deps.imageCapabilitiesService,
         );
 
-        await replyHtmlChunks(
+        await replyToolMenuPhoto(
             ctx,
+            toolId,
             buildImageToolMainScreenText(
                 i18n,
                 toolId,
@@ -520,8 +521,9 @@ async function selectTool(
             i18n.localeTag,
         );
 
-        await replyHtmlChunks(
+        await replyToolMenuPhoto(
             ctx,
+            toolId,
             buildVideoToolMainScreenText(
                 i18n,
                 toolId,
@@ -558,8 +560,9 @@ async function selectTool(
         const settings = session.ai.voiceToolSettings ?? {};
         const voices = getSessionAccessibleVoices(session);
 
-        await replyHtmlChunks(
+        await replyToolMenuPhoto(
             ctx,
+            toolId,
             buildElevenLabsVoiceMainScreenText(
                 i18n,
                 user.language,
@@ -600,8 +603,9 @@ async function selectTool(
             parts.push(i18n.voiceTool.promptHint);
         }
 
-        await replyHtmlChunks(
+        await replyToolMenuPhoto(
             ctx,
+            toolId,
             parts.join('\n\n'),
             generateAudioToolReplyKeyboard(i18n, toolId, settings, 'main'),
         );
@@ -610,8 +614,9 @@ async function selectTool(
             getToolLabel(t.id, user.language),
         );
 
-        await replyHtmlChunks(
+        await replyToolMenuPhoto(
             ctx,
+            toolId,
             i18n.aiResult.toolSelected(label, instruction),
             generateAiKeyboard(i18n, tools),
         );
