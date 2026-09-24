@@ -8,6 +8,7 @@ import { AiHandlerDeps } from './ai-tool.handler';
 import { getMySubKeyboard } from '../keyboards/home.keyboard';
 import { getI18nForUser, getToolLabel } from '../i18n';
 import { registerLocalizedHears } from '../i18n/register-localized-hears';
+import { replyMenuPhoto } from '../utils/menu-photo';
 
 type BotContext = Context & { session: BotSession };
 
@@ -43,10 +44,12 @@ export const registerAiHandler = (
             const tools = getToolsByCategory('text').map((t) =>
                 getToolLabel(t.id, user?.language),
             );
-            await ctx.reply(i18n.ai.textBots, {
-                ...generateAiKeyboard(i18n, tools),
-                parse_mode: 'HTML',
-            });
+            await replyMenuPhoto(
+                ctx,
+                'text.png',
+                i18n.ai.textBots,
+                generateAiKeyboard(i18n, tools),
+            );
         },
     );
 
@@ -68,10 +71,12 @@ export const registerAiHandler = (
             const tools = getToolsByCategory('image').map((t) =>
                 getToolLabel(t.id, user?.language),
             );
-            await ctx.reply(i18n.ai.imageBots, {
-                ...generateAiKeyboard(i18n, tools),
-                parse_mode: 'HTML',
-            });
+            await replyMenuPhoto(
+                ctx,
+                'image.png',
+                i18n.ai.imageBots,
+                generateAiKeyboard(i18n, tools),
+            );
         },
     );
 
@@ -93,10 +98,12 @@ export const registerAiHandler = (
             const tools = getToolsByCategory('video').map((t) =>
                 getToolLabel(t.id, user?.language),
             );
-            await ctx.reply(i18n.ai.videoBots, {
-                ...generateAiKeyboard(i18n, tools),
-                parse_mode: 'HTML',
-            });
+            await replyMenuPhoto(
+                ctx,
+                'video.png',
+                i18n.ai.videoBots,
+                generateAiKeyboard(i18n, tools),
+            );
         },
     );
 
@@ -118,10 +125,12 @@ export const registerAiHandler = (
             const tools = getToolsByCategory('audio').map((t) =>
                 getToolLabel(t.id, user?.language),
             );
-            await ctx.reply(i18n.ai.audioBots, {
-                ...generateAiKeyboard(i18n, tools),
-                parse_mode: 'HTML',
-            });
+            await replyMenuPhoto(
+                ctx,
+                'sounds.png',
+                i18n.ai.audioBots,
+                generateAiKeyboard(i18n, tools),
+            );
         },
     );
 

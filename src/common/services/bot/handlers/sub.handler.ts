@@ -14,6 +14,7 @@ import { BotHandlerDeps } from '../types/bot-handler-deps.type';
 import { BotSession } from '@/common/services/ai';
 import { UserModelService } from '@/common/models/user';
 import { AntilopayService } from '@/common/services/antilopay';
+import { replyMenuPhoto } from '../utils/menu-photo';
 
 type BotContext = Context & { session: BotSession };
 
@@ -110,10 +111,12 @@ export const registerSubHandler = (
             await userModelService.updateUserLastActivityAt(
                 ctx.from.id.toString(),
             );
-            await ctx.reply(i18n.subs.chooseSub, {
-                ...getChooseSubKeyboard(i18n),
-                parse_mode: 'HTML',
-            });
+            await replyMenuPhoto(
+                ctx,
+                'tarrifs.png',
+                i18n.subs.chooseSub,
+                getChooseSubKeyboard(i18n),
+            );
         },
     );
 

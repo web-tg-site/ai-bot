@@ -11,6 +11,7 @@ import {
     TECH_SUPPORT_CHAT_ID,
 } from '../utils/format-tech-support';
 import { showHome } from '../utils/show-home';
+import { replyMenuPhoto } from '../utils/menu-photo';
 
 type BotContext = Context & { session: BotSession };
 
@@ -48,10 +49,12 @@ export const registerSupportHandler = (
             await userModelService.updateUserLastActivityAt(
                 ctx.from.id.toString(),
             );
-            await ctx.reply(i18n.support.text, {
-                ...getSupportKeyboard(i18n),
-                parse_mode: 'HTML',
-            });
+            await replyMenuPhoto(
+                ctx,
+                'tech.png',
+                i18n.support.text,
+                getSupportKeyboard(i18n),
+            );
         },
     );
 

@@ -8,6 +8,7 @@ import {
     getHomeKeyboardRegistered,
 } from '../keyboards';
 import { resetAiSessionPreservingGpt } from './gpt-session';
+import { replyMenuPhoto } from './menu-photo';
 
 type BotContext = Context & { session: BotSession };
 
@@ -49,17 +50,21 @@ export async function showHome(
             );
         }
 
-        await ctx.reply(i18n.home.notRegistered, {
-            ...keyboard,
-            parse_mode: 'HTML',
-        });
+        await replyMenuPhoto(
+            ctx,
+            'main.png',
+            i18n.home.notRegistered,
+            keyboard,
+        );
 
         return;
     }
 
     await userModelService.updateUserLastActivityAt(ctx.from.id.toString());
-    await ctx.reply(i18n.home.registered, {
-        ...getHomeKeyboardRegistered(i18n, miniAppUrl),
-        parse_mode: 'HTML',
-    });
+    await replyMenuPhoto(
+        ctx,
+        'main.png',
+        i18n.home.registered,
+        getHomeKeyboardRegistered(i18n, miniAppUrl),
+    );
 }
