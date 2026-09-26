@@ -77,7 +77,7 @@ export function isUserInputValidationError(rawMessage: string): boolean {
     }
 
     if (
-        /Видео-референс|Обрежьте клип|обрежь клип|С видео-референсом нужен|нужен промпт|только одно видео|не больше \d+\s*МБ|должен быть от|должна быть от|Разрешение видео|Кадровая частота|принимает не больше|принимает только|Загрузите фото|Загрузите видео|загрузите фото|загрузите видео|Отправьте текстовый промпт|Прикреплённый файл слишком|Поза с фото|Поза из видео|не подходит|Convert the document|Сохраните документ|не смог прочитать фото|не смог прочитать видео|Фото для Kling|Слишком вытянутое фото|Image pixel is invalid|get the contents of the file|Выберите голос|Extra input|invalid_parameter|voice(?:_id)? (?:is )?required|select (?:a )?voice|use case is currently not supported|blur(?:ry|red)?|no face|missing faces|face not/i.test(
+        /Видео-референс|Обрежьте клип|обрежь клип|С видео-референсом нужен|нужен промпт|только одно видео|не больше \d+\s*МБ|должен быть от|должна быть от|Разрешение видео|Кадровая частота|принимает не больше|принимает только|Загрузите фото|Загрузите видео|загрузите фото|загрузите видео|Отправьте текстовый промпт|Прикреплённый файл слишком|Поза с фото|Поза из видео|не подходит|Convert the document|Сохраните документ|не смог прочитать фото|не смог прочитать видео|Фото для Kling|Слишком вытянутое фото|Image pixel is invalid|get the contents of the file|Выберите голос|Extra input|invalid_parameter|voice(?:_id)? (?:is )?required|select (?:a )?voice|use case is currently not supported|blur(?:ry|red)?|no face|missing faces|face not|upper body|no complete upper body|полный верх тела/i.test(
             detailWithoutHttp,
         )
     ) {
@@ -427,6 +427,16 @@ function localizeActionableProviderDetail(
         return ru
             ? 'Такая комбинация настроек Veo не поддерживается. Для перехода между двумя фото нужна длительность 8 сек (мы выставим её автоматически).'
             : 'This Veo setting combination is not supported. A two-photo transition requires 8 seconds (we set it automatically).';
+    }
+
+    if (
+        /no complete upper body|upper body (?:not |(?:was )?not )?(?:detected|found|visible)|(?:cannot|could(?:n'?t| not)|failed to) detect(?: a)?(?: complete)? upper body|ensure the upper body/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'Не удалось распознать полный верх тела в видео. Кадр должен показывать голову, плечи и торс целиком — без обрезанной головы, в хорошем свете.'
+            : 'Could not detect a complete upper body in the video. Reframe so the head, shoulders, and torso are fully visible and well lit.';
     }
 
     if (

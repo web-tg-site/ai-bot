@@ -172,6 +172,16 @@ describe('bot-error.mapper', () => {
             ).toMatch(/размыт|лицо|портрет/i);
         });
 
+        it('localizes Kling Motion missing upper-body errors', () => {
+            const raw =
+                'Kling: The input was rejected, No complete upper body detected in the video; ensure the upper body is clearly visible.';
+            expect(toUserFacingError(raw, ru)).toMatch(
+                /верх тела|голову|плечи|торс/i,
+            );
+            expect(isUserInputValidationError(raw)).toBe(true);
+            expect(isFailoverEligibleError(raw)).toBe(false);
+        });
+
         it('localizes Veo unsupported use-case JSON from Gemini', () => {
             const raw = JSON.stringify({
                 error: {
