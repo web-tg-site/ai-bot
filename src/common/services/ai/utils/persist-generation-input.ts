@@ -13,6 +13,25 @@ export function jobPromptForDb(input: AiGenerationInput): string | null {
     return prompt.slice(0, 4000);
 }
 
+/** Lightweight file presence signal — safe to keep after binaries are stripped. */
+export function inputFileCountFromJson(inputJson: unknown): number {
+    if (
+        !inputJson ||
+        typeof inputJson !== 'object' ||
+        Array.isArray(inputJson)
+    ) {
+        return 0;
+    }
+    const obj = inputJson as Record<string, unknown>;
+    if (typeof obj.fileCount === 'number' && Number.isFinite(obj.fileCount)) {
+        return Math.max(0, Math.floor(obj.fileCount));
+    }
+    if (Array.isArray(obj.files)) {
+        return obj.files.length;
+    }
+    return 0;
+}
+
 export function toPersistedInputJson(
     input: AiGenerationInput,
     options?: { includeFiles?: boolean },
@@ -21,15 +40,17 @@ export function toPersistedInputJson(
     const { files, chatHistory, ...rest } = input;
     const persisted: Record<string, unknown> = { ...rest };
 
-    if (includeFiles && files?.length) {
-        persisted.files = files.map((file) => ({
-            mimeType: file.mimeType,
-            fileName: file.fileName,
-            buffer: file.buffer.toString('base64'),
-        }));
-    } else if (files?.length) {
+    // Always keep fileCount so history/retry can warn after binaries are stripped.
+    if (files?.length) {
         persisted.fileCount = files.length;
         persisted.fileMimeTypes = files.map((file) => file.mimeType);
+        if (includeFiles) {
+            persisted.files = files.map((file) => ({
+                mimeType: file.mimeType,
+                fileName: file.fileName,
+                buffer: file.buffer.toString('base64'),
+            }));
+        }
     }
 
     if (chatHistory?.length) {

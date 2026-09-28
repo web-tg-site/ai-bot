@@ -751,6 +751,7 @@ export class AiController {
                 sessionId: job.sessionId ?? undefined,
                 failoverNotice: job.failoverNotice ?? undefined,
                 failoverFromToolId: job.failoverFromToolId ?? undefined,
+                inputFileCount: job.inputFileCount ?? 0,
                 createdAt: job.createdAt,
                 updatedAt: job.updatedAt,
             })),

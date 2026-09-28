@@ -22,6 +22,7 @@ import {
     isProviderCapacityError,
     nextCapacityRetry,
 } from './provider-capacity-retry';
+import { Prisma } from '@/generated/prisma/client';
 
 export type JobListItem = {
     id: string;
@@ -37,6 +38,8 @@ export type JobListItem = {
     sessionId: string | null;
     failoverNotice: string | null;
     failoverFromToolId: string | null;
+    /** How many input files were sent (survives stripInputFiles). */
+    inputFileCount: number;
     createdAt: Date;
     updatedAt: Date;
 };
@@ -246,9 +249,9 @@ export class AiJobService {
     }
 
     /**
-     * Lightweight history list: never read inputJson or resultUrl — those
-     * columns hold multi-MB data URLs / file buffers and detoasting them
-     * stalls the mini-app on open.
+     * Lightweight history list: never read full inputJson / resultUrl — those
+     * columns hold multi-MB buffers. File counts are loaded via a scalar-only
+     * JSON extract so retry can warn when attachments are gone.
      */
     async listJobsForUser(params: {
         userId: string;
@@ -283,6 +286,10 @@ export class AiJobService {
             },
         });
 
+        const fileCounts = await this.inputFileCountsByIds(
+            jobs.map((job) => job.id),
+        );
+
         return jobs.map((job) => ({
             id: job.id,
             toolId: job.toolId,
@@ -297,16 +304,62 @@ export class AiJobService {
             sessionId: job.sessionId,
             failoverNotice: job.failoverNotice,
             failoverFromToolId: job.failoverFromToolId,
+            inputFileCount: fileCounts.get(job.id) ?? 0,
             createdAt: job.createdAt,
             updatedAt: job.updatedAt,
         }));
     }
 
-    /** Drop binary payloads once the job can no longer failover. */
+    /** Scalar extract only — avoids loading base64 file buffers into Node. */
+    private async inputFileCountsByIds(
+        ids: string[],
+    ): Promise<Map<string, number>> {
+        if (!ids.length) return new Map();
+        const rows = await this.prismaService.$queryRaw<
+            Array<{ id: string; cnt: number | null }>
+        >`
+            SELECT id,
+                COALESCE(
+                    NULLIF(("inputJson"->>'fileCount'), '')::int,
+                    CASE
+                        WHEN "inputJson" ? 'files'
+                            THEN jsonb_array_length("inputJson"->'files')
+                        ELSE 0
+                    END
+                ) AS cnt
+            FROM ai_generation_jobs
+            WHERE id IN (${Prisma.join(ids)})
+        `;
+        return new Map(
+            rows.map((row) => [row.id, Math.max(0, Number(row.cnt) || 0)]),
+        );
+    }
+
+    /**
+     * Drop binary payloads once the job can no longer failover.
+     * Keep fileCount / fileMimeTypes so the mini-app can warn on "Повторить".
+     */
     private async stripInputFiles(jobId: string) {
         await this.prismaService.$executeRaw`
             UPDATE ai_generation_jobs
-            SET "inputJson" = ("inputJson" - 'files')
+            SET "inputJson" = (
+                ("inputJson" - 'files')
+                || jsonb_build_object(
+                    'fileCount',
+                    COALESCE(
+                        NULLIF(("inputJson"->>'fileCount'), '')::int,
+                        jsonb_array_length("inputJson"->'files')
+                    ),
+                    'fileMimeTypes',
+                    COALESCE(
+                        "inputJson"->'fileMimeTypes',
+                        (
+                            SELECT COALESCE(jsonb_agg(elem->>'mimeType'), '[]'::jsonb)
+                            FROM jsonb_array_elements("inputJson"->'files') AS elem
+                        )
+                    )
+                )
+            )
             WHERE id = ${jobId}
               AND "inputJson" ? 'files'
         `;
