@@ -797,7 +797,7 @@ export class SharpiiProvider {
             code === 'provider_error' &&
             message.includes('Insufficient corporate funds')
         ) {
-            return `Сбой на стороне провайдера. Попробуйте другой инструмент.${suffix}`;
+            return `Сбой на стороне провайдера (закончился баланс/квота). Попробуйте другой инструмент.${suffix}`;
         }
 
         if (
@@ -813,7 +813,7 @@ export class SharpiiProvider {
             ) ||
             message.includes('Insufficient credits')
         ) {
-            return `Сбой на стороне провайдера. Попробуйте позже или выберите другой инструмент.${suffix}`;
+            return `Сбой на стороне провайдера (закончился баланс/квота). Попробуйте позже или выберите другой инструмент.${suffix}`;
         }
 
         if (

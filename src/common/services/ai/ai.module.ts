@@ -24,6 +24,7 @@ import {
 } from './providers';
 import { AiJobService } from './jobs/ai-job.service';
 import { AiJobCron } from './jobs/ai-job.cron';
+import { ProviderBalanceAlertService } from './jobs/provider-balance-alert.service';
 import { ModelFailoverService } from './failover/model-failover.service';
 import { ElevenLabsVoicePreviewService } from '../elevenlabs-voice-preview/elevenlabs-voice-preview.service';
 import { TempPublicMediaService } from './temp-public-media.service';
@@ -55,6 +56,7 @@ import { PublicJobMediaController } from '@/common/controllers/public-job-media.
         ElevenLabsVoicePreviewService,
         AiJobService,
         ModelFailoverService,
+        ProviderBalanceAlertService,
         AiJobCron,
         TempPublicMediaService,
         JobMediaResolverService,

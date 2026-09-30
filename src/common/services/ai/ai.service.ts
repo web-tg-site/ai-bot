@@ -24,6 +24,7 @@ import {
     KlingProvider,
     isElevenLabsDubbingResultUrl,
 } from './providers';
+import { ProviderBalanceAlertService } from './jobs/provider-balance-alert.service';
 
 @Injectable()
 export class AiService {
@@ -41,6 +42,7 @@ export class AiService {
         private readonly lumaProvider: LumaProvider,
         private readonly bytePlusProvider: BytePlusProvider,
         private readonly klingProvider: KlingProvider,
+        private readonly providerBalanceAlert: ProviderBalanceAlertService,
     ) {}
 
     async listAccessibleElevenLabsVoices() {
@@ -68,39 +70,53 @@ export class AiService {
             throw new Error(`Unknown tool: ${toolId}`);
         }
 
-        switch (tool.provider) {
-            case AiProviderId.OPENAI:
-                return this.openAiProvider.generate(toolId, input);
-            case AiProviderId.OPENROUTER:
-                return this.openRouterProvider.generate(toolId, input);
-            case AiProviderId.GOOGLE:
-                return this.googleProvider.generate(toolId, input);
-            case AiProviderId.SHARPII:
-                return this.sharpiiProvider.generate(toolId, input);
-            case AiProviderId.APIFRAME:
-                return this.apiframeProvider.generate(toolId, input);
-            case AiProviderId.ELEVENLABS:
-                return this.elevenLabsProvider.generate(toolId, input);
-            case AiProviderId.BFL:
-                throw new Error(
-                    `Sync generation not supported for BFL — use async job`,
-                );
-            case AiProviderId.LUMA:
-                throw new Error(
-                    `Sync generation not supported for Luma — use async job`,
-                );
-            case AiProviderId.BYTEPLUS:
-                throw new Error(
-                    `Sync generation not supported for BytePlus — use async job`,
-                );
-            case AiProviderId.KLING:
-                throw new Error(
-                    `Sync generation not supported for Kling — use async job`,
-                );
-            default:
-                throw new Error(
-                    `Sync generation not supported for provider ${String(tool.provider)}`,
-                );
+        try {
+            switch (tool.provider) {
+                case AiProviderId.OPENAI:
+                    return await this.openAiProvider.generate(toolId, input);
+                case AiProviderId.OPENROUTER:
+                    return await this.openRouterProvider.generate(
+                        toolId,
+                        input,
+                    );
+                case AiProviderId.GOOGLE:
+                    return await this.googleProvider.generate(toolId, input);
+                case AiProviderId.SHARPII:
+                    return await this.sharpiiProvider.generate(toolId, input);
+                case AiProviderId.APIFRAME:
+                    return await this.apiframeProvider.generate(toolId, input);
+                case AiProviderId.ELEVENLABS:
+                    return await this.elevenLabsProvider.generate(
+                        toolId,
+                        input,
+                    );
+                case AiProviderId.BFL:
+                    throw new Error(
+                        `Sync generation not supported for BFL — use async job`,
+                    );
+                case AiProviderId.LUMA:
+                    throw new Error(
+                        `Sync generation not supported for Luma — use async job`,
+                    );
+                case AiProviderId.BYTEPLUS:
+                    throw new Error(
+                        `Sync generation not supported for BytePlus — use async job`,
+                    );
+                case AiProviderId.KLING:
+                    throw new Error(
+                        `Sync generation not supported for Kling — use async job`,
+                    );
+                default:
+                    throw new Error(
+                        `Sync generation not supported for provider ${String(tool.provider)}`,
+                    );
+            }
+        } catch (error) {
+            this.providerBalanceAlert.notifyIfNeeded(
+                toolId,
+                error instanceof Error ? error.message : String(error),
+            );
+            throw error;
         }
     }
 
@@ -113,35 +129,49 @@ export class AiService {
             throw new Error(`Unknown tool: ${toolId}`);
         }
 
-        switch (tool.provider) {
-            case AiProviderId.OPENROUTER:
-                return this.openRouterProvider.createJob(toolId, input);
-            case AiProviderId.GOOGLE:
-                return this.googleProvider.createJob(toolId, input);
-            case AiProviderId.SHARPII:
-                return this.sharpiiProvider.createJob(toolId, input);
-            case AiProviderId.APIFRAME:
-                return this.apiframeProvider.createJob(toolId, input);
-            case AiProviderId.ELEVENLABS:
-                return this.elevenLabsProvider.createJob(toolId, input);
-            case AiProviderId.HEYGEN:
-                return this.heyGenProvider.createJob(toolId, input);
-            case AiProviderId.HIGGSFIELD:
-                return this.higgsfieldProvider.createJob(input);
-            case AiProviderId.TOPAZ:
-                return this.topazProvider.createJob(input);
-            case AiProviderId.BFL:
-                return this.bflProvider.createJob(toolId, input);
-            case AiProviderId.LUMA:
-                return this.lumaProvider.createJob(toolId, input);
-            case AiProviderId.BYTEPLUS:
-                return this.bytePlusProvider.createJob(toolId, input);
-            case AiProviderId.KLING:
-                return this.klingProvider.createJob(toolId, input);
-            default:
-                throw new Error(
-                    `Async generation not supported for provider ${String(tool.provider)}`,
-                );
+        try {
+            switch (tool.provider) {
+                case AiProviderId.OPENROUTER:
+                    return await this.openRouterProvider.createJob(
+                        toolId,
+                        input,
+                    );
+                case AiProviderId.GOOGLE:
+                    return await this.googleProvider.createJob(toolId, input);
+                case AiProviderId.SHARPII:
+                    return await this.sharpiiProvider.createJob(toolId, input);
+                case AiProviderId.APIFRAME:
+                    return await this.apiframeProvider.createJob(toolId, input);
+                case AiProviderId.ELEVENLABS:
+                    return await this.elevenLabsProvider.createJob(
+                        toolId,
+                        input,
+                    );
+                case AiProviderId.HEYGEN:
+                    return await this.heyGenProvider.createJob(toolId, input);
+                case AiProviderId.HIGGSFIELD:
+                    return await this.higgsfieldProvider.createJob(input);
+                case AiProviderId.TOPAZ:
+                    return await this.topazProvider.createJob(input);
+                case AiProviderId.BFL:
+                    return await this.bflProvider.createJob(toolId, input);
+                case AiProviderId.LUMA:
+                    return await this.lumaProvider.createJob(toolId, input);
+                case AiProviderId.BYTEPLUS:
+                    return await this.bytePlusProvider.createJob(toolId, input);
+                case AiProviderId.KLING:
+                    return await this.klingProvider.createJob(toolId, input);
+                default:
+                    throw new Error(
+                        `Async generation not supported for provider ${String(tool.provider)}`,
+                    );
+            }
+        } catch (error) {
+            this.providerBalanceAlert.notifyIfNeeded(
+                toolId,
+                error instanceof Error ? error.message : String(error),
+            );
+            throw error;
         }
     }
 
@@ -231,7 +261,10 @@ export class AiService {
             }
 
             if (status.status === 'failed') {
-                throw new Error(status.errorMessage ?? 'Генерация не удалась');
+                const errorMessage =
+                    status.errorMessage ?? 'Генерация не удалась';
+                this.providerBalanceAlert.notifyIfNeeded(toolId, errorMessage);
+                throw new Error(errorMessage);
             }
 
             await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));

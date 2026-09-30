@@ -43,6 +43,7 @@ import {
     isProviderCapacityError,
     nextCapacityRetry,
 } from './provider-capacity-retry';
+import { ProviderBalanceAlertService } from './provider-balance-alert.service';
 type PendingJob = Awaited<ReturnType<AiJobService['getPendingJobs']>>[number];
 
 @Injectable()
@@ -58,6 +59,7 @@ export class AiJobCron {
         private readonly aiJobService: AiJobService,
         private readonly aiService: AiService,
         private readonly modelFailoverService: ModelFailoverService,
+        private readonly providerBalanceAlert: ProviderBalanceAlertService,
         private readonly userAiToolSettingsModelService: UserAiToolSettingsModelService,
         private readonly tempPublicMedia: TempPublicMediaService,
         private readonly moduleRef: ModuleRef,
@@ -159,7 +161,7 @@ export class AiJobCron {
         try {
             const status = await this.aiService.getJobStatus(
                 job.toolId as AiToolId,
-                job.providerJobId!,
+                job.providerJobId,
             );
 
             await this.aiJobService.recordPollAttempt(job.id, false);
@@ -300,16 +302,12 @@ export class AiJobCron {
         jobId: string,
         resolved: AiGenerationResult,
         resultUrl: string | null | undefined,
-        _toolId?: AiToolId,
     ): Promise<void> {
         const toPlayable = async (
             buffer: Buffer,
             mimeType: string,
         ): Promise<{ buffer: Buffer; mimeType: string }> => {
-            if (
-                resolved.type !== 'video' ||
-                mimeType.startsWith('image/')
-            ) {
+            if (resolved.type !== 'video' || mimeType.startsWith('image/')) {
                 return { buffer, mimeType };
             }
             try {
@@ -390,12 +388,7 @@ export class AiJobCron {
 
             const resultJson = resolved.resultJson ?? result.resultJson;
 
-            await this.ensureJobMediaCached(
-                job.id,
-                resolved,
-                resultUrl,
-                job.toolId as AiToolId,
-            );
+            await this.ensureJobMediaCached(job.id, resolved, resultUrl);
 
             // Persist URL first so mini-app polling is not blocked by Telegram delivery.
             await this.aiJobService.updateJobStatus(
@@ -427,11 +420,12 @@ export class AiJobCron {
                 );
                 if (actionKeyboard.length > 0) {
                     const i18n = getI18n(job.user.language);
+                    const toolId = job.toolId as AiToolId;
                     const hint =
-                        job.toolId === AiToolId.MIDJOURNEY
+                        toolId === AiToolId.MIDJOURNEY
                             ? (i18n.aiResult.midjourneyActionsHint ??
                               'Выберите кадр:')
-                            : job.toolId === AiToolId.SUNO
+                            : toolId === AiToolId.SUNO
                               ? (i18n.aiResult.sunoActionsHint ??
                                 'Выберите действие:')
                               : 'Выберите действие:';
@@ -542,6 +536,11 @@ export class AiJobCron {
         job: PendingJob,
         errorMessage: string,
     ) {
+        this.providerBalanceAlert.notifyIfNeeded(
+            job.toolId as AiToolId,
+            errorMessage,
+        );
+
         const i18n = getI18n(job.user.language);
         const userMessage = toUserFacingError(errorMessage, i18n);
         const formattedError = formatUserBotErrorMessage(errorMessage, i18n);
