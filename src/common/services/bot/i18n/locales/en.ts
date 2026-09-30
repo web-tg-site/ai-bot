@@ -337,7 +337,7 @@ Plan: ${tariffName}
 Period: ${periodName}
 Amount: ~${amountUsd} USDT (pay with any supported cryptocurrency)
 
-Tap the button below to pay via @send.
+Tap the button below to pay via @CryptoBot.
 The link is valid for 1 hour.`,
         invoiceCreatedRub: (amountRub, tariffName, periodName) =>
             `💳 <b>Subscription payment</b>
@@ -363,7 +363,7 @@ All platform AI tools are now available.`,
         emailInvalid:
             'Invalid email. Example: name@example.com\nPlease send your email again.',
         notConfigured:
-            '@send payments are temporarily unavailable. Please contact support.',
+            '@CryptoBot payments are temporarily unavailable. Please contact support.',
         rubNotConfigured:
             'Ruble payments are temporarily unavailable. You can pay with cryptocurrency using the USDT button for now.',
     },

@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { AxiosError } from 'axios';
@@ -16,7 +16,7 @@ import {
 import { BOT_NAME } from '@/common/config';
 import { CRYPTOBOT_API_URL } from '@/common/config/cryptobot.config';
 
-const SEND_BOT_USERNAME = 'send';
+const CRYPTO_PAY_BOT_USERNAME = 'CryptoBot';
 
 type CryptoPayApiResponse<T> = {
     ok: boolean;
@@ -34,6 +34,12 @@ type CryptoPayInvoice = {
     web_app_invoice_url?: string;
     pay_url: string;
     status: string;
+};
+
+type CryptoPayAppInfo = {
+    app_id: number;
+    name: string;
+    payment_processing_bot_username?: string;
 };
 
 type GetInvoicesResult = CryptoPayInvoice[] | { items: CryptoPayInvoice[] };
@@ -64,15 +70,16 @@ export type ProcessInvoicePaidResult =
           subscriptionEndsAt: Date;
       };
 
-function resolveSendPaymentUrl(invoice: CryptoPayInvoice): string {
+function resolveCryptoBotPaymentUrl(invoice: CryptoPayInvoice): string {
     const raw =
-        invoice.mini_app_invoice_url ??
         invoice.bot_invoice_url ??
+        invoice.mini_app_invoice_url ??
         invoice.pay_url;
 
+    // Предпочитаем @CryptoBot (mainnet), даже если API вернул ссылку на @send
     return raw.replace(
-        /https?:\/\/t\.me\/CryptoBot\b/g,
-        `https://t.me/${SEND_BOT_USERNAME}`,
+        /https?:\/\/t\.me\/(?:send|CryptoBot)\b/gi,
+        `https://t.me/${CRYPTO_PAY_BOT_USERNAME}`,
     );
 }
 
@@ -86,9 +93,26 @@ function extractInvoices(
     return Array.isArray(result) ? result : (result.items ?? []);
 }
 
+function normalizeApiToken(raw: string | undefined): string | undefined {
+    if (!raw) {
+        return undefined;
+    }
+
+    const trimmed = raw.trim().replace(/^["']|["']$/g, '');
+    return trimmed || undefined;
+}
+
+function tokenFingerprint(token: string): string {
+    const [idPart = '', secretPart = ''] = token.split(':');
+    const idHint = idPart.slice(0, 3);
+    const secretHint = secretPart.slice(-4);
+    return `${idHint}…:${secretHint || '????'} (len=${token.length})`;
+}
+
 @Injectable()
-export class CryptoPayService {
+export class CryptoPayService implements OnModuleInit {
     private readonly apiToken: string | undefined;
+    private readonly apiUrl: string;
     private botUsername: string | undefined;
 
     constructor(
@@ -99,10 +123,87 @@ export class CryptoPayService {
         private readonly prismaService: PrismaService,
         private readonly userModelService: UserModelService,
     ) {
-        this.apiToken = this.configService.get<string>('CRYPTOBOT_KEY');
+        this.apiToken = normalizeApiToken(
+            this.configService.get<string>('CRYPTOBOT_KEY'),
+        );
+        this.apiUrl =
+            normalizeApiToken(
+                this.configService.get<string>('CRYPTOBOT_API_URL'),
+            ) ?? CRYPTOBOT_API_URL;
 
         if (this.apiToken) {
-            this.logger.info('Crypto Pay configured (polling mode)');
+            this.logger.info(
+                {
+                    apiUrl: this.apiUrl,
+                    token: tokenFingerprint(this.apiToken),
+                },
+                'Crypto Pay configured (polling mode)',
+            );
+        } else {
+            this.logger.warn('CRYPTOBOT_KEY is not set — crypto payments off');
+        }
+    }
+
+    public async onModuleInit() {
+        if (!this.apiToken) {
+            return;
+        }
+
+        try {
+            const response = await firstValueFrom(
+                this.httpService.get<CryptoPayApiResponse<CryptoPayAppInfo>>(
+                    `${this.apiUrl}/getMe`,
+                    {
+                        headers: {
+                            'Crypto-Pay-API-Token': this.apiToken,
+                        },
+                    },
+                ),
+            );
+
+            if (!response.data.ok || !response.data.result) {
+                this.logger.error(
+                    {
+                        apiUrl: this.apiUrl,
+                        token: tokenFingerprint(this.apiToken),
+                        error: response.data.error,
+                    },
+                    'Crypto Pay getMe failed — CRYPTOBOT_KEY rejected by API',
+                );
+                return;
+            }
+
+            this.logger.info(
+                {
+                    appId: response.data.result.app_id,
+                    appName: response.data.result.name,
+                    paymentBot:
+                        response.data.result.payment_processing_bot_username,
+                },
+                'Crypto Pay auth OK',
+            );
+        } catch (error) {
+            const axiosError = error instanceof AxiosError ? error : undefined;
+            const responseData: unknown = axiosError?.response?.data;
+            let apiError: unknown = responseData;
+            if (
+                responseData &&
+                typeof responseData === 'object' &&
+                'error' in responseData
+            ) {
+                apiError = responseData.error;
+            }
+
+            this.logger.error(
+                {
+                    apiUrl: this.apiUrl,
+                    token: tokenFingerprint(this.apiToken),
+                    status: axiosError?.response?.status,
+                    apiError,
+                    err: error instanceof Error ? error.message : String(error),
+                },
+                'Crypto Pay getMe failed — CRYPTOBOT_KEY rejected by API',
+            );
         }
     }
 
@@ -152,7 +253,7 @@ export class CryptoPayService {
         try {
             const response = await firstValueFrom(
                 this.httpService.post<CryptoPayApiResponse<CryptoPayInvoice>>(
-                    `${CRYPTOBOT_API_URL}/createInvoice`,
+                    `${this.apiUrl}/createInvoice`,
                     invoiceBody,
                     {
                         headers: {
@@ -243,7 +344,7 @@ export class CryptoPayService {
         }
 
         return {
-            botInvoiceUrl: resolveSendPaymentUrl(invoice),
+            botInvoiceUrl: resolveCryptoBotPaymentUrl(invoice),
             amountUsd: params.amountUsd,
             orderId,
         };
@@ -273,7 +374,7 @@ export class CryptoPayService {
 
         const response = await firstValueFrom(
             this.httpService.get<CryptoPayApiResponse<GetInvoicesResult>>(
-                `${CRYPTOBOT_API_URL}/getInvoices`,
+                `${this.apiUrl}/getInvoices`,
                 {
                     params: { invoice_ids: invoiceIds },
                     headers: {
