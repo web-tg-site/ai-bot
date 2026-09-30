@@ -13,6 +13,8 @@ describe('isProviderBalanceError', () => {
         'Недостаточно квоты у провайдера для этой операции.',
         'Сбой на стороне провайдера (закончился баланс/квота). Попробуйте позже.',
         'Insufficient credits\n\nID запроса: abc-123',
+        '402 API error occurred: {"httpMeta":{"response":{},"request":{}}}',
+        'Сбой на стороне провайдера (HTTP 402).',
     ])('detects %s', (message) => {
         expect(isProviderBalanceError(message)).toBe(true);
     });

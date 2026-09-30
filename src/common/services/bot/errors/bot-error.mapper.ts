@@ -1,6 +1,7 @@
 import { I18nBundle } from '../i18n/types';
 import { ru } from '../i18n/locales/ru';
 import { isProviderCapacityError } from '@/common/services/ai/jobs/provider-capacity-retry';
+import { isProviderBalanceError } from '@/common/services/ai/jobs/provider-balance-error';
 
 export enum BotErrorCode {
     UNKNOWN = 1,
@@ -57,6 +58,10 @@ export function isUserInputValidationError(rawMessage: string): boolean {
     const detailWithoutHttp = stripHttpStatusNoise(detail);
 
     if (isProviderCapacityError(message)) {
+        return false;
+    }
+
+    if (isProviderBalanceError(message)) {
         return false;
     }
 
@@ -123,6 +128,10 @@ export function classifyBotError(rawMessage: string): BotErrorCode {
 
     if (isProviderCapacityError(message)) {
         return BotErrorCode.CONFIG;
+    }
+
+    if (isProviderBalanceError(message)) {
+        return BotErrorCode.PROVIDER;
     }
 
     if (isUserInputValidationError(message)) {
@@ -266,6 +275,10 @@ function isRussianI18n(i18n: I18nBundle): boolean {
 /** Readable validation / constraint messages from providers (after stripping brand). */
 function isActionableProviderDetail(detail: string): boolean {
     if (isProviderCapacityError(detail)) {
+        return false;
+    }
+
+    if (isProviderBalanceError(detail)) {
         return false;
     }
 
@@ -699,6 +712,10 @@ export function toUserFacingError(
 
     if (isProviderCapacityError(stripped)) {
         return i18n.aiResult.errorByCode[BotErrorCode.CONFIG];
+    }
+
+    if (isProviderBalanceError(stripped)) {
+        return i18n.aiResult.errorByCode[BotErrorCode.PROVIDER];
     }
 
     if (stripped === 'NO_SUBSCRIPTION') {

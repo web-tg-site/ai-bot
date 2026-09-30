@@ -29,6 +29,10 @@ export class ProviderBalanceAlertService {
             .get<string>('CHAT_MODEL_DENAY')
             ?.trim();
         if (!chatId) {
+            this.logger.warn(
+                { toolId, err: errorMessage.slice(0, 200) },
+                'Provider balance error detected but CHAT_MODEL_DENAY is not set',
+            );
             return;
         }
 

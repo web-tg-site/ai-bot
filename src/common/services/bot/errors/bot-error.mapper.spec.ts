@@ -90,6 +90,7 @@ describe('bot-error.mapper', () => {
             'generation failed',
             'Insufficient credits',
             'Image generation failed',
+            '402 API error occurred: {"httpMeta":{"response":{},"request":{}}}',
         ])('PROVIDER: %s', (msg) => {
             expect(classifyBotError(msg)).toBe(BotErrorCode.PROVIDER);
         });
@@ -369,6 +370,16 @@ describe('bot-error.mapper', () => {
             expect(result).not.toBe(
                 ru.aiResult.errorByCode[BotErrorCode.PROVIDER],
             );
+        });
+
+        it('hides provider balance 402 from the user as generic provider error', () => {
+            const result = toUserFacingError(
+                '402 API error occurred: {"httpMeta":{"response":{},"request":{}}}',
+                ru,
+            );
+            expect(result).toBe(ru.aiResult.errorByCode[BotErrorCode.PROVIDER]);
+            expect(result).not.toMatch(/баланс|квот|402|Payment/i);
+            expect(result).not.toMatch(/Проверьте описание/);
         });
 
         it('explains 10s limit for image orientation', () => {
