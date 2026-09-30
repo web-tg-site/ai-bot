@@ -93,6 +93,32 @@ describe('buildHeyGenSharedVideoOptions', () => {
 
         expect(options.voice_settings).toBeUndefined();
     });
+
+    it('removes baked-in scene when applying a solid color background', () => {
+        const options = buildHeyGenSharedVideoOptions(
+            {
+                heygenBackgroundMode: 'color',
+                heygenBackgroundColor: '#000000',
+            },
+            { kind: 'avatar', hasAudioAsset: false },
+        );
+
+        expect(options.remove_background).toBe(true);
+        expect(options.background).toEqual({
+            type: 'color',
+            value: '#000000',
+        });
+    });
+
+    it('only removes background in remove mode', () => {
+        const options = buildHeyGenSharedVideoOptions(
+            { heygenBackgroundMode: 'remove' },
+            { kind: 'image', hasAudioAsset: false },
+        );
+
+        expect(options.remove_background).toBe(true);
+        expect(options.background).toBeUndefined();
+    });
 });
 
 describe('resolveHeyGenJobStatus', () => {

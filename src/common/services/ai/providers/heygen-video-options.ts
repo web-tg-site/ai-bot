@@ -70,6 +70,8 @@ export function buildHeyGenSharedVideoOptions(
     if (backgroundMode === 'remove') {
         options.remove_background = true;
     } else if (backgroundMode === 'color') {
+        // Catalog/photo looks keep their baked-in scene unless matting is on.
+        options.remove_background = true;
         options.background = {
             type: 'color',
             value:
