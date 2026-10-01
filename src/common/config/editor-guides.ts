@@ -227,12 +227,12 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 📸 Можно оживить фото
 - 🎥 Можно выбрать эффект или движение камеры
 - 📱 Подходит для рекламы и соцсетей
-- ✍️ Опиши сцену — модель снимет «как режиссёр»
+- ✍️ Промпт необязателен, если есть фото и/или эффект
 
 Как пользоваться
-1. При желании добавь фото.
-2. Выбери формат, длительность и эффект.
-3. Напиши, что должно происходить.
+1. Добавь фото.
+2. При желании выбери эффект и формат.
+3. Промпт можно не писать — или опиши сцену текстом без фото.
 4. Запусти генерацию.`,
 
     [AiToolId.HEYGEN]: `🗣️ HeyGen
@@ -549,12 +549,12 @@ Create videos with beautiful camera movement — like a director shot it.
 - 📸 You can animate a photo
 - 🎥 You can choose an effect or camera movement
 - 📱 Great for ads and social media
-- ✍️ Describe the scene — the model shoots "like a director"
+- ✍️ Prompt is optional when you have a photo and/or effect
 
 How to use
-1. Optionally add a photo.
-2. Choose format, duration and effect.
-3. Describe what should happen.
+1. Add a photo.
+2. Optionally pick an effect and format.
+3. You can skip the prompt — or describe the scene in text without a photo.
 4. Run generation.`,
 
     [AiToolId.HEYGEN]: `🗣️ HeyGen

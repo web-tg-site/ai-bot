@@ -1345,7 +1345,10 @@ async function processVideoPromptStep(
     }
 
     const isMotion = toolId === AiToolId.KLING_MOTION;
-    if (!text?.trim() && !isMotion) {
+    const isHiggsfieldDop =
+        toolId === AiToolId.HIGGSFIELD &&
+        (session.ai?.referenceFiles?.length ?? 0) > 0;
+    if (!text?.trim() && !isMotion && !isHiggsfieldDop) {
         await ctx.reply(i18n.videoTool.needPrompt, { parse_mode: 'HTML' });
         return;
     }

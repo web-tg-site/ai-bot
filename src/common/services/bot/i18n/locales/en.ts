@@ -469,7 +469,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             [AiToolId.LUMA_RAY]:
                 'Attach a photo or video. Video + prompt — edit. Video without prompt — reframe via aspect ratio in settings.',
             [AiToolId.HIGGSFIELD]:
-                'Upload a reference (optional), adjust settings, then describe the scene.',
+                'Upload a photo and/or pick an effect — prompt is optional. Without a photo, describe the scene in text.',
             [AiToolId.HEYGEN]:
                 'Send a script or a speech audio file. You can attach a photo for a talking portrait.',
             [AiToolId.TOPAZ]: 'Send a photo or video to upscale.',
