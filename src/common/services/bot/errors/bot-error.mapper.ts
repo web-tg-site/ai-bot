@@ -430,9 +430,11 @@ function localizeActionableProviderDetail(
             detail,
         )
     ) {
+        // Kling returns this for any unread attachment (start/end frames or a
+        // video ref). Keep the tip neutral — two-photo transitions do not need video.
         return ru
-            ? 'Не удалось прочитать видео-референс. Загрузите клип 3–10 секунд в MP4/MOV (с iPhone тоже можно) и попробуйте снова.'
-            : 'Could not read the reference video. Upload a 3–10 second MP4/MOV clip and try again.';
+            ? 'Не удалось прочитать вложение. Для перехода между кадрами достаточно двух фото (JPEG/PNG). Если нужен стиль с клипа — загрузите видео 3–10 сек в MP4/MOV.'
+            : 'Could not read the attachment. A two-frame transition only needs two photos (JPEG/PNG). For a style clip, upload a 3–10 second MP4/MOV.';
     }
 
     if (

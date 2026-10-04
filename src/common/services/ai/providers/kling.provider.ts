@@ -218,7 +218,12 @@ export class KlingProvider {
                 };
             } catch (error) {
                 this.logger.warn(
-                    { err: error instanceof Error ? error.message : error },
+                    {
+                        err:
+                            error instanceof Error
+                                ? error.message
+                                : String(error),
+                    },
                     'Kling result download failed, returning URL',
                 );
                 return {
@@ -362,11 +367,9 @@ export class KlingProvider {
         // "Image pixel is invalid".
         const videoUrl = await this.uploadTempPublicUrl(video, 'video');
         const imageList = await Promise.all(
-            images
-                .slice(0, MAX_IMAGE_REFS)
-                .map(async (file) => ({
-                    image_url: await this.toOmniImageDataUrl(file),
-                })),
+            images.slice(0, MAX_IMAGE_REFS).map(async (file) => ({
+                image_url: await this.toOmniImageDataUrl(file),
+            })),
         );
 
         const body: Record<string, unknown> = {
@@ -427,7 +430,9 @@ export class KlingProvider {
             };
         } catch (error) {
             this.logger.warn(
-                { err: error instanceof Error ? error.message : error },
+                {
+                    err: error instanceof Error ? error.message : String(error),
+                },
                 'Kling Omni video re-encode failed, uploading original',
             );
             return {
@@ -507,9 +512,15 @@ export class KlingProvider {
 
         const side =
             meta.width != null && meta.height != null
-                ? { min: Math.min(meta.width, meta.height), max: Math.max(meta.width, meta.height) }
+                ? {
+                      min: Math.min(meta.width, meta.height),
+                      max: Math.max(meta.width, meta.height),
+                  }
                 : null;
-        if (side && (side.min < OMNI_VIDEO_MIN_SIDE || side.max > OMNI_VIDEO_MAX_SIDE)) {
+        if (
+            side &&
+            (side.min < OMNI_VIDEO_MIN_SIDE || side.max > OMNI_VIDEO_MAX_SIDE)
+        ) {
             throw new Error(
                 `Разрешение видео-референса должно быть от ${OMNI_VIDEO_MIN_SIDE} до ${OMNI_VIDEO_MAX_SIDE} пикселей по стороне.`,
             );
@@ -529,7 +540,8 @@ export class KlingProvider {
     /** Omni with a `feature` reference renders 5 or 10 seconds, never 15. */
     private resolveOmniDuration(durationSeconds: number): number {
         return OMNI_OUTPUT_DURATIONS.reduce((closest, value) =>
-            Math.abs(value - durationSeconds) < Math.abs(closest - durationSeconds)
+            Math.abs(value - durationSeconds) <
+            Math.abs(closest - durationSeconds)
                 ? value
                 : closest,
         );
@@ -613,19 +625,18 @@ export class KlingProvider {
         }
     }
 
-    /** Raw base64 (no data-URI prefix) or public URL. */
+    /**
+     * Raw base64 (no data-URI prefix) for image2video / multi-image2video.
+     * Prefer inline bytes over PUBLIC_BASE_URL temp links — Railway restarts and
+     * fetch failures from Kling look like “get the contents of the file” and were
+     * wrongly shown to users as a missing video reference.
+     */
     private async toImagePayload(file: AiFileInput): Promise<string> {
-        if (this.publicBaseUrl) {
-            try {
-                return this.publishTempUrl(file);
-            } catch (error) {
-                this.logger.warn(
-                    { err: error instanceof Error ? error.message : error },
-                    'Kling image temp URL publish failed, using base64',
-                );
-            }
+        const prepared = await compressReferenceImage(file);
+        if (prepared.buffer.length > MAX_IMAGE_BYTES) {
+            throw new Error('Изображение для Kling не больше 10 МБ');
         }
-        return file.buffer.toString('base64');
+        return prepared.buffer.toString('base64');
     }
 
     /**
@@ -731,7 +742,10 @@ export class KlingProvider {
                     maxBodyLength: Infinity,
                     maxContentLength: Infinity,
                     responseType: 'text',
-                    transformResponse: [(data) => data],
+                    transformResponse: [
+                        (data: unknown) =>
+                            typeof data === 'string' ? data : '',
+                    ],
                 },
             ),
         );
@@ -759,7 +773,9 @@ export class KlingProvider {
                 maxBodyLength: Infinity,
                 maxContentLength: Infinity,
                 responseType: 'text',
-                transformResponse: [(data) => data],
+                transformResponse: [
+                    (data: unknown) => (typeof data === 'string' ? data : ''),
+                ],
             }),
         );
         const url = String(response.data ?? '').trim();
@@ -775,7 +791,7 @@ export class KlingProvider {
     ): string {
         const raw = file.fileName?.trim();
         if (raw && /\.[a-z0-9]+$/i.test(raw)) {
-            return raw.replace(/[^\w.\-]+/g, '_');
+            return raw.replace(/[^\w.-]+/g, '_');
         }
         if (kind === 'image') {
             if (file.mimeType.includes('png')) {

@@ -143,7 +143,7 @@ describe('bot-error.mapper', () => {
                     'Something went wrong when we tried to get the contents of the file.',
                     ru,
                 ),
-            ).toMatch(/прочитать видео/i);
+            ).toMatch(/прочитать вложение|двух фото/i);
         });
 
         it('localizes HeyGen invalid parameter and missing voice', () => {
