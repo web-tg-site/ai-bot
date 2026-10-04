@@ -21,7 +21,8 @@
         "test:e2e": "jest --config ./test/jest-e2e.json",
         "seed": "prisma db seed",
         "prepare": "husky",
-        "remove-build-data": "ts-node scripts/remove-data-from-build.ts"
+        "remove-build-data": "ts-node scripts/remove-data-from-build.ts",
+        "give_max_sub_yearn": "node scripts/give-max-sub-yearn.mjs"
     },
     "dependencies": {
         "@commitlint/cli": "^21.0.2",
