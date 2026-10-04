@@ -246,13 +246,13 @@ const RU: Partial<Record<AiToolId, string>> = {
 - ⚙️ Настройки — субтитры, фон, модель, выразительность и другие параметры
 
 ⚙️ Настройки: что за что отвечает
-- 🧠 Движок — реалистичность лица и движений: Аватар 3, 4 или 5. Новее обычно естественнее. Для своего фото может быть недоступен
+- 🧠 Аватар — реалистичность лица и движений. От выбора версии аватара (3–5) зависят качество генерации и то, насколько естественными будут мимика, движения и сам аватар
 - 💬 Субтитры — текст речи прямо на видео
 - 🎨 Фон — как в кадре, прозрачный или свой цвет
-- 😊 Выразительность — эмоциональность мимики. Есть у Аватара 4 и у своего фото
+- 😊 Выразительность — эмоциональность мимики. Есть у Версии 2 и у своего фото
 - ⏱️ Скорость речи — быстрее или медленнее; со своим аудио не нужна
 - 🎶 Высота тона — выше или ниже голос; со своим аудио не нужна
-- 🤚 Описание движения — жесты и поза. Например: «лёгкий наклон головы, естественные движения рук, спокойная поза». Для Аватара 3 недоступно
+- 🤚 Описание движения — жесты и поза. Например: «лёгкий наклон головы, естественные движения рук, спокойная поза». Для Версии 1 недоступно
 
 🎬 Как создать видео
 1. Добавь речь — текст сценария или аудиофайл.
@@ -565,21 +565,21 @@ Create videos with a virtual host: a catalog avatar or your photo as a talking c
 - 👤 Avatar — a face from the HeyGen catalog
 - 📸 Your photo — a talking character; the Avatar picker is unavailable then
 - 🎙️ Voice — timbre when you are not using your own audio
-- ⚙️ Settings — captions, background, engine, expressiveness and more
+- ⚙️ Settings — captions, background, avatar version, expressiveness and more
 
 ⚙️ Settings: what each control does
-- 🧠 Engine — face realism and motion: Avatar 3, 4 or 5. Newer usually looks more natural. May be unavailable for your own photo
+- 🧠 Avatar — face realism and motion. The avatar version (3–5) affects generation quality and how natural the facial expressions, movements, and the avatar itself look
 - 💬 Captions — speech text shown on the video
 - 🎨 Background — as in the frame, transparent, or a solid color
-- 😊 Expressiveness — how emotional the face is. Available for Avatar 4 and your photo
+- 😊 Expressiveness — how emotional the face is. Available for Version 2 and your photo
 - ⏱️ Speech speed — faster or slower; not used with your own audio
 - 🎶 Pitch — higher or lower voice; not used with your own audio
-- 🤚 Motion description — gestures and pose. Example: “slight head tilt, natural hand motion, calm posture”. Unavailable for Avatar 3
+- 🤚 Motion description — gestures and pose. Example: “slight head tilt, natural hand motion, calm posture”. Unavailable for Version 1
 
 🎬 How to create a video
 1. Add speech — script text or an audio file.
 2. Choose a host — avatar and voice, or your photo.
-3. Optionally open Settings — captions, background, engine, expressiveness and the rest.
+3. Optionally open Settings — captions, background, avatar version, expressiveness and the rest.
 4. Run generation — HeyGen builds the video with the virtual host.`,
 
     [AiToolId.TOPAZ]: `✨ Topaz

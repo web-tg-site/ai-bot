@@ -48,9 +48,9 @@ export const HEYGEN_ENGINE_OPTIONS: Array<{
     labelRu: string;
     labelEn: string;
 }> = [
-    { id: 'avatar_iii', labelRu: 'Avatar III', labelEn: 'Avatar III' },
-    { id: 'avatar_iv', labelRu: 'Avatar IV', labelEn: 'Avatar IV' },
-    { id: 'avatar_v', labelRu: 'Avatar V', labelEn: 'Avatar V' },
+    { id: 'avatar_iii', labelRu: 'Версия 1', labelEn: 'Version 1' },
+    { id: 'avatar_iv', labelRu: 'Версия 2', labelEn: 'Version 2' },
+    { id: 'avatar_v', labelRu: 'Версия 3', labelEn: 'Version 3' },
 ];
 
 export const HEYGEN_EXPRESSIVENESS_OPTIONS: Array<{

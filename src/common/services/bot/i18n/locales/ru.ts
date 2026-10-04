@@ -41,7 +41,7 @@ export const ru: I18nBundle = {
     buttons: {
         back: 'Назад',
         start: 'Начать',
-        textCategory: '🧠 Текст',
+        textCategory: '🧠 Общение с нейросетью',
         imageCategory: '🎨 Изображения',
         videoCategory: '🎬 Видео',
         audioCategory: '🎙️ Аудио',
@@ -84,7 +84,7 @@ export const ru: I18nBundle = {
 
 Внутри доступны лучшие нейросети мира:
 
-🧠 <b>Текст и анализ</b>
+🧠 <b>Общение с нейросетью</b>
 • GPT
 • Работа с файлами
 • Анализ изображений
@@ -117,7 +117,7 @@ export const ru: I18nBundle = {
         registered: `🚀 <b>Все AI-инструменты в одном месте</b>
 
 Выберите направление, с которым хотите работать:
-🧠 Текст
+🧠 Общение с нейросетью
 🎨 Изображения
 🎬 Видео
 🎙️ Аудио
@@ -644,7 +644,7 @@ ${getTariffIncludesText(type, plan, ru)}
         changeEffectButton: '✨ Изменить эффект',
         changeHeygenVoiceButton: '🎙 Голос',
         changeHeygenAvatarButton: '🧑 Аватар',
-        changeHeygenEngineButton: '🧠 Движок',
+        changeHeygenEngineButton: '🧠 Аватар',
         changeHeygenBackgroundButton: '🖼 Фон',
         changeHeygenExpressivenessButton: '🎭 Выразительность',
         changeHeygenSpeedButton: '⏩ Скорость речи',
@@ -657,14 +657,14 @@ ${getTariffIncludesText(type, plan, ru)}
                 : 'Субтитры: <b>выключены</b>',
         selectHeygenVoiceTitle: 'Выберите голос HeyGen:',
         selectHeygenAvatarTitle: 'Выберите аватар HeyGen:',
-        selectHeygenEngineTitle: 'Выберите движок:',
+        selectHeygenEngineTitle: 'Выберите версию аватара:',
         selectHeygenBackgroundTitle: 'Выберите фон:',
         selectHeygenExpressivenessTitle: 'Выберите выразительность:',
         selectHeygenSpeedTitle: 'Скорость речи:',
         selectHeygenPitchTitle: 'Высота тона:',
         heygenVoiceChanged: (name) => `Голос: <b>${name}</b>`,
         heygenAvatarChanged: (name) => `Аватар: <b>${name}</b>`,
-        heygenEngineChanged: (label) => `Движок: <b>${label}</b>`,
+        heygenEngineChanged: (label) => `Аватар: <b>${label}</b>`,
         heygenBackgroundChanged: (label) => `Фон: <b>${label}</b>`,
         heygenExpressivenessChanged: (label) =>
             `Выразительность: <b>${label}</b>`,

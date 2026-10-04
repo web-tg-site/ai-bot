@@ -20,6 +20,7 @@ import { stripAttachmentMentionManifest } from '@/common/services/bot/utils/imag
 import { reviveGenerationInput } from '../failover/model-failover.helpers';
 import {
     isProviderCapacityError,
+    isSilentProviderResubmitError,
     nextCapacityRetry,
 } from './provider-capacity-retry';
 import { Prisma } from '@/generated/prisma/client';
@@ -567,7 +568,7 @@ export class AiJobService {
                 retryCount: retry.retryCount,
                 retryAt: retry.retryAt.toISOString(),
             },
-            'Provider at capacity — silent retry scheduled',
+            'Provider silent resubmit scheduled',
         );
 
         return retry;
@@ -611,7 +612,7 @@ export class AiJobService {
         } catch (error) {
             const message =
                 error instanceof Error ? error.message : String(error);
-            if (!isProviderCapacityError(message)) {
+            if (!isSilentProviderResubmitError(message)) {
                 return { error: message };
             }
             const retry = await this.scheduleCapacityRetry(

@@ -40,7 +40,7 @@ import { ModelFailoverService } from '../failover/model-failover.service';
 import { Markup } from 'telegraf';
 import { isFailoverEligibleTool } from '../failover/model-failover.helpers';
 import {
-    isProviderCapacityError,
+    isSilentProviderResubmitError,
     nextCapacityRetry,
 } from './provider-capacity-retry';
 import { ProviderBalanceAlertService } from './provider-balance-alert.service';
@@ -213,7 +213,7 @@ export class AiJobCron {
                 );
 
                 if (
-                    isProviderCapacityError(errorMessage) &&
+                    isSilentProviderResubmitError(errorMessage) &&
                     nextCapacityRetry(job.providerRetryCount).action === 'retry'
                 ) {
                     await this.aiJobService.scheduleCapacityRetry(
@@ -246,7 +246,7 @@ export class AiJobCron {
                 error instanceof Error ? error.message : String(error);
 
             if (
-                isProviderCapacityError(message) &&
+                isSilentProviderResubmitError(message) &&
                 nextCapacityRetry(job.providerRetryCount).action === 'retry'
             ) {
                 await this.aiJobService.scheduleCapacityRetry(

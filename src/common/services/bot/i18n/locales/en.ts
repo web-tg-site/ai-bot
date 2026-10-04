@@ -41,7 +41,7 @@ export const en: I18nBundle = {
     buttons: {
         back: 'Back',
         start: 'Start',
-        textCategory: '🧠 Text',
+        textCategory: '🧠 Chat with AI',
         imageCategory: '🎨 Images',
         videoCategory: '🎬 Video',
         audioCategory: '🎙️ Audio',
@@ -82,7 +82,7 @@ An all-in-one AI platform in Telegram for work, business, creativity, and everyd
 
 Inside you'll find the world's best AI models:
 
-🧠 <b>Text & analysis</b>
+🧠 <b>Chat with AI</b>
 • GPT
 • File processing
 • Image analysis
@@ -115,7 +115,7 @@ Choose a section below and get started. All tools are available in one place —
         registered: `🚀 <b>All AI tools in one place</b>
 
 Choose what you'd like to work with:
-🧠 Text
+🧠 Chat with AI
 🎨 Images
 🎬 Video
 🎙️ Audio
@@ -638,7 +638,7 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
         changeEffectButton: '✨ Change effect',
         changeHeygenVoiceButton: '🎙 Voice',
         changeHeygenAvatarButton: '🧑 Avatar',
-        changeHeygenEngineButton: '🧠 Engine',
+        changeHeygenEngineButton: '🧠 Avatar',
         changeHeygenBackgroundButton: '🖼 Background',
         changeHeygenExpressivenessButton: '🎭 Expressiveness',
         changeHeygenSpeedButton: '⏩ Speech speed',
@@ -649,14 +649,14 @@ Email us: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`,
             enabled ? 'Captions: <b>on</b>' : 'Captions: <b>off</b>',
         selectHeygenVoiceTitle: 'Choose a HeyGen voice:',
         selectHeygenAvatarTitle: 'Choose a HeyGen avatar:',
-        selectHeygenEngineTitle: 'Choose engine:',
+        selectHeygenEngineTitle: 'Choose avatar version:',
         selectHeygenBackgroundTitle: 'Choose background:',
         selectHeygenExpressivenessTitle: 'Choose expressiveness:',
         selectHeygenSpeedTitle: 'Speech speed:',
         selectHeygenPitchTitle: 'Pitch:',
         heygenVoiceChanged: (name) => `Voice: <b>${name}</b>`,
         heygenAvatarChanged: (name) => `Avatar: <b>${name}</b>`,
-        heygenEngineChanged: (label) => `Engine: <b>${label}</b>`,
+        heygenEngineChanged: (label) => `Avatar: <b>${label}</b>`,
         heygenBackgroundChanged: (label) => `Background: <b>${label}</b>`,
         heygenExpressivenessChanged: (label) =>
             `Expressiveness: <b>${label}</b>`,

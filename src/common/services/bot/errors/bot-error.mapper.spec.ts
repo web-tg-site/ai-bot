@@ -196,6 +196,22 @@ describe('bot-error.mapper', () => {
             expect(isFailoverEligibleError(raw)).toBe(false);
         });
 
+        it('localizes flaky Veo audio RAI filter', () => {
+            const raw =
+                'We encountered an issue with the audio for your prompt, which means we could not create your video. This can sometimes happen due to our safety filters or other processing issues. Please modify your request and try again.';
+            expect(toUserFacingError(raw, ru)).toMatch(/фильтра звука|ложное/i);
+            expect(isFailoverEligibleError(raw)).toBe(false);
+        });
+
+        it('localizes opaque Veo generation failed', () => {
+            expect(toUserFacingError('Veo generation failed', ru)).toMatch(
+                /Veo не смог|попробуйте ещё раз/i,
+            );
+            expect(isFailoverEligibleError('Veo generation failed')).toBe(
+                false,
+            );
+        });
+
         it('keeps Russian user validation tips that mention the tool name', () => {
             const msg =
                 'Фото для Kling должно быть не меньше 300×300 пикселей.';

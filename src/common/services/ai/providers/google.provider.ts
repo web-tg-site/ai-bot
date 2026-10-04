@@ -114,9 +114,8 @@ export class GoogleProvider {
                 },
                 `Veo createJob failed: ${err}`,
             );
-            throw error instanceof Error
-                ? error
-                : new Error(`Veo createJob failed: ${err}`);
+            // Prefer the enriched string so mapper/failover see nested Gemini details.
+            throw new Error(err);
         }
     }
 

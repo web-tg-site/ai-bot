@@ -4,6 +4,8 @@ import {
 } from '@/common/config/ai-job.config';
 import {
     isProviderCapacityError,
+    isSilentProviderResubmitError,
+    isVeoTransientFilterError,
     nextCapacityRetry,
 } from './provider-capacity-retry';
 
@@ -13,6 +15,8 @@ describe('isProviderCapacityError', () => {
         'Midjourney queue full',
         'provider overloaded',
         'No available capacity — please retry shortly\n\nID запроса: abc',
+        'Resource exhausted, please try again later.',
+        'RESOURCE_EXHAUSTED',
     ])('detects %s', (message) => {
         expect(isProviderCapacityError(message)).toBe(true);
     });
@@ -23,6 +27,33 @@ describe('isProviderCapacityError', () => {
             expect(isProviderCapacityError(message)).toBe(false);
         },
     );
+});
+
+describe('isVeoTransientFilterError', () => {
+    it('detects audio RAI false positives', () => {
+        expect(
+            isVeoTransientFilterError(
+                'We encountered an issue with the audio for your prompt, which means we could not create your video. This can sometimes happen due to our safety filters or other processing issues. Please modify your request and try again.',
+            ),
+        ).toBe(true);
+    });
+
+    it.each([
+        'Veo generation failed',
+        'Veo завершил задачу без видео',
+        'Veo завершил задачу без данных видео',
+    ])('detects opaque Veo failure: %s', (message) => {
+        expect(isVeoTransientFilterError(message)).toBe(true);
+        expect(isSilentProviderResubmitError(message)).toBe(true);
+    });
+
+    it('does not retry hard content blocks', () => {
+        expect(
+            isVeoTransientFilterError(
+                "The prompt violated Google's Responsible AI practices",
+            ),
+        ).toBe(false);
+    });
 });
 
 describe('nextCapacityRetry', () => {

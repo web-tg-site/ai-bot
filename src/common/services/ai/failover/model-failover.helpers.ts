@@ -10,7 +10,10 @@ import {
     isClientContentRejectionError,
     isUserInputValidationError,
 } from '@/common/services/bot/errors/bot-error.mapper';
-import { isProviderCapacityError } from '../jobs/provider-capacity-retry';
+import {
+    isProviderCapacityError,
+    isVeoTransientFilterError,
+} from '../jobs/provider-capacity-retry';
 import { getI18n, getToolLabel } from '@/common/services/bot/i18n';
 import { UserLanguage } from '@/generated/prisma/enums';
 import { AiGenerationInput, AiInputType, AiToolId } from '../types';
@@ -37,6 +40,11 @@ export function isFailoverEligibleError(rawMessage: string): boolean {
     }
 
     if (isProviderCapacityError(rawMessage)) {
+        return false;
+    }
+
+    // Flaky Veo audio filter — cron silent-retries; do not hop models.
+    if (isVeoTransientFilterError(rawMessage)) {
         return false;
     }
 
