@@ -12,6 +12,7 @@ import {
 } from '@/common/services/ai';
 import { CryptoPayService } from '@/common/services/crypto-pay';
 import { AntilopayService } from '@/common/services/antilopay';
+import { TelegramStarsService } from '@/common/services/telegram-stars';
 import { RedisService } from '@/common/services/redis';
 
 export type BotHandlerDeps = {
@@ -26,6 +27,7 @@ export type BotHandlerDeps = {
     modelFailoverService: ModelFailoverService;
     cryptoPayService: CryptoPayService;
     antilopayService: AntilopayService;
+    telegramStarsService: TelegramStarsService;
     elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService;
     redisService: RedisService;
 };

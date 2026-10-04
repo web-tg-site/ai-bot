@@ -59,6 +59,7 @@ export const en: I18nBundle = {
         openApp: 'Open app',
         sbp: (amount) => `SBP ${amount} ₽`,
         usdt: (amount) => `USDT ${amount} ₮`,
+        stars: (amount) => `Stars ${amount} ⭐`,
     },
     settings: {
         title: '⚙️ <b>Settings</b>\n\nChoose interface language and generation options:',
@@ -348,6 +349,14 @@ Amount: ${amountRub} ₽
 
 Tap the button below to open the payment page (card / SBP).
 Important: open the link in your phone browser (not via VPN).`,
+        invoiceCreatedStars: (amountStars, tariffName, periodName) =>
+            `⭐ <b>Subscription payment with Stars</b>
+
+Plan: ${tariffName}
+Period: ${periodName}
+Amount: ${amountStars} ⭐
+
+Tap «Pay» on the Telegram invoice to pay with Stars.`,
         payButton: 'Pay',
         success: (tariffName, periodName, endsAt) =>
             `✅ <b>Payment received, subscription activated</b>
@@ -366,6 +375,8 @@ All platform AI tools are now available.`,
             '@CryptoBot payments are temporarily unavailable. Please contact support.',
         rubNotConfigured:
             'Ruble payments are temporarily unavailable. You can pay with cryptocurrency using the USDT button for now.',
+        starsNotConfigured:
+            'Stars payments are temporarily unavailable. Try USDT or SBP instead.',
     },
     support: {
         text: `💬 <b>${BOT_NAME} support</b>

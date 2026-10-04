@@ -37,9 +37,13 @@ export const getSubsTypesKeyboard = (
     i18n: I18nBundle,
     plan: SubscribePlan,
     type: SubscribeType,
-) =>
-    Markup.keyboard([
-        [i18n.buttons.sbp(formatRub(SUB_PLAN_TO_COST[plan][type].rub))],
-        [i18n.buttons.usdt(SUB_PLAN_TO_COST[plan][type].usdt)],
+) => {
+    const cost = SUB_PLAN_TO_COST[plan][type];
+
+    return Markup.keyboard([
+        [i18n.buttons.sbp(formatRub(cost.rub))],
+        [i18n.buttons.usdt(cost.usdt)],
+        [i18n.buttons.stars(formatRub(cost.stars))],
         [i18n.buttons.back],
     ]).resize();
+};

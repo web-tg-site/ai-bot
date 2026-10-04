@@ -96,6 +96,9 @@ function getSubsFlowButtonLabels(): Set<string> {
                     cachedSubsFlowButtonLabels.add(
                         i18n.buttons.usdt(cost.usdt),
                     );
+                    cachedSubsFlowButtonLabels.add(
+                        i18n.buttons.stars(formatRub(cost.stars)),
+                    );
                 }
             }
         }

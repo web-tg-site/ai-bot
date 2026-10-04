@@ -22,6 +22,7 @@ import { AuthModule } from '@/common/auth';
 import { MiniAppModule } from '@/common/mini-app';
 import { CryptoPayModule } from '@/common/services/crypto-pay';
 import { AntilopayModule } from '@/common/services/antilopay';
+import { TelegramStarsModule } from '@/common/services/telegram-stars';
 import { PaymentCron } from '@/common/crons/payment';
 
 @Module({
@@ -42,6 +43,7 @@ import { PaymentCron } from '@/common/crons/payment';
         AiModule,
         CryptoPayModule,
         AntilopayModule,
+        TelegramStarsModule,
         AuthModule,
         MiniAppModule,
     ],

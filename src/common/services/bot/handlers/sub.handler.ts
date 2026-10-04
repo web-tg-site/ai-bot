@@ -89,10 +89,18 @@ export const registerSubHandler = (
     bot: Telegraf,
     deps: Pick<
         BotHandlerDeps,
-        'userModelService' | 'cryptoPayService' | 'antilopayService'
+        | 'userModelService'
+        | 'cryptoPayService'
+        | 'antilopayService'
+        | 'telegramStarsService'
     >,
 ) => {
-    const { userModelService, cryptoPayService, antilopayService } = deps;
+    const {
+        userModelService,
+        cryptoPayService,
+        antilopayService,
+        telegramStarsService,
+    } = deps;
 
     registerLocalizedHears(
         bot,
@@ -304,6 +312,72 @@ export const registerSubHandler = (
                         userModelService,
                         antilopayService,
                     });
+                },
+            );
+
+            const amountStars = SUB_PLAN_TO_COST[plan][type].stars;
+
+            registerLocalizedHears(
+                bot,
+                (i18n) => i18n.buttons.stars(formatRub(amountStars)),
+                async (ctx) => {
+                    if (!ctx.from) return;
+
+                    const session = getSession(ctx);
+                    session.pendingRubPayment = undefined;
+
+                    const user = await userModelService.getUserByTelegramId(
+                        ctx.from.id.toString(),
+                    );
+
+                    if (!user) return;
+
+                    const i18n = getI18nForUser(user);
+
+                    await userModelService.updateUserLastActivityAt(
+                        ctx.from.id.toString(),
+                    );
+
+                    if (!telegramStarsService.isConfigured()) {
+                        await ctx.reply(i18n.payment.starsNotConfigured, {
+                            parse_mode: 'HTML',
+                        });
+                        return;
+                    }
+
+                    try {
+                        const invoice =
+                            await telegramStarsService.createPendingPayment({
+                                userId: user.id,
+                                subscribeType: type,
+                                subscribePlan: plan,
+                                amountStars,
+                                periodLabel: i18n.records.subPlanToPeriod[plan],
+                                tariffLabel: i18n.records.subTypeToText[type],
+                            });
+
+                        await ctx.reply(
+                            i18n.payment.invoiceCreatedStars(
+                                formatRub(invoice.amountStars),
+                                i18n.records.subTypeToText[type],
+                                i18n.records.subPlanToPeriod[plan],
+                            ),
+                            { parse_mode: 'HTML' },
+                        );
+
+                        await ctx.replyWithInvoice({
+                            title: invoice.title,
+                            description: invoice.description,
+                            payload: invoice.orderId,
+                            provider_token: '',
+                            currency: 'XTR',
+                            prices: invoice.prices,
+                        });
+                    } catch {
+                        await ctx.reply(i18n.payment.error, {
+                            parse_mode: 'HTML',
+                        });
+                    }
                 },
             );
         }

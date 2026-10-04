@@ -8,6 +8,7 @@ import { PrismaModule } from '@/common/services/prisma';
 import { AiModule } from '@/common/services/ai';
 import { CryptoPayModule } from '@/common/services/crypto-pay';
 import { AntilopayModule } from '@/common/services/antilopay';
+import { TelegramStarsModule } from '@/common/services/telegram-stars';
 import { MeController } from './me.controller';
 import { SubscriptionsController } from './subscriptions.controller';
 import { PaymentsController } from './payments.controller';
@@ -27,6 +28,7 @@ import { GenerationFacade } from './generation.facade';
         AiModule,
         CryptoPayModule,
         AntilopayModule,
+        TelegramStarsModule,
     ],
     controllers: [
         MeController,

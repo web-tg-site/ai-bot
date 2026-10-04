@@ -59,6 +59,7 @@ export const ru: I18nBundle = {
         openApp: 'Открыть приложение',
         sbp: (amount) => `СБП ${amount} ₽`,
         usdt: (amount) => `USDT ${amount} ₮`,
+        stars: (amount) => `Stars ${amount} ⭐`,
     },
     settings: {
         title: '⚙️ <b>Настройки</b>\n\nВыберите язык интерфейса и параметры генерации:',
@@ -350,6 +351,14 @@ ${getTariffIncludesText(type, plan, ru)}
 
 Нажмите кнопку ниже — откроется страница оплаты (карта / СБП).
 Важно: откройте ссылку в браузере телефона (не через VPN).`,
+        invoiceCreatedStars: (amountStars, tariffName, periodName) =>
+            `⭐ <b>Оплата подписки Stars</b>
+
+Тариф: ${tariffName}
+Период: ${periodName}
+Сумма: ${amountStars} ⭐
+
+Нажмите «Pay» в инвойсе Telegram, чтобы оплатить звёздами.`,
         payButton: 'Оплатить',
         success: (tariffName, periodName, endsAt) =>
             `✅ <b>Оплата получена, подписка активирована</b>
@@ -368,6 +377,8 @@ ${getTariffIncludesText(type, plan, ru)}
             'Оплата через @CryptoBot временно недоступна. Обратитесь в поддержку.',
         rubNotConfigured:
             'Оплата в рублях временно недоступна. Пока вы можете оплатить криптовалютой через кнопку USDT.',
+        starsNotConfigured:
+            'Оплата Stars временно недоступна. Попробуйте USDT или СБП.',
     },
     support: {
         text: `💬 <b>Поддержка ${BOT_NAME}</b>

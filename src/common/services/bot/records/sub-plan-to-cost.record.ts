@@ -1,35 +1,45 @@
 import { SubscribePlan, SubscribeType } from '@/generated/prisma/enums';
 
+type SubCost = { rub: number; usdt: number; stars: number };
+
+const cost = (rub: number, usdt: number): SubCost => ({
+    rub,
+    usdt,
+    stars: rub,
+});
+
+const free: SubCost = { rub: 0, usdt: 0, stars: 0 };
+
 export const SUB_PLAN_TO_COST: Record<
     SubscribePlan,
-    Record<SubscribeType, { rub: number; usdt: number }>
+    Record<SubscribeType, SubCost>
 > = {
     MONTHLY: {
-        FREE: { rub: 0, usdt: 0 },
-        NOT_SUBSCRIBED: { rub: 0, usdt: 0 },
-        LITE: { rub: 2990, usdt: 37 },
-        PRO: { rub: 5990, usdt: 75 },
-        BUSINESS: { rub: 11990, usdt: 150 },
+        FREE: free,
+        NOT_SUBSCRIBED: free,
+        LITE: cost(2990, 37),
+        PRO: cost(5990, 75),
+        BUSINESS: cost(11990, 150),
     },
     THREE_MONTHS: {
-        FREE: { rub: 0, usdt: 0 },
-        NOT_SUBSCRIBED: { rub: 0, usdt: 0 },
-        LITE: { rub: 7990, usdt: 100 },
-        PRO: { rub: 15990, usdt: 200 },
-        BUSINESS: { rub: 31990, usdt: 400 },
+        FREE: free,
+        NOT_SUBSCRIBED: free,
+        LITE: cost(7990, 100),
+        PRO: cost(15990, 200),
+        BUSINESS: cost(31990, 400),
     },
     SIX_MONTHS: {
-        FREE: { rub: 0, usdt: 0 },
-        NOT_SUBSCRIBED: { rub: 0, usdt: 0 },
-        LITE: { rub: 13990, usdt: 175 },
-        PRO: { rub: 27990, usdt: 350 },
-        BUSINESS: { rub: 54990, usdt: 690 },
+        FREE: free,
+        NOT_SUBSCRIBED: free,
+        LITE: cost(13990, 175),
+        PRO: cost(27990, 350),
+        BUSINESS: cost(54990, 690),
     },
     YEARLY: {
-        FREE: { rub: 0, usdt: 0 },
-        NOT_SUBSCRIBED: { rub: 0, usdt: 0 },
-        LITE: { rub: 23990, usdt: 300 },
-        PRO: { rub: 47990, usdt: 600 },
-        BUSINESS: { rub: 94990, usdt: 1190 },
+        FREE: free,
+        NOT_SUBSCRIBED: free,
+        LITE: cost(23990, 300),
+        PRO: cost(47990, 600),
+        BUSINESS: cost(94990, 1190),
     },
 };

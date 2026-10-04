@@ -15,6 +15,7 @@ import { UserModelService } from '@/common/models/user';
 import { PrismaService } from '@/common/services/prisma';
 import { CryptoPayService } from '@/common/services/crypto-pay';
 import { AntilopayService } from '@/common/services/antilopay';
+import { TelegramStarsService } from '@/common/services/telegram-stars';
 import { SUB_PLAN_TO_COST } from '@/common/services/bot/records';
 import { getI18nForUser } from '@/common/services/bot/i18n';
 import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
@@ -46,6 +47,7 @@ export class PaymentsController {
         private readonly prismaService: PrismaService,
         private readonly cryptoPayService: CryptoPayService,
         private readonly antilopayService: AntilopayService,
+        private readonly telegramStarsService: TelegramStarsService,
     ) {}
 
     @Post('crypto-pay')
@@ -177,6 +179,65 @@ export class PaymentsController {
         }
     }
 
+    @Post('stars')
+    async createStarsPay(
+        @CurrentUser() current: CurrentUserPayload,
+        @Body() body: CreatePaymentDto,
+    ) {
+        this.assertPaidTariff(body.subscribeType, body.subscribePlan);
+
+        const user = await this.userModelService.getUserByTelegramId(
+            current.telegramId,
+        );
+        if (!user) {
+            throw new HttpException(
+                { error: 'Пользователь не найден' },
+                HttpStatus.NOT_FOUND,
+            );
+        }
+
+        if (!this.telegramStarsService.isConfigured()) {
+            throw new HttpException(
+                { error: 'Оплата Stars временно недоступна' },
+                HttpStatus.SERVICE_UNAVAILABLE,
+            );
+        }
+
+        const i18n = getI18nForUser(user);
+        const amountStars =
+            SUB_PLAN_TO_COST[body.subscribePlan][body.subscribeType].stars;
+
+        try {
+            const invoice =
+                await this.telegramStarsService.createSubscriptionInvoiceLink({
+                    userId: user.id,
+                    subscribeType: body.subscribeType,
+                    subscribePlan: body.subscribePlan,
+                    amountStars,
+                    periodLabel:
+                        i18n.records.subPlanToPeriod[body.subscribePlan],
+                    tariffLabel: i18n.records.subTypeToText[body.subscribeType],
+                });
+
+            return {
+                invoiceUrl: invoice.invoiceUrl,
+                orderId: invoice.orderId,
+                amountStars: invoice.amountStars,
+            };
+        } catch (error) {
+            throw new HttpException(
+                {
+                    error: toUserFacingError(
+                        error instanceof Error
+                            ? error.message
+                            : 'Failed to create Stars invoice',
+                    ),
+                },
+                HttpStatus.BAD_REQUEST,
+            );
+        }
+    }
+
     @Get(':orderId')
     async getPayment(
         @CurrentUser() current: CurrentUserPayload,
@@ -195,6 +256,7 @@ export class PaymentsController {
                 subscribePlan: true,
                 amountUsd: true,
                 amountRub: true,
+                amountStars: true,
                 createdAt: true,
                 paidAt: true,
             },

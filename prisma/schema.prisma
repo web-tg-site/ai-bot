@@ -40,6 +40,7 @@ enum PaymentStatus {
 enum PaymentProvider {
   CRYPTO_PAY
   ANTILOPAY
+  TELEGRAM_STARS
 }
 
 datasource db {
@@ -119,20 +120,22 @@ model UserAiToolSettings {
 }
 
 model Payment {
-  id                 String          @id @default(uuid())
-  userId             String
-  user               User            @relation(fields: [userId], references: [id])
-  provider           PaymentProvider
-  cryptoPayInvoiceId BigInt?         @unique
-  antilopayPaymentId String?         @unique
-  orderId            String          @unique
-  subscribeType      SubscribeType
-  subscribePlan      SubscribePlan
-  amountUsd          String?
-  amountRub          String?
-  status             PaymentStatus   @default(PENDING)
-  paidAt             DateTime?
-  createdAt          DateTime        @default(now())
+  id                       String          @id @default(uuid())
+  userId                   String
+  user                     User            @relation(fields: [userId], references: [id])
+  provider                 PaymentProvider
+  cryptoPayInvoiceId       BigInt?         @unique
+  antilopayPaymentId       String?         @unique
+  telegramPaymentChargeId  String?         @unique
+  orderId                  String          @unique
+  subscribeType            SubscribeType
+  subscribePlan            SubscribePlan
+  amountUsd                String?
+  amountRub                String?
+  amountStars              Int?
+  status                   PaymentStatus   @default(PENDING)
+  paidAt                   DateTime?
+  createdAt                DateTime        @default(now())
 
   @@map("payments")
 }

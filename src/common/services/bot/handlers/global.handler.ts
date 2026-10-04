@@ -5,6 +5,7 @@ import { registerAiHandler } from './ai.handler';
 import { registerAiToolHandlers } from './ai-tool.handler';
 import { registerSupportHandler } from './support.handler';
 import { registerSubHandler } from './sub.handler';
+import { registerStarsPaymentHandler } from './stars-payment.handler';
 import { registerSettingsHandler } from './settings.handler';
 import { registerGptChatHandlers } from './gpt-chat.handler';
 
@@ -18,6 +19,7 @@ export const registerGlobalHandler = (bot: Telegraf, deps: BotHandlerDeps) => {
     registerAiHandler(bot, deps);
     registerSupportHandler(bot, deps.userModelService);
     registerSubHandler(bot, deps);
+    registerStarsPaymentHandler(bot, deps);
     registerAiToolHandlers(bot, deps);
     registerSettingsHandler(bot, deps.userModelService);
     registerGptChatHandlers(bot, deps);

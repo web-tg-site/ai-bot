@@ -29,6 +29,7 @@ export type I18nBundle = {
         openApp: string;
         sbp: (amount: string) => string;
         usdt: (amount: number) => string;
+        stars: (amount: string) => string;
     };
     settings: {
         title: string;
@@ -143,6 +144,11 @@ export type I18nBundle = {
             tariffName: string,
             periodName: string,
         ) => string;
+        invoiceCreatedStars: (
+            amountStars: string,
+            tariffName: string,
+            periodName: string,
+        ) => string;
         payButton: string;
         success: (
             tariffName: string,
@@ -154,6 +160,7 @@ export type I18nBundle = {
         emailInvalid: string;
         notConfigured: string;
         rubNotConfigured: string;
+        starsNotConfigured: string;
     };
     records: {
         subPlanToPeriod: Record<SubscribePlan, string>;

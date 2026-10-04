@@ -26,6 +26,7 @@ import {
 import { RedisService } from '@/common/services/redis';
 import { CryptoPayService } from '@/common/services/crypto-pay';
 import { AntilopayService } from '@/common/services/antilopay';
+import { TelegramStarsService } from '@/common/services/telegram-stars';
 import { bufferToInputFile } from './utils/download-telegram-file';
 import { deliverVideoBuffer } from './utils/media-delivery';
 import {
@@ -58,6 +59,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         private readonly redisService: RedisService,
         private readonly cryptoPayService: CryptoPayService,
         private readonly antilopayService: AntilopayService,
+        private readonly telegramStarsService: TelegramStarsService,
         private readonly elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService,
     ) {
         const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
@@ -306,6 +308,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
             modelFailoverService: this.modelFailoverService,
             cryptoPayService: this.cryptoPayService,
             antilopayService: this.antilopayService,
+            telegramStarsService: this.telegramStarsService,
             elevenLabsVoicePreviewService: this.elevenLabsVoicePreviewService,
             redisService: this.redisService,
         });

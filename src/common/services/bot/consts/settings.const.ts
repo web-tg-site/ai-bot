@@ -2,6 +2,7 @@ export const ALLOWED_UPDATES = [
     'message',
     'edited_message',
     'callback_query',
+    'pre_checkout_query',
     'my_chat_member',
     'chat_member',
     'channel_post',
