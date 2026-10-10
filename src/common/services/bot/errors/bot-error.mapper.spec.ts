@@ -183,6 +183,23 @@ describe('bot-error.mapper', () => {
             expect(isFailoverEligibleError(raw)).toBe(false);
         });
 
+        it('localizes Apiframe / Midjourney Validation failed (long prompt)', () => {
+            expect(toUserFacingError('Validation failed', ru)).toMatch(
+                /Промпт слишком длинный/i,
+            );
+            expect(
+                toUserFacingError(
+                    'Validation failed: prompt: String must contain at most 2000 character(s)',
+                    ru,
+                ),
+            ).toMatch(/Промпт слишком длинный/i);
+            expect(toUserFacingError('Validation failed', en)).toMatch(
+                /prompt is too long/i,
+            );
+            expect(isUserInputValidationError('Validation failed')).toBe(true);
+            expect(isFailoverEligibleError('Validation failed')).toBe(false);
+        });
+
         it('localizes Veo unsupported use-case JSON from Gemini', () => {
             const raw = JSON.stringify({
                 error: {

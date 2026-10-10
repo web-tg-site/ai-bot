@@ -681,10 +681,23 @@ export class ApiframeProvider {
                 | { message?: string; error?: string; details?: unknown }
                 | string
                 | undefined;
-            const message =
+            const baseMessage =
                 typeof data === 'string'
                     ? data
                     : (data?.message ?? data?.error ?? error.message);
+            const detailsSummary =
+                typeof data === 'object' && data
+                    ? summarizeApiframeValidationDetails(data.details)
+                    : null;
+            let message =
+                typeof baseMessage === 'string'
+                    ? baseMessage
+                    : `Apiframe request failed (${error.response?.status ?? 'network'})`;
+            if (detailsSummary) {
+                message = /validation failed/i.test(message)
+                    ? `${message}: ${detailsSummary}`
+                    : `${message} (${detailsSummary})`;
+            }
             this.logger.warn(
                 {
                     path,
@@ -693,16 +706,77 @@ export class ApiframeProvider {
                 },
                 'Apiframe HTTP error',
             );
-            return new Error(
-                typeof message === 'string'
-                    ? message
-                    : `Apiframe request failed (${error.response?.status ?? 'network'})`,
-            );
+            return new Error(message);
         }
         return error instanceof Error
             ? error
             : new Error('Apiframe request failed');
     }
+}
+
+/** Flatten Apiframe/Zod validation `details` into a short string for mapping. */
+function summarizeApiframeValidationDetails(details: unknown): string | null {
+    if (details == null) {
+        return null;
+    }
+    if (typeof details === 'string' && details.trim()) {
+        return details.trim();
+    }
+    if (Array.isArray(details)) {
+        const parts = details
+            .map((item) => {
+                if (typeof item === 'string') return item.trim();
+                if (item && typeof item === 'object') {
+                    const row = item as {
+                        path?: unknown;
+                        message?: unknown;
+                    };
+                    const path = Array.isArray(row.path)
+                        ? row.path.join('.')
+                        : typeof row.path === 'string'
+                          ? row.path
+                          : '';
+                    const msg =
+                        typeof row.message === 'string'
+                            ? row.message.trim()
+                            : '';
+                    if (path && msg) return `${path}: ${msg}`;
+                    if (msg) return msg;
+                }
+                return '';
+            })
+            .filter(Boolean);
+        return parts.length ? parts.join('; ') : null;
+    }
+    if (typeof details === 'object') {
+        const fieldErrors = (details as { fieldErrors?: unknown }).fieldErrors;
+        if (fieldErrors && typeof fieldErrors === 'object') {
+            const parts = Object.entries(
+                fieldErrors as Record<string, unknown>,
+            ).flatMap(([field, errs]) => {
+                const list = Array.isArray(errs) ? errs : [errs];
+                return list
+                    .map((err) =>
+                        typeof err === 'string' && err.trim()
+                            ? `${field}: ${err.trim()}`
+                            : '',
+                    )
+                    .filter(Boolean);
+            });
+            if (parts.length) {
+                return parts.join('; ');
+            }
+        }
+        try {
+            const raw = JSON.stringify(details);
+            if (raw && raw !== '{}' && raw.length < 500) {
+                return raw;
+            }
+        } catch {
+            // ignore
+        }
+    }
+    return null;
 }
 
 /** Re-export for callers that only need the tool check. */
