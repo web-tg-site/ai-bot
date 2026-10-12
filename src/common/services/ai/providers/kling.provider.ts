@@ -856,9 +856,9 @@ export class KlingProvider {
 
     private assertApiOk(response: { code?: number; message?: string }) {
         if (response.code != null && response.code !== 0) {
-            throw new Error(
-                `Kling API: ${response.message ?? `error code ${response.code}`}`,
-            );
+            const detail =
+                response.message?.trim() || `error code ${response.code}`;
+            throw new Error(`Kling API [${response.code}]: ${detail}`);
         }
     }
 
@@ -914,27 +914,41 @@ export class KlingProvider {
             code?: string;
         };
         const data = axiosError.response?.data;
-        const apiMessage =
-            data &&
-            typeof data === 'object' &&
-            'message' in data &&
-            typeof data.message === 'string'
-                ? (data as { message: string }).message
+        const apiPayload =
+            data && typeof data === 'object'
+                ? (data as { message?: unknown; code?: unknown })
                 : undefined;
+        const apiMessage =
+            typeof apiPayload?.message === 'string'
+                ? apiPayload.message
+                : undefined;
+        const apiCode =
+            typeof apiPayload?.code === 'number'
+                ? apiPayload.code
+                : typeof apiPayload?.code === 'string' &&
+                    /^\d+$/.test(apiPayload.code)
+                  ? Number(apiPayload.code)
+                  : undefined;
 
         this.logger.error(
             {
                 op,
                 status: axiosError.response?.status,
                 code: axiosError.code,
+                apiCode,
                 data,
                 err: axiosError.message ?? String(error),
             },
             `Kling ${op} failed`,
         );
 
-        if (apiMessage) {
-            return new Error(`Kling: ${apiMessage}`);
+        if (apiMessage || apiCode != null) {
+            const detail = apiMessage?.trim() || `error code ${apiCode}`;
+            return new Error(
+                apiCode != null
+                    ? `Kling [${apiCode}]: ${detail}`
+                    : `Kling: ${detail}`,
+            );
         }
         if (axiosError.response?.status) {
             return new Error(

@@ -110,7 +110,12 @@ export class BflProvider {
                 };
             } catch (error) {
                 this.logger.warn(
-                    { err: error instanceof Error ? error.message : error },
+                    {
+                        err:
+                            error instanceof Error
+                                ? error.message
+                                : String(error),
+                    },
                     'BFL result download failed, returning URL',
                 );
                 return {
@@ -282,7 +287,9 @@ export class BflProvider {
             return { width: size.width, height: size.height };
         } catch (error) {
             this.logger.warn(
-                { err: error instanceof Error ? error.message : error },
+                {
+                    err: error instanceof Error ? error.message : String(error),
+                },
                 'BFL outpaint: could not read source size, falling back to preset canvas',
             );
             return null;
@@ -368,7 +375,9 @@ export class BflProvider {
             };
         } catch (error) {
             this.logger.warn(
-                { err: error instanceof Error ? error.message : error },
+                {
+                    err: error instanceof Error ? error.message : String(error),
+                },
                 'BFL outpaint: source downscale failed, relying on auto_crop',
             );
             return { file, width: source.width, height: source.height };
@@ -514,6 +523,12 @@ export class BflProvider {
 
         if (status === 429) {
             return 'Flux перегружен. Подождите немного и попробуйте снова.';
+        }
+
+        if (status === 402) {
+            return detail
+                ? `Insufficient credits: ${detail}`
+                : 'Insufficient credits (HTTP 402)';
         }
 
         this.logger.warn(

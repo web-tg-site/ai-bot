@@ -161,7 +161,12 @@ export class BytePlusProvider {
                 };
             } catch (error) {
                 this.logger.warn(
-                    { err: error instanceof Error ? error.message : error },
+                    {
+                        err:
+                            error instanceof Error
+                                ? error.message
+                                : String(error),
+                    },
                     'BytePlus result download failed, returning URL',
                 );
                 return {
@@ -538,7 +543,7 @@ export class BytePlusProvider {
                     maxBodyLength: Infinity,
                     maxContentLength: Infinity,
                     responseType: 'text',
-                    transformResponse: [(data) => data],
+                    transformResponse: [(data: unknown) => data],
                 },
             ),
         );
@@ -566,7 +571,7 @@ export class BytePlusProvider {
                 maxBodyLength: Infinity,
                 maxContentLength: Infinity,
                 responseType: 'text',
-                transformResponse: [(data) => data],
+                transformResponse: [(data: unknown) => data],
             }),
         );
         const url = String(response.data ?? '').trim();
@@ -579,7 +584,7 @@ export class BytePlusProvider {
     private resolveUploadFileName(file: AiFileInput): string {
         const raw = file.fileName?.trim();
         if (raw && /\.[a-z0-9]+$/i.test(raw)) {
-            return raw.replace(/[^\w.\-]+/g, '_');
+            return raw.replace(/[^\w.-]+/g, '_');
         }
         if (
             file.mimeType.includes('quicktime') ||
@@ -750,7 +755,11 @@ export class BytePlusProvider {
             const friendly = /web url|reference_video/i.test(msg)
                 ? 'Seedance не принял видео-референс. Попробуйте другой файл (MP4/MOV) или позже.'
                 : msg;
-            return status ? `${friendly} (HTTP ${status})` : friendly;
+            const withCode =
+                code && !friendly.includes(String(code))
+                    ? `${friendly} (${code})`
+                    : friendly;
+            return status ? `${withCode} (HTTP ${status})` : withCode;
         }
         if (error instanceof Error) {
             return error.message;

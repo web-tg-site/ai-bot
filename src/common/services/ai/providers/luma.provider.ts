@@ -108,7 +108,12 @@ export class LumaProvider {
                 };
             } catch (error) {
                 this.logger.warn(
-                    { err: error instanceof Error ? error.message : error },
+                    {
+                        err:
+                            error instanceof Error
+                                ? error.message
+                                : String(error),
+                    },
                     'Luma result download failed, returning URL',
                 );
                 return {
@@ -126,12 +131,15 @@ export class LumaProvider {
         }
 
         if (status === 'failed') {
+            const reason = response.failure_reason?.trim();
+            const code = response.failure_code?.trim();
+            const errorMessage =
+                reason && code && !reason.includes(code)
+                    ? `${reason} (${code})`
+                    : (reason ?? code ?? 'Luma generation failed');
             return {
                 status,
-                errorMessage:
-                    response.failure_reason ??
-                    response.failure_code ??
-                    'Luma generation failed',
+                errorMessage,
             };
         }
 
