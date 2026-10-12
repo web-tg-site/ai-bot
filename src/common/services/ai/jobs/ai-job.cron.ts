@@ -556,11 +556,19 @@ export class AiJobCron {
             `AI job marked failed [${job.toolId}]: ${errorMessage}`,
         );
 
+        const refundNote =
+            job.tokenCost > 0
+                ? i18n.aiResult
+                      .tokensRefunded(job.tokenCost)
+                      .replace(/<\/?b>/g, '')
+                : undefined;
+
         await this.aiJobService.failJobWithRefund({
             jobId: job.id,
             telegramId: job.user.telegramId,
             tokenCost: job.tokenCost,
             errorMessage: userMessage,
+            refundNote,
         });
 
         if (job.notifyTelegram === false) {

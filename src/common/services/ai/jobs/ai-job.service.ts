@@ -100,24 +100,32 @@ export class AiJobService {
             throw new Error('INSUFFICIENT_TOKENS');
         }
 
-        const job = await this.prismaService.aiGenerationJob.create({
-            data: {
-                userId: params.userId,
-                toolId: params.toolId,
-                providerJobId: submitted.providerJobId,
-                status: JobStatus.PENDING,
-                tokenCost,
-                inputJson: toPersistedInputJson(input, {
-                    includeFiles: true,
-                }),
-                prompt: jobPromptForDb(input),
-                notifyTelegram: params.notifyTelegram ?? true,
-                sessionId: params.sessionId ?? null,
-                statusMessageId: params.statusMessageId ?? null,
-                providerRetryCount: submitted.providerRetryCount,
-                providerRetryAt: submitted.providerRetryAt,
-            },
-        });
+        let job: Awaited<
+            ReturnType<PrismaService['aiGenerationJob']['create']>
+        >;
+        try {
+            job = await this.prismaService.aiGenerationJob.create({
+                data: {
+                    userId: params.userId,
+                    toolId: params.toolId,
+                    providerJobId: submitted.providerJobId,
+                    status: JobStatus.PENDING,
+                    tokenCost,
+                    inputJson: toPersistedInputJson(input, {
+                        includeFiles: true,
+                    }),
+                    prompt: jobPromptForDb(input),
+                    notifyTelegram: params.notifyTelegram ?? true,
+                    sessionId: params.sessionId ?? null,
+                    statusMessageId: params.statusMessageId ?? null,
+                    providerRetryCount: submitted.providerRetryCount,
+                    providerRetryAt: submitted.providerRetryAt,
+                },
+            });
+        } catch (error) {
+            await this.tokenBillingService.refund(params.telegramId, tokenCost);
+            throw error;
+        }
 
         this.logger.info(
             {
@@ -528,6 +536,7 @@ export class AiJobService {
             resultJson?: unknown;
             errorMessage?: string;
         },
+        options?: { skipFileStrip?: boolean },
     ) {
         await this.prismaService.aiGenerationJob.update({
             where: { id: jobId },
@@ -541,8 +550,11 @@ export class AiJobService {
             },
         });
 
-        if (status === JobStatus.COMPLETED || status === JobStatus.FAILED) {
-            await this.stripInputFiles(jobId);
+        if (
+            !options?.skipFileStrip &&
+            (status === JobStatus.COMPLETED || status === JobStatus.FAILED)
+        ) {
+            await this.stripInputFilesSafely(jobId);
         }
     }
 
@@ -679,15 +691,61 @@ export class AiJobService {
         telegramId: string;
         tokenCost: number;
         errorMessage: string;
+        /** Plain-text note shown with the error after tokens are back. */
+        refundNote?: string;
     }) {
-        await this.updateJobStatus(params.jobId, JobStatus.FAILED, {
-            errorMessage: params.errorMessage,
-        });
+        // Mark failed before touching the heavy input JSON. JPEG / duration
+        // rejects always carry the original photo or video, and rewriting that
+        // row used to throw before the refund ran.
+        await this.updateJobStatus(
+            params.jobId,
+            JobStatus.FAILED,
+            { errorMessage: params.errorMessage },
+            { skipFileStrip: true },
+        );
 
         if (params.tokenCost > 0) {
             await this.tokenBillingService.refund(
                 params.telegramId,
                 params.tokenCost,
+            );
+
+            if (params.refundNote) {
+                await this.prismaService.aiGenerationJob
+                    .update({
+                        where: { id: params.jobId },
+                        data: {
+                            errorMessage: `${params.errorMessage}\n\n${params.refundNote}`,
+                        },
+                    })
+                    .catch((error: unknown) => {
+                        this.logger.warn(
+                            {
+                                jobId: params.jobId,
+                                err:
+                                    error instanceof Error
+                                        ? error.message
+                                        : String(error),
+                            },
+                            'Tokens refunded, but failed to append the refund note',
+                        );
+                    });
+            }
+        }
+
+        await this.stripInputFilesSafely(params.jobId);
+    }
+
+    private async stripInputFilesSafely(jobId: string) {
+        try {
+            await this.stripInputFiles(jobId);
+        } catch (error) {
+            this.logger.warn(
+                {
+                    jobId,
+                    err: error instanceof Error ? error.message : String(error),
+                },
+                'Failed to strip job input files after terminal status',
             );
         }
     }
