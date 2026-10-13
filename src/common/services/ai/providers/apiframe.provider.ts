@@ -624,11 +624,7 @@ export class ApiframeProvider {
                 return null;
             }
 
-            const isStems =
-                tracks.length === 2 &&
-                tracks.every(
-                    (t) => t.id === 'vocals' || t.id === 'instrumental',
-                );
+            const isStems = this.isSunoStems(tracks);
             const kind = isStems ? 'suno_stems' : 'suno_tracks';
             const resultJson: ApiframeResultJson = {
                 kind,
@@ -645,6 +641,34 @@ export class ApiframeProvider {
             };
         }
 
+        return null;
+    }
+
+    private isSunoStems(tracks: ApiframeTrack[]): boolean {
+        if (tracks.length !== 2) return false;
+        const roles = tracks.map((track) => this.sunoStemRole(track));
+        return roles.includes('vocals') && roles.includes('instrumental');
+    }
+
+    private sunoStemRole(
+        track: ApiframeTrack,
+    ): 'vocals' | 'instrumental' | null {
+        const id = track.id.toLowerCase();
+        const title = track.title?.toLowerCase() ?? '';
+        if (
+            id === 'vocals' ||
+            title.includes('vocal') ||
+            title.includes('голос')
+        ) {
+            return 'vocals';
+        }
+        if (
+            id === 'instrumental' ||
+            title.includes('instrument') ||
+            title.includes('инструмент')
+        ) {
+            return 'instrumental';
+        }
         return null;
     }
 
