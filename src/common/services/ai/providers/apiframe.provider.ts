@@ -72,6 +72,31 @@ export function isApiframeMidjourneyUpstreamError(message: string): boolean {
     );
 }
 
+/**
+ * Suno rejects a one-line Extend idea as lyrics that are too short.
+ * A short note becomes a verse and a chorus that still sing the user's words.
+ */
+export function toSunoExtendPrompt(raw: string): string {
+    const text = raw.trim();
+    if (!text) return text;
+    if (/\[[^\]\n]+\]/.test(text)) {
+        return text.slice(0, 5000);
+    }
+
+    const lines = text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+    if (lines.length >= 4) {
+        return ['[Verse]', ...lines].join('\n').slice(0, 5000);
+    }
+
+    const idea = lines.join(' ').replace(/\s+/g, ' ');
+    return ['[Verse]', idea, '', '[Chorus]', idea, idea]
+        .join('\n')
+        .slice(0, 5000);
+}
+
 export function isApiframeMidjourneyGenericFailure(message: string): boolean {
     const base = stripApiframeErrorMessage(message);
     return (
@@ -453,7 +478,7 @@ export class ApiframeProvider {
                 body.continueAt = input.continueAt;
             }
             if (input.prompt?.trim()) {
-                body.prompt = input.prompt.trim().slice(0, 5000);
+                body.prompt = toSunoExtendPrompt(input.prompt);
             }
             if (input.sunoTitle?.trim()) {
                 body.title = input.sunoTitle.trim().slice(0, 80);

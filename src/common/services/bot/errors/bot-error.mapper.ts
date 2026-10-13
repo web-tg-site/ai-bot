@@ -604,6 +604,16 @@ function localizeActionableProviderDetail(
     }
 
     if (
+        /extend(?:ing)? lyrics|lyrics are empty, too short|too short, or malformed/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'Suno не принял продолжение: одной короткой фразы мало. Напишите несколько строк о том, что петь дальше.'
+            : 'Suno rejected the continuation: one short phrase is not enough. Write a few lines about what should be sung next.';
+    }
+
+    if (
         /no speech detected|speech not detected|could not (?:detect|find) speech/i.test(
             detail,
         )
