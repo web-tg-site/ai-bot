@@ -8,6 +8,7 @@ import { getToolById } from '@/common/config/ai-tools.registry';
 import {
     buildSunoStyleTags,
     hasSunoGenerationSeed,
+    resolveSunoStyleText,
 } from '@/common/config/suno-audio.config';
 import {
     ApiframeAction,
@@ -535,7 +536,9 @@ export class ApiframeProvider {
             });
             // The style sentence used to arrive in prompt. Keep that path,
             // but do not also send it as lyrics — Suno would rewrite the song.
-            const style = explicitStyle || promptText || presetStyle;
+            const style = resolveSunoStyleText(
+                explicitStyle || promptText || presetStyle || '',
+            );
             if (!style) {
                 throw new Error(
                     'Для кавера напишите новый стиль: например, «джаз» или «оркестр».',
@@ -548,14 +551,22 @@ export class ApiframeProvider {
             if (input.sunoTitle?.trim()) {
                 body.title = input.sunoTitle.trim().slice(0, 80);
             }
-            if (input.sunoNegativeTags?.trim()) {
-                body.negative_tags = input.sunoNegativeTags
-                    .trim()
-                    .slice(0, 500);
+            const styleTokens = new Set(
+                style.split(',').map((tag) => tag.trim().toLowerCase()),
+            );
+            const negative = input.sunoNegativeTags
+                ?.split(',')
+                .map((tag) => tag.trim())
+                .filter((tag) => tag && !styleTokens.has(tag.toLowerCase()))
+                .join(', ');
+            if (negative) {
+                body.negative_tags = negative.slice(0, 500);
             }
-            if (typeof input.sunoAudioWeight === 'number') {
-                body.audio_weight = input.sunoAudioWeight;
-            }
+            // Lower weight lets the new genre replace the source arrangement.
+            body.audio_weight =
+                typeof input.sunoAudioWeight === 'number'
+                    ? input.sunoAudioWeight
+                    : 0.35;
         }
 
         const response = await this.post<ApiframeSubmitResponse>(

@@ -2,6 +2,7 @@ import { Context, Telegraf } from 'telegraf';
 import { AiToolId, BotSession } from '@/common/services/ai';
 import { AiGenerationInput } from '@/common/services/ai/types';
 import type { ApiframeAction } from '@/common/config/apiframe.config';
+import { sunoCoverSourceTags } from '@/common/config/suno-audio.config';
 import { getI18nForUser } from '@/common/services/bot/i18n';
 import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
 import type { BotHandlerDeps } from '../types/bot-handler-deps.type';
@@ -451,6 +452,14 @@ export async function tryHandlePendingApiframeFollowUp(
         };
         if (pending.action === 'cover') {
             input.sunoStyle = text;
+            const parent = await deps.aiJobService.getCompletedJobForUser(
+                pending.parentJobId,
+                user.id,
+            );
+            input.sunoNegativeTags = sunoCoverSourceTags(
+                parent?.resultJson,
+                pending.actionIndex,
+            );
         } else if (pending.action === 'add_vocals') {
             input.prompt = text;
         } else if (!extendWithoutText) {

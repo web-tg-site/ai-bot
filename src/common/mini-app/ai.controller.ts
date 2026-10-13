@@ -58,6 +58,7 @@ import { AiJobService } from '@/common/services/ai/jobs/ai-job.service';
 import { prepareUploadMedia } from '@/common/utils/prepare-upload-media';
 import { getI18n } from '@/common/services/bot/i18n';
 import { normalizeFluxImageMode } from '@/common/config/flux-image-modes.config';
+import { sunoCoverSourceTags } from '@/common/config/suno-audio.config';
 import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
 import { stripAttachmentMentionManifest } from '@/common/services/bot/utils/image-references';
 import {
@@ -526,6 +527,7 @@ export class AiController {
             : undefined;
 
         let parentProviderJobId: string | undefined;
+        let coverSourceTags: string | undefined;
         if (body.apiframeAction && body.sourceGenerationId) {
             const parent = await this.prismaService.aiGenerationJob.findFirst({
                 where: {
@@ -554,6 +556,12 @@ export class AiController {
                 );
             }
             parentProviderJobId = parent.providerJobId;
+            if (body.apiframeAction === 'cover') {
+                coverSourceTags = sunoCoverSourceTags(
+                    parent.resultJson,
+                    body.actionIndex ? Number(body.actionIndex) : undefined,
+                );
+            }
         }
 
         try {
@@ -605,7 +613,7 @@ export class AiController {
                     sunoLyrics: body.sunoLyrics,
                     sunoTitle: body.sunoTitle,
                     sunoModelVersion: body.sunoModelVersion,
-                    sunoNegativeTags: body.sunoNegativeTags,
+                    sunoNegativeTags: body.sunoNegativeTags || coverSourceTags,
                     sunoVocalGender: body.sunoVocalGender,
                     sunoAutoLyrics:
                         body.sunoAutoLyrics === 'true' ||

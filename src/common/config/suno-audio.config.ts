@@ -205,6 +205,136 @@ export function getSunoMoodById(moodId?: string): SunoPreset {
     );
 }
 
+const SUNO_STYLE_ALIASES: ReadonlyArray<{ key: string; tag: string }> = [
+    { key: 'рэп', tag: 'hip-hop' },
+    { key: 'реп', tag: 'hip-hop' },
+    { key: 'rap', tag: 'hip-hop' },
+    { key: 'блюз', tag: 'blues' },
+    { key: 'кантри', tag: 'country' },
+    { key: 'регги', tag: 'reggae' },
+    { key: 'панк', tag: 'punk' },
+    { key: 'инди', tag: 'indie' },
+    { key: 'техно', tag: 'techno' },
+    { key: 'хаус', tag: 'house' },
+    { key: 'диско', tag: 'disco' },
+    { key: 'соул', tag: 'soul' },
+    { key: 'фанк', tag: 'funk' },
+    { key: 'оркестр', tag: 'orchestral' },
+    { key: 'акустика', tag: 'acoustic' },
+    { key: 'баллада', tag: 'ballad' },
+    { key: 'женский вокал', tag: 'female vocals' },
+    { key: 'мужской вокал', tag: 'male vocals' },
+    { key: 'грустный', tag: 'melancholic' },
+    { key: 'грустная', tag: 'melancholic' },
+    { key: 'веселый', tag: 'playful' },
+    { key: 'быстрый', tag: 'energetic' },
+    { key: 'медленный', tag: 'slow' },
+];
+
+function normalizeSunoStyleKey(value: string): string {
+    return value
+        .toLowerCase()
+        .replace(/ё/g, 'е')
+        .replace(/[‐‑‒–—―\-_/]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function sunoStyleMatchers(): Array<{ key: string; tag: string }> {
+    const matchers: Array<{ key: string; tag: string }> = [];
+    for (const preset of [...SUNO_GENRES, ...SUNO_MOODS]) {
+        if (!preset.styleTag) continue;
+        for (const name of [
+            preset.labelRu,
+            preset.labelEn,
+            preset.styleTag,
+            preset.id,
+        ]) {
+            const key = normalizeSunoStyleKey(name);
+            if (key) matchers.push({ key, tag: preset.styleTag });
+        }
+    }
+    for (const alias of SUNO_STYLE_ALIASES) {
+        matchers.push({
+            key: normalizeSunoStyleKey(alias.key),
+            tag: alias.tag,
+        });
+    }
+    return matchers.sort((a, b) => b.key.length - a.key.length);
+}
+
+/** Suno cover style is English tags. «Хип-хоп» otherwise stays the source genre. */
+export function resolveSunoStyleText(raw: string): string {
+    const text = raw.trim();
+    if (!text) return text;
+
+    const matchers = sunoStyleMatchers();
+    const phrases = text
+        .split(/[,;]+/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+    const tags: string[] = [];
+    const add = (tag: string) => {
+        const next = tag.trim();
+        if (
+            next &&
+            !tags.some((item) => item.toLowerCase() === next.toLowerCase())
+        ) {
+            tags.push(next);
+        }
+    };
+
+    for (const phrase of phrases.length ? phrases : [text]) {
+        const normalized = normalizeSunoStyleKey(phrase);
+        const exact = matchers.find((matcher) => matcher.key === normalized);
+        if (exact) {
+            add(exact.tag);
+            continue;
+        }
+
+        let rest = ` ${normalized} `;
+        for (const matcher of matchers) {
+            const needle = ` ${matcher.key} `;
+            if (!rest.includes(needle)) continue;
+            add(matcher.tag);
+            rest = rest.split(needle).join(' ');
+        }
+        const leftover = rest.replace(/\s+/g, ' ').trim();
+        if (leftover && /[a-z]/i.test(leftover)) {
+            add(leftover);
+        } else if (!tags.length) {
+            add(phrase);
+        }
+    }
+
+    return tags.join(', ').slice(0, 1000);
+}
+
+export function sunoCoverSourceTags(
+    resultJson: unknown,
+    actionIndex?: number,
+): string | undefined {
+    if (!resultJson || typeof resultJson !== 'object') return undefined;
+    const tracks = (resultJson as { tracks?: Array<{ tags?: string | null }> })
+        .tracks;
+    if (!tracks?.length) return undefined;
+    const track =
+        (actionIndex && actionIndex >= 1
+            ? tracks[actionIndex - 1]
+            : undefined) ?? tracks[0];
+    const tags = track?.tags?.trim();
+    if (!tags) return undefined;
+    const genreTags = new Set(
+        SUNO_GENRES.map((preset) => preset.styleTag).filter(Boolean),
+    );
+    const matched = resolveSunoStyleText(tags)
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter((tag) => genreTags.has(tag));
+    const negative = matched.length ? matched.join(', ') : tags;
+    return negative.slice(0, 500);
+}
+
 export function buildSunoStyleTags(params: {
     genreId?: string;
     moodId?: string;
