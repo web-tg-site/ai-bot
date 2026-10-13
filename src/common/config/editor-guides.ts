@@ -368,6 +368,13 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 📝 Можно написать свой текст куплетов
 - 🎹 Можно сделать просто музыку без слов (инструментал)
 
+Когда песня готова, под ней появляются четыре кнопки. Они дорабатывают выбранный трек.
+
+- ⏭ Extend — продолжить трек дальше в том же стиле. Можно описать продолжение или оставить поле пустым.
+- 🎤 Cover — перепеть в другом стиле. Мелодия остаётся, меняется жанр. Напишите стиль, например «джаз» или «оркестр».
+- 🗣️ Vocals — добавить пение к музыке без слов. Нужен текст, который спеть. Готовый вокал эта кнопка не заменяет.
+- 🎚️ Stems — разделить трек на два файла: чистый вокал и музыку без голоса.
+
 Как пользоваться
 1. Опиши тему или идею песни.
 2. При желании впиши свой текст.
@@ -689,6 +696,13 @@ Create a finished song or music — no instruments or studio needed.
 - 🎸 Set genre and mood
 - 📝 Write your own lyrics
 - 🎹 Or make instrumental music without words
+
+When the song is ready, four buttons appear under it. They refine the selected track.
+
+- ⏭ Extend — continue the track in the same style. Describe the continuation, or leave the field empty.
+- 🎤 Cover — resing it in another style. The melody stays, the genre changes. Write a style, for example “jazz” or “orchestra”.
+- 🗣️ Vocals — add singing to instrumental music. Lyrics are required. This does not replace vocals that are already in the song.
+- 🎚️ Stems — split the track into two files: isolated vocals and music without the voice.
 
 How to use
 1. Describe the theme or song idea.

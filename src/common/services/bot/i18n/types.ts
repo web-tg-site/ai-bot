@@ -76,6 +76,7 @@ export type I18nBundle = {
         midjourneyInpaintPrompt: string;
         sunoExtendPrompt: string;
         sunoCoverPrompt: string;
+        sunoVocalsPrompt: string;
         generationTakingLonger: string;
         videoToAudioPreparing: string;
         insufficientTokens: string;

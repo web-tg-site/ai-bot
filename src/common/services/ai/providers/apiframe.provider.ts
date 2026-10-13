@@ -474,10 +474,14 @@ export class ApiframeProvider {
             }
         }
 
-        if (action === 'cover' || action === 'add_vocals') {
-            if (input.prompt?.trim()) {
-                body.prompt = input.prompt.trim().slice(0, 5000);
+        if (action === 'add_vocals') {
+            const lyrics = input.prompt?.trim();
+            if (!lyrics) {
+                throw new Error(
+                    'Для Vocals нужен текст песни. Кнопка добавляет вокал к инструменталу и не заменяет голос готовой песни.',
+                );
             }
+            body.prompt = lyrics.slice(0, 5000);
             if (input.sunoTitle?.trim()) {
                 body.title = input.sunoTitle.trim().slice(0, 80);
             }
@@ -495,10 +499,36 @@ export class ApiframeProvider {
                     .trim()
                     .slice(0, 500);
             }
-            if (
-                action === 'cover' &&
-                typeof input.sunoAudioWeight === 'number'
-            ) {
+        }
+
+        if (action === 'cover') {
+            const explicitStyle = input.sunoStyle?.trim();
+            const promptText = input.prompt?.trim();
+            const presetStyle = buildSunoStyleTags({
+                genreId: input.sunoGenreId,
+                moodId: input.sunoMoodId,
+            });
+            // The style sentence used to arrive in prompt. Keep that path,
+            // but do not also send it as lyrics — Suno would rewrite the song.
+            const style = explicitStyle || promptText || presetStyle;
+            if (!style) {
+                throw new Error(
+                    'Для кавера напишите новый стиль: например, «джаз» или «оркестр».',
+                );
+            }
+            body.style = style.slice(0, 1000);
+            if (explicitStyle && promptText) {
+                body.prompt = promptText.slice(0, 5000);
+            }
+            if (input.sunoTitle?.trim()) {
+                body.title = input.sunoTitle.trim().slice(0, 80);
+            }
+            if (input.sunoNegativeTags?.trim()) {
+                body.negative_tags = input.sunoNegativeTags
+                    .trim()
+                    .slice(0, 500);
+            }
+            if (typeof input.sunoAudioWeight === 'number') {
                 body.audio_weight = input.sunoAudioWeight;
             }
         }

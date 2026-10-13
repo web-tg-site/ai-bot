@@ -183,9 +183,11 @@ Select a tool below.`,
         midjourneyInpaintPrompt:
             '🎨 <b>Vary Region</b>: send a black-and-white mask (white = repaint) and optionally a caption with a new prompt.',
         sunoExtendPrompt:
-            '⏭ <b>Extend</b>: describe the continuation (or send “.” to continue without new text).',
+            '⏭ <b>Extend</b>: describe the continuation (or send “.” to continue without new text). The track continues in the same style.',
         sunoCoverPrompt:
-            '🎤 <b>Cover</b>: describe the new style (genre/mood) for the cover.',
+            '🎤 <b>Cover</b>: send the new style, for example “jazz” or “orchestra”. The melody stays, the genre changes.',
+        sunoVocalsPrompt:
+            '🗣️ <b>Vocals</b>: send the lyrics to sing. This adds vocals to an instrumental and does not replace the voice of a finished song.',
         generationTakingLonger:
             '⏳ Generation is taking longer than usual. Please wait…',
         videoToAudioPreparing:

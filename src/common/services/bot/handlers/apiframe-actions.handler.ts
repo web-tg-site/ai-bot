@@ -30,8 +30,7 @@ async function replyGenerationError(
     i18n: ReturnType<typeof getI18nForUser>,
     error: unknown,
 ) {
-    const message =
-        error instanceof Error ? error.message : 'Ошибка запуска';
+    const message = error instanceof Error ? error.message : 'Ошибка запуска';
     if (message === 'INSUFFICIENT_TOKENS') {
         await ctx.reply(i18n.aiResult.insufficientTokens, {
             parse_mode: 'HTML',
@@ -131,7 +130,7 @@ export function registerApiframeActionHandlers(
             const index = Number(ctx.match[2]) as 1 | 2;
             const jobId = ctx.match[3];
 
-            if (action === 'stems' || action === 'add_vocals') {
+            if (action === 'stems') {
                 await runImmediateSunoAction(asBotContext(ctx), deps, {
                     action,
                     actionIndex: index,
@@ -141,7 +140,7 @@ export function registerApiframeActionHandlers(
             }
 
             await handleSunoActionPrompt(asBotContext(ctx), deps, {
-                action: action as 'extend' | 'cover',
+                action: action as 'extend' | 'cover' | 'add_vocals',
                 actionIndex: index,
                 parentJobId: jobId,
             });
@@ -159,7 +158,7 @@ async function loadParentJob(
         parentJobId,
         userId,
     );
-    if (!job?.providerJobId || job.toolId !== expectedToolId) {
+    if (!job?.providerJobId || job.toolId !== (expectedToolId as string)) {
         return null;
     }
     return job;
@@ -319,11 +318,20 @@ async function runImmediateSunoAction(
     }
 }
 
+function sunoActionHint(
+    i18n: ReturnType<typeof getI18nForUser>,
+    action: 'extend' | 'cover' | 'add_vocals',
+): string {
+    if (action === 'extend') return i18n.aiResult.sunoExtendPrompt;
+    if (action === 'cover') return i18n.aiResult.sunoCoverPrompt;
+    return i18n.aiResult.sunoVocalsPrompt;
+}
+
 async function handleSunoActionPrompt(
     ctx: BotContext,
     deps: AiHandlerDeps,
     params: {
-        action: 'extend' | 'cover';
+        action: 'extend' | 'cover' | 'add_vocals';
         parentJobId: string;
         actionIndex: 1 | 2;
     },
@@ -364,11 +372,9 @@ async function handleSunoActionPrompt(
         actionIndex: params.actionIndex,
     };
 
-    const hint =
-        params.action === 'extend'
-            ? i18n.aiResult.sunoExtendPrompt
-            : i18n.aiResult.sunoCoverPrompt;
-    await ctx.reply(hint, { parse_mode: 'HTML' });
+    await ctx.reply(sunoActionHint(i18n, params.action), {
+        parse_mode: 'HTML',
+    });
 }
 
 /** Called from processAiInput when session has awaitingMjInpaint / awaitingSunoAction. */
@@ -426,26 +432,30 @@ export async function tryHandlePendingApiframeFollowUp(
 
     if (session.ai.awaitingSunoAction) {
         const pending = session.ai.awaitingSunoAction;
-        const text = params.text?.trim();
-        if (!text) {
-            const hint =
-                pending.action === 'extend'
-                    ? i18n.aiResult.sunoExtendPrompt
-                    : i18n.aiResult.sunoCoverPrompt;
-            await ctx.reply(hint, { parse_mode: 'HTML' });
+        const text = params.text?.trim() ?? '';
+        const extendWithoutText = pending.action === 'extend' && text === '.';
+        if (!text || (text === '.' && !extendWithoutText)) {
+            await ctx.reply(sunoActionHint(i18n, pending.action), {
+                parse_mode: 'HTML',
+            });
             return true;
         }
 
         session.ai.awaitingSunoAction = undefined;
-        const prompt = text === '.' ? undefined : text;
         const input: AiGenerationInput = {
             apiframeAction: pending.action,
             parentJobId: pending.parentJobId,
             parentProviderJobId: pending.parentProviderJobId,
             actionIndex: pending.actionIndex,
             sourceGenerationId: pending.parentJobId,
-            prompt,
         };
+        if (pending.action === 'cover') {
+            input.sunoStyle = text;
+        } else if (pending.action === 'add_vocals') {
+            input.prompt = text;
+        } else if (!extendWithoutText) {
+            input.prompt = text;
+        }
 
         try {
             await startFollowUpJob(ctx, deps, i18n, {
