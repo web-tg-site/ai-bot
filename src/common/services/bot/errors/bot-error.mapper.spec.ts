@@ -173,6 +173,15 @@ describe('bot-error.mapper', () => {
             ).toMatch(/размыт|лицо|портрет/i);
         });
 
+        it('localizes Kling Motion decode failures', () => {
+            const raw = 'Kling: The input was rejected, Decode video failed.';
+            expect(toUserFacingError(raw, ru)).toMatch(
+                /открыть видео движения|MP4 или MOV/i,
+            );
+            expect(isUserInputValidationError(raw)).toBe(true);
+            expect(isFailoverEligibleError(raw)).toBe(false);
+        });
+
         it('localizes Kling Motion missing upper-body errors', () => {
             const raw =
                 'Kling: The input was rejected, No complete upper body detected in the video; ensure the upper body is clearly visible.';

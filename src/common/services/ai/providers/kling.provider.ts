@@ -45,6 +45,16 @@ const OMNI_IMAGE_MIN_SIDE = 300;
 const OMNI_IMAGE_MAX_ASPECT = 2.5;
 /** Output durations Omni allows with a `feature` video reference. */
 const OMNI_OUTPUT_DURATIONS = [5, 10] as const;
+/** Motion Control rejects clips outside this envelope with “Decode video failed”. */
+const MOTION_VIDEO_MIN_SECONDS = 3;
+const MOTION_VIDEO_MAX_SECONDS_IMAGE = 10;
+const MOTION_VIDEO_MAX_SECONDS_VIDEO = 30;
+/** Exactly 10s in “pose from photo” is rejected often enough to trim just under. */
+const MOTION_IMAGE_SAFE_MAX_SECONDS = 9.5;
+const MOTION_IMAGE_TRIM_SLACK_SECONDS = 0.5;
+const MOTION_VIDEO_MIN_SIDE = 340;
+const MOTION_VIDEO_MAX_SIDE = 3850;
+const MOTION_VIDEO_FPS = 30;
 
 type KlingEndpoint =
     | '/v1/videos/text2video'
@@ -405,6 +415,86 @@ export class KlingProvider {
     }
 
     /**
+     * Motion Control decodes the reference itself and answers “Decode video failed”
+     * for HEVC, 10-bit, variable frame rate, or a moov atom at the end — even when
+     * the generic upload prep already called the file H.264. Always re-encode.
+     * Do not fall back to the original: that is the file Kling cannot open.
+     */
+    private async prepareMotionReferenceVideo(
+        video: AiFileInput,
+        orientation: 'image' | 'video',
+    ): Promise<AiFileInput> {
+        const meta = await probeVideoMetadata(video.buffer, video.fileName);
+        const duration = meta.durationSeconds;
+        let maxSeconds: number | undefined;
+
+        if (duration != null && duration < MOTION_VIDEO_MIN_SECONDS) {
+            throw new Error(
+                `Видео движения должно быть не короче ${MOTION_VIDEO_MIN_SECONDS} секунд. Загрузите более длинный клип.`,
+            );
+        }
+
+        if (orientation === 'image') {
+            if (
+                duration != null &&
+                duration >
+                    MOTION_VIDEO_MAX_SECONDS_IMAGE +
+                        MOTION_IMAGE_TRIM_SLACK_SECONDS
+            ) {
+                throw new Error(
+                    'Режим «Поза с фото»: видео движения должно быть короче 10 секунд. Выбери «Поза из видео» (до 30 сек) или обрежь клип.',
+                );
+            }
+            if (duration != null && duration > MOTION_IMAGE_SAFE_MAX_SECONDS) {
+                maxSeconds = MOTION_IMAGE_SAFE_MAX_SECONDS;
+            }
+        } else if (
+            duration != null &&
+            duration > MOTION_VIDEO_MAX_SECONDS_VIDEO
+        ) {
+            throw new Error(
+                'Видео движения для «Поза из видео» должно быть не длиннее 30 секунд. Обрежьте клип и попробуйте снова.',
+            );
+        }
+
+        let buffer: Buffer;
+        try {
+            buffer = await transcodeVideoToH264(video.buffer, {
+                force: true,
+                maxSeconds,
+                fps: MOTION_VIDEO_FPS,
+                timeoutMs: 180_000,
+                fitSideRange: {
+                    minSide: MOTION_VIDEO_MIN_SIDE,
+                    maxSide: MOTION_VIDEO_MAX_SIDE,
+                },
+            });
+        } catch (error) {
+            this.logger.warn(
+                {
+                    err: error instanceof Error ? error.message : String(error),
+                },
+                'Kling Motion video re-encode failed',
+            );
+            throw new Error(
+                'Не удалось подготовить видео движения. Загрузите обычный MP4 или MOV и попробуйте снова.',
+            );
+        }
+
+        if (buffer.length > MAX_VIDEO_BYTES) {
+            throw new Error('Видео для Motion не больше 100 МБ');
+        }
+
+        return {
+            buffer,
+            mimeType: 'video/mp4',
+            fileName:
+                video.fileName?.replace(/\.\w+$/i, '.mp4') ??
+                `kling-motion-${Date.now()}.mp4`,
+        };
+    }
+
+    /**
      * Force H.264 MP4 before Omni upload — iPhone “mp4” is often HEVC, and
      * Kling then fails with “get the contents of the file”.
      * Also fit resolution into the Omni envelope (700–2160 px per side).
@@ -567,11 +657,15 @@ export class KlingProvider {
         const orientation =
             input.klingCharacterOrientation === 'video' ? 'video' : 'image';
         const keepSound = input.klingKeepOriginalSound === false ? 'no' : 'yes';
+        const video = await this.prepareMotionReferenceVideo(
+            videos[0],
+            orientation,
+        );
 
         // Motion requires publicly reachable http(s) URLs for both image and video.
         // Base64 / ephemeral self-host often fails after Railway restart.
         const imageUrl = await this.uploadTempPublicUrl(images[0], 'image');
-        const videoUrl = await this.uploadTempPublicUrl(videos[0], 'video');
+        const videoUrl = await this.uploadTempPublicUrl(video, 'video');
 
         const body: Record<string, unknown> = {
             model_name: model,

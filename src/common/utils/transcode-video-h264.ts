@@ -20,6 +20,8 @@ export type TranscodeVideoToH264Options = {
     fitSideRange?: { minSide: number; maxSide: number };
     /** libx264 quality. Lower is larger/better. Default ffmpeg CRF is 23. */
     crf?: number;
+    /** Constant output frame rate. Phone clips are often variable and Kling cannot decode them. */
+    fps?: number;
 };
 
 async function runProcess(
@@ -220,8 +222,14 @@ export async function transcodeVideoToH264(
             args.push('-t', String(options.maxSeconds));
         }
         args.push('-map', '0:v:0', '-map', '0:a:0?');
-        if (scaleFilter) {
-            args.push('-vf', scaleFilter);
+        // yuv420p needs even sides. Identity for already-even frames.
+        const filters = [
+            scaleFilter,
+            'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+        ].filter((part): part is string => Boolean(part));
+        args.push('-vf', filters.join(','));
+        if (options.fps != null && options.fps > 0) {
+            args.push('-r', String(options.fps));
         }
         args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p');
         if (options.crf != null && Number.isFinite(options.crf)) {
