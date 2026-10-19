@@ -53,7 +53,12 @@ const MOTION_VIDEO_MAX_SECONDS_VIDEO = 30;
 const MOTION_IMAGE_SAFE_MAX_SECONDS = 9.5;
 const MOTION_IMAGE_TRIM_SLACK_SECONDS = 0.5;
 const MOTION_VIDEO_MIN_SIDE = 340;
-const MOTION_VIDEO_MAX_SIDE = 3850;
+/**
+ * Documented ceiling is 3850, but a portrait 4K iPhone clip (2160×3840, Dolby
+ * Vision) is accepted and then fails with “Other undefined errors”. 1080p on
+ * the long side is enough for both std and pro output.
+ */
+const MOTION_VIDEO_MAX_SIDE = 1920;
 const MOTION_VIDEO_FPS = 30;
 
 type KlingEndpoint =

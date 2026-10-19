@@ -173,6 +173,16 @@ describe('bot-error.mapper', () => {
             ).toMatch(/размыт|лицо|портрет/i);
         });
 
+        it('localizes Kling Motion undefined worker failures', () => {
+            const raw =
+                'Kling: The input was rejected, Other undefined errors; please contact technical support.';
+            expect(toUserFacingError(raw, ru)).toMatch(
+                /не смог обработать видео движения/i,
+            );
+            expect(isUserInputValidationError(raw)).toBe(true);
+            expect(isFailoverEligibleError(raw)).toBe(false);
+        });
+
         it('localizes Kling Motion decode failures', () => {
             const raw = 'Kling: The input was rejected, Decode video failed.';
             expect(toUserFacingError(raw, ru)).toMatch(

@@ -105,75 +105,44 @@ async function isProviderCompatibleH264(inputPath: string): Promise<boolean> {
     }
 }
 
-async function probeVideoSize(
-    inputPath: string,
-): Promise<{ width: number; height: number } | null> {
-    try {
-        const probe = await runProcess(
-            'ffprobe',
-            [
-                '-v',
-                'error',
-                '-select_streams',
-                'v:0',
-                '-show_entries',
-                'stream=width,height',
-                '-of',
-                'csv=p=0:s=x',
-                inputPath,
-            ],
-            15_000,
-        );
-        if (probe.code !== 0) return null;
-        const [wRaw, hRaw] = probe.stdout.trim().split('x');
-        const width = Number(wRaw);
-        const height = Number(hRaw);
-        if (
-            !Number.isFinite(width) ||
-            !Number.isFinite(height) ||
-            width < 1 ||
-            height < 1
-        ) {
-            return null;
-        }
-        return { width, height };
-    } catch {
-        return null;
-    }
+/**
+ * Scale using iw/ih inside ffmpeg. Those are the dimensions after autorotate,
+ * so a sideways iPhone frame is measured as the viewer sees it. Probing the
+ * coded size (3840x2160 plus a 90° tag) and then scaling to that size squishes
+ * the portrait after rotation.
+ * Commas are escaped because they also separate -vf filters.
+ */
+function fitSideScaleFilter(minSide: number, maxSide: number): string {
+    const min = String(minSide);
+    const max = String(maxSide);
+    const factor = [
+        'if(gt(max(iw\\,ih)*if(lt(min(iw\\,ih)\\,',
+        min,
+        ')\\,',
+        min,
+        '/min(iw\\,ih)\\,1)\\,',
+        max,
+        ')\\,',
+        max,
+        '/max(iw\\,ih)\\,if(lt(min(iw\\,ih)\\,',
+        min,
+        ')\\,',
+        min,
+        '/min(iw\\,ih)\\,1))',
+    ].join('');
+    return `scale=w='trunc(iw*${factor}/2)*2':h='trunc(ih*${factor}/2)*2'`;
 }
 
-/** Even dimensions required by libx264 yuv420p. */
-function evenDim(value: number): number {
-    const rounded = Math.round(value);
-    return rounded % 2 === 0 ? rounded : rounded + 1;
-}
-
-function resolveFitScale(
-    width: number,
-    height: number,
-    minSide: number,
-    maxSide: number,
-): { width: number; height: number } | null {
-    const short = Math.min(width, height);
-    const long = Math.max(width, height);
-    if (short >= minSide && long <= maxSide) {
-        return null;
+/** iPhone Dolby Vision leaves a dby1 brand even after an SDR re-encode. */
+function stripDolbyVisionBrand(buffer: Buffer): Buffer {
+    const marker = Buffer.from('dby1');
+    const idx = buffer.indexOf(marker);
+    if (idx < 0 || idx > 128) {
+        return buffer;
     }
-
-    let scale = 1;
-    if (short < minSide) {
-        scale = minSide / short;
-    }
-    let nextW = width * scale;
-    let nextH = height * scale;
-    const nextLong = Math.max(nextW, nextH);
-    if (nextLong > maxSide) {
-        scale *= maxSide / nextLong;
-        nextW = width * scale;
-        nextH = height * scale;
-    }
-
-    return { width: evenDim(nextW), height: evenDim(nextH) };
+    const out = Buffer.from(buffer);
+    out.write('isom', idx, 'ascii');
+    return out;
 }
 
 /**
@@ -194,21 +163,12 @@ export async function transcodeVideoToH264(
     try {
         await writeFile(inputPath, buffer);
 
-        let scaleFilter: string | null = null;
-        if (options.fitSideRange) {
-            const size = await probeVideoSize(inputPath);
-            if (size) {
-                const target = resolveFitScale(
-                    size.width,
-                    size.height,
-                    options.fitSideRange.minSide,
-                    options.fitSideRange.maxSide,
-                );
-                if (target) {
-                    scaleFilter = `scale=${target.width}:${target.height}`;
-                }
-            }
-        }
+        const scaleFilter = options.fitSideRange
+            ? fitSideScaleFilter(
+                  options.fitSideRange.minSide,
+                  options.fitSideRange.maxSide,
+              )
+            : null;
 
         if (!force && options.maxSeconds == null && !scaleFilter) {
             const compatible = await isProviderCompatibleH264(inputPath);
@@ -221,7 +181,7 @@ export async function transcodeVideoToH264(
         if (options.maxSeconds != null && options.maxSeconds > 0) {
             args.push('-t', String(options.maxSeconds));
         }
-        args.push('-map', '0:v:0', '-map', '0:a:0?');
+        args.push('-map', '0:v:0', '-map', '0:a:0?', '-map_metadata', '-1');
         // yuv420p needs even sides. Identity for already-even frames.
         const filters = [
             scaleFilter,
@@ -231,7 +191,22 @@ export async function transcodeVideoToH264(
         if (options.fps != null && options.fps > 0) {
             args.push('-r', String(options.fps));
         }
-        args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p');
+        args.push(
+            '-c:v',
+            'libx264',
+            '-pix_fmt',
+            'yuv420p',
+            // 8-bit output still inherited bt2020/HLG tags from iPhone HDR,
+            // and Kling Motion then dies with “Other undefined errors”.
+            '-color_primaries',
+            'bt709',
+            '-color_trc',
+            'bt709',
+            '-colorspace',
+            'bt709',
+            '-color_range',
+            'tv',
+        );
         if (options.crf != null && Number.isFinite(options.crf)) {
             args.push('-crf', String(Math.round(options.crf)));
         }
@@ -252,7 +227,7 @@ export async function transcodeVideoToH264(
             throw new Error(`ffmpeg exited with ${result.code}`);
         }
 
-        const out = await readFile(outputPath);
+        const out = stripDolbyVisionBrand(await readFile(outputPath));
         if (!out.length) {
             throw new Error('empty transcode output');
         }
