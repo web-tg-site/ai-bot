@@ -116,7 +116,9 @@
             "^@models/(.*)$": "<rootDir>/common/models/$1",
             "^@models$": "<rootDir>/common/models",
             "^@services/(.*)$": "<rootDir>/common/services/$1",
-            "^@services$": "<rootDir>/common/services"
+            "^@services$": "<rootDir>/common/services",
+            "^@generated/(.*)$": "<rootDir>/generated/$1",
+            "^(\\.{1,2}/.*)\\.js$": "$1"
         }
     }
 }

@@ -338,10 +338,9 @@ Tap «Start» to begin.`,
 
 Plan: ${tariffName}
 Period: ${periodName}
-Amount: ~${amountUsd} USDT (pay with any supported cryptocurrency)
+Price: ${amountUsd} USD
 
-Tap the button below to pay via @CryptoBot.
-The link is valid for 1 hour.`,
+Open the app to choose your USDT network and see the exact transfer amount and address (SHKeeper).`,
         invoiceCreatedRub: (amountRub, tariffName, periodName) =>
             `💳 <b>Subscription payment</b>
 
@@ -374,7 +373,7 @@ All platform AI tools are now available.`,
         emailInvalid:
             'Invalid email. Example: name@example.com\nPlease send your email again.',
         notConfigured:
-            '@CryptoBot payments are temporarily unavailable. Please contact support.',
+            'Crypto payments are temporarily unavailable. Please contact support.',
         rubNotConfigured:
             'Ruble payments are temporarily unavailable. You can pay with cryptocurrency using the USDT button for now.',
         starsNotConfigured:

@@ -6,7 +6,7 @@ import { GptConversationModule } from '@/common/models/gpt-conversation';
 import { UserAiToolSettingsModule } from '@/common/models/user-ai-tool-settings';
 import { PrismaModule } from '@/common/services/prisma';
 import { AiModule } from '@/common/services/ai';
-import { CryptoPayModule } from '@/common/services/crypto-pay';
+import { ShkeeperModule } from '@/common/services/shkeeper';
 import { AntilopayModule } from '@/common/services/antilopay';
 import { TelegramStarsModule } from '@/common/services/telegram-stars';
 import { MeController } from './me.controller';
@@ -26,7 +26,7 @@ import { GenerationFacade } from './generation.facade';
         UserAiToolSettingsModule,
         PrismaModule,
         AiModule,
-        CryptoPayModule,
+        ShkeeperModule,
         AntilopayModule,
         TelegramStarsModule,
     ],

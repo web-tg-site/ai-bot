@@ -47,6 +47,11 @@ Telegram-бот Endora на NestJS: AI-инструменты для генер�
 - Технические детали (полный `error.message`, stack, `ID запроса`) пишутся в **логи** (pino), а не в чат.
 - Тексты для пользователя задаются в [`ru.ts`](src/common/services/bot/i18n/locales/ru.ts) / [`en.ts`](src/common/services/bot/i18n/locales/en.ts) → `aiResult.errorByCode`.
 
+## Payments
+
+Crypto payments use SHKeeper; SBP (Antilopay) and Telegram Stars are unchanged.
+See [SHKeeper setup, API contract, migration and rollout checks](docs/shkeeper-setup.md).
+
 ## Project setup
 
 ```bash

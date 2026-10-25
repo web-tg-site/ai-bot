@@ -24,7 +24,7 @@ import {
     ModelFailoverService,
 } from '@/common/services/ai';
 import { RedisService } from '@/common/services/redis';
-import { CryptoPayService } from '@/common/services/crypto-pay';
+import { ShkeeperService } from '@/common/services/shkeeper';
 import { AntilopayService } from '@/common/services/antilopay';
 import { TelegramStarsService } from '@/common/services/telegram-stars';
 import { bufferToInputFile } from './utils/download-telegram-file';
@@ -57,7 +57,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
         private readonly aiJobService: AiJobService,
         private readonly modelFailoverService: ModelFailoverService,
         private readonly redisService: RedisService,
-        private readonly cryptoPayService: CryptoPayService,
+        private readonly shkeeperService: ShkeeperService,
         private readonly antilopayService: AntilopayService,
         private readonly telegramStarsService: TelegramStarsService,
         private readonly elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService,
@@ -97,7 +97,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
 
         const me = await this.bot.telegram.getMe();
         this.botUsername = me.username;
-        this.cryptoPayService.setBotUsername(me.username);
+
         this.logger.info({ username: me.username }, 'Bot starting');
 
         const miniAppUrl = this.configService
@@ -306,7 +306,8 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
             tokenBillingService: this.tokenBillingService,
             aiJobService: this.aiJobService,
             modelFailoverService: this.modelFailoverService,
-            cryptoPayService: this.cryptoPayService,
+            shkeeperService: this.shkeeperService,
+            miniAppUrl: this.configService.get<string>('MINI_APP_URL')?.trim(),
             antilopayService: this.antilopayService,
             telegramStarsService: this.telegramStarsService,
             elevenLabsVoicePreviewService: this.elevenLabsVoicePreviewService,

@@ -14,7 +14,7 @@ import {
 } from '@/generated/prisma/enums';
 import { BOT_NAME } from '@/common/config';
 import { ANTILOPAY_API_URL_DEFAULT } from '@/common/config/antilopay.config';
-import type { ProcessInvoicePaidResult } from '@/common/services/crypto-pay';
+import type { ProcessInvoicePaidResult } from '@/common/services/payment/payment.types';
 import {
     amountsEqualRub,
     compactJson,

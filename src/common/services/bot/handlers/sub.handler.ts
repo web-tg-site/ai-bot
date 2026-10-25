@@ -1,4 +1,5 @@
 import { Context, Telegraf } from 'telegraf';
+import { HttpException } from '@nestjs/common';
 import { Markup } from 'telegraf';
 import {
     getChooseSubKeyboard,
@@ -15,6 +16,7 @@ import { BotSession } from '@/common/services/ai';
 import { UserModelService } from '@/common/models/user';
 import { AntilopayService } from '@/common/services/antilopay';
 import { replyMenuPhoto } from '../utils/menu-photo';
+import { SHKEEPER_NETWORKS } from '@/common/services/shkeeper';
 
 type BotContext = Context & { session: BotSession };
 
@@ -90,17 +92,67 @@ export const registerSubHandler = (
     deps: Pick<
         BotHandlerDeps,
         | 'userModelService'
-        | 'cryptoPayService'
+        | 'shkeeperService'
+        | 'miniAppUrl'
         | 'antilopayService'
         | 'telegramStarsService'
     >,
 ) => {
     const {
         userModelService,
-        cryptoPayService,
+        shkeeperService,
+        miniAppUrl,
         antilopayService,
         telegramStarsService,
     } = deps;
+
+    bot.action(
+        /^shkeeper:([A-Z_]+):([A-Z_]+):(ton|trc20|bep20)$/,
+        async (ctx) => {
+            await ctx.answerCbQuery();
+            if (!ctx.from) return;
+            const user = await userModelService.getUserByTelegramId(
+                ctx.from.id.toString(),
+            );
+            if (!user) return;
+            const i18n = getI18nForUser(user);
+            try {
+                const invoice = await shkeeperService.createSubscriptionInvoice(
+                    {
+                        userId: user.id,
+                        subscribePlan: ctx.match[1] as SubscribePlan,
+                        subscribeType: ctx.match[2] as SubscribeType,
+                        network: ctx.match[3] as keyof typeof SHKEEPER_NETWORKS,
+                    },
+                );
+                const network = SHKEEPER_NETWORKS[invoice.network].label;
+                await ctx.reply(
+                    i18n.lang === 'RU'
+                        ? `Оплата подписки ${invoice.subscribeType} / ${invoice.subscribePlan}\nЗаказ: ${invoice.orderId}\nСтоимость: ${invoice.amountUsd} USD\nОтправьте ровно ${invoice.amountCrypto} USDT\nСеть: ${network}\nАдрес: ${invoice.address}\n\nИспользуйте только указанную сеть. Комиссию сети оплачивайте отдельно. Не создавайте новый счёт при частичной оплате — доплатите на тот же адрес. Подписка активируется автоматически после подтверждения.`
+                        : `Subscription ${invoice.subscribeType} / ${invoice.subscribePlan}\nOrder: ${invoice.orderId}\nPrice: ${invoice.amountUsd} USD\nSend exactly ${invoice.amountCrypto} USDT\nNetwork: ${network}\nAddress: ${invoice.address}\n\nUse only this network. Pay network fees separately. For partial payments, send the remainder to the same address instead of creating another invoice. Your subscription activates automatically after confirmation.`,
+                );
+            } catch (error) {
+                const response =
+                    error instanceof HttpException
+                        ? error.getResponse()
+                        : undefined;
+                if (
+                    response &&
+                    typeof response === 'object' &&
+                    'orderId' in response &&
+                    typeof response.orderId === 'string'
+                ) {
+                    await ctx.reply(
+                        i18n.lang === 'RU'
+                            ? `Не удалось получить реквизиты. Заказ: ${response.orderId}. Не создавайте новый счёт — обратитесь в поддержку для проверки этого заказа.`
+                            : `Could not retrieve transfer instructions. Order: ${response.orderId}. Do not create another invoice; contact support to check this order.`,
+                    );
+                } else {
+                    await ctx.reply(i18n.payment.error);
+                }
+            }
+        },
+    );
 
     registerLocalizedHears(
         bot,
@@ -218,7 +270,7 @@ export const registerSubHandler = (
                         ctx.from.id.toString(),
                     );
 
-                    if (!cryptoPayService.isConfigured()) {
+                    if (!shkeeperService.isConfigured()) {
                         await ctx.reply(i18n.payment.notConfigured, {
                             parse_mode: 'HTML',
                         });
@@ -226,31 +278,45 @@ export const registerSubHandler = (
                     }
 
                     try {
-                        const invoice =
-                            await cryptoPayService.createSubscriptionInvoice({
-                                userId: user.id,
-                                subscribeType: type,
-                                subscribePlan: plan,
-                                amountUsd,
-                                periodLabel: i18n.records.subPlanToPeriod[plan],
-                                tariffLabel: i18n.records.subTypeToText[type],
-                            });
-
+                        if (miniAppUrl) {
+                            const url = new URL(miniAppUrl);
+                            url.searchParams.set('payment', 'shkeeper');
+                            url.searchParams.set('subscribeType', type);
+                            url.searchParams.set('subscribePlan', plan);
+                            await ctx.reply(
+                                i18n.payment.invoiceCreated(
+                                    amountUsd,
+                                    i18n.records.subTypeToText[type],
+                                    i18n.records.subPlanToPeriod[plan],
+                                ),
+                                {
+                                    parse_mode: 'HTML',
+                                    ...Markup.inlineKeyboard([
+                                        Markup.button.webApp(
+                                            i18n.payment.payButton,
+                                            url.toString(),
+                                        ),
+                                    ]),
+                                },
+                            );
+                            return;
+                        }
+                        const { networks } =
+                            await shkeeperService.getNetworks();
+                        if (!networks.length)
+                            throw new Error('No crypto networks available');
                         await ctx.reply(
-                            i18n.payment.invoiceCreated(
-                                invoice.amountUsd,
-                                i18n.records.subTypeToText[type],
-                                i18n.records.subPlanToPeriod[plan],
-                            ),
-                            {
-                                parse_mode: 'HTML',
-                                ...Markup.inlineKeyboard([
-                                    Markup.button.url(
-                                        i18n.payment.payButton,
-                                        invoice.botInvoiceUrl,
+                            i18n.lang === 'RU'
+                                ? 'Выберите сеть для перевода USDT:'
+                                : 'Choose the USDT transfer network:',
+                            Markup.inlineKeyboard(
+                                networks.map(({ id, label }) => [
+                                    Markup.button.callback(
+                                        label,
+                                        `shkeeper:${plan}:${type}:${id}`,
                                     ),
                                 ]),
-                            },
+                            ),
                         );
                     } catch {
                         await ctx.reply(i18n.payment.error, {

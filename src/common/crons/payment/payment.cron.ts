@@ -3,14 +3,14 @@ import { Cron } from '@nestjs/schedule';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { BotService } from '@/common/services/bot';
 import { UserModelService } from '@/common/models/user';
-import { CryptoPayService } from '@/common/services/crypto-pay';
+import { ShkeeperService } from '@/common/services/shkeeper';
 import { AntilopayService } from '@/common/services/antilopay';
 import { notifyPaidSubscriptionActivations } from '@/common/services/payment/notify-paid-subscription';
 
 @Injectable()
 export class PaymentCron implements OnModuleInit {
     constructor(
-        private readonly cryptoPayService: CryptoPayService,
+        private readonly shkeeperService: ShkeeperService,
         private readonly antilopayService: AntilopayService,
         private readonly botService: BotService,
         private readonly userModelService: UserModelService,
@@ -19,22 +19,25 @@ export class PaymentCron implements OnModuleInit {
     ) {}
 
     onModuleInit() {
-        if (this.cryptoPayService.isConfigured()) {
-            this.logger.info('Crypto Pay polling cron started');
+        if (this.shkeeperService.isConfigured()) {
+            this.logger.info('SHKeeper polling cron started');
         }
         if (this.antilopayService.isConfigured()) {
             this.logger.info('Antilopay polling cron started');
         }
     }
 
-    @Cron('*/30 * * * * *', { name: 'poll-crypto-payments' })
+    @Cron('*/30 * * * * *', {
+        name: 'poll-shkeeper-payments',
+        waitForCompletion: true,
+    })
     public async pollCryptoPayments() {
-        if (!this.cryptoPayService.isConfigured()) {
+        if (!this.shkeeperService.isConfigured()) {
             return;
         }
 
         try {
-            const results = await this.cryptoPayService.pollPendingPayments();
+            const results = await this.shkeeperService.pollPendingPayments();
             await notifyPaidSubscriptionActivations(
                 this.botService,
                 this.userModelService,
@@ -42,7 +45,7 @@ export class PaymentCron implements OnModuleInit {
             );
         } catch (err) {
             this.logger.error(
-                `Crypto Pay polling failed: ${err instanceof Error ? err.message : String(err)}`,
+                `SHKeeper polling failed: ${err instanceof Error ? err.message : String(err)}`,
             );
         }
     }

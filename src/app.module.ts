@@ -20,7 +20,8 @@ import {
 } from '@/common/controllers';
 import { AuthModule } from '@/common/auth';
 import { MiniAppModule } from '@/common/mini-app';
-import { CryptoPayModule } from '@/common/services/crypto-pay';
+import { ShkeeperModule } from '@/common/services/shkeeper';
+import { ShkeeperController } from '@/common/controllers/shkeeper.controller';
 import { AntilopayModule } from '@/common/services/antilopay';
 import { TelegramStarsModule } from '@/common/services/telegram-stars';
 import { PaymentCron } from '@/common/crons/payment';
@@ -41,7 +42,7 @@ import { PaymentCron } from '@/common/crons/payment';
         GptConversationModule,
         UserAiToolSettingsModule,
         AiModule,
-        CryptoPayModule,
+        ShkeeperModule,
         AntilopayModule,
         TelegramStarsModule,
         AuthModule,
@@ -51,6 +52,7 @@ import { PaymentCron } from '@/common/crons/payment';
         HealthController,
         ApayVerificationController,
         AntilopayController,
+        ShkeeperController,
     ],
     providers: [RedisService, BotService, SubscriptionCron, PaymentCron],
 })

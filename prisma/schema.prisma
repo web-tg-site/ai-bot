@@ -41,6 +41,7 @@ enum PaymentProvider {
   CRYPTO_PAY
   ANTILOPAY
   TELEGRAM_STARS
+  SHKEEPER
 }
 
 datasource db {
@@ -127,6 +128,12 @@ model Payment {
   cryptoPayInvoiceId       BigInt?         @unique
   antilopayPaymentId       String?         @unique
   telegramPaymentChargeId  String?         @unique
+  shkeeperInvoiceId        String?         @unique
+  shkeeperNetwork          String?
+  shkeeperAddress          String?
+  shkeeperAmountCrypto     String?
+  shkeeperReceivedCrypto   String?
+  shkeeperLastCheckedAt    DateTime?
   orderId                  String          @unique
   subscribeType            SubscribeType
   subscribePlan            SubscribePlan
@@ -137,6 +144,7 @@ model Payment {
   paidAt                   DateTime?
   createdAt                DateTime        @default(now())
 
+  @@index([provider, status, shkeeperLastCheckedAt, createdAt])
   @@map("payments")
 }
 

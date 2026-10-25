@@ -12,7 +12,7 @@ import {
     SubscribeType,
 } from '@/generated/prisma/enums';
 import { BOT_NAME } from '@/common/config';
-import { ProcessInvoicePaidResult } from '@/common/services/crypto-pay';
+import type { ProcessInvoicePaidResult } from '@/common/services/payment/payment.types';
 
 export type CreateStarsInvoiceParams = {
     userId: string;

@@ -42,6 +42,12 @@ export type PaymentMinAggregateOutputType = {
   cryptoPayInvoiceId: bigint | null
   antilopayPaymentId: string | null
   telegramPaymentChargeId: string | null
+  shkeeperInvoiceId: string | null
+  shkeeperNetwork: string | null
+  shkeeperAddress: string | null
+  shkeeperAmountCrypto: string | null
+  shkeeperReceivedCrypto: string | null
+  shkeeperLastCheckedAt: Date | null
   orderId: string | null
   subscribeType: $Enums.SubscribeType | null
   subscribePlan: $Enums.SubscribePlan | null
@@ -60,6 +66,12 @@ export type PaymentMaxAggregateOutputType = {
   cryptoPayInvoiceId: bigint | null
   antilopayPaymentId: string | null
   telegramPaymentChargeId: string | null
+  shkeeperInvoiceId: string | null
+  shkeeperNetwork: string | null
+  shkeeperAddress: string | null
+  shkeeperAmountCrypto: string | null
+  shkeeperReceivedCrypto: string | null
+  shkeeperLastCheckedAt: Date | null
   orderId: string | null
   subscribeType: $Enums.SubscribeType | null
   subscribePlan: $Enums.SubscribePlan | null
@@ -78,6 +90,12 @@ export type PaymentCountAggregateOutputType = {
   cryptoPayInvoiceId: number
   antilopayPaymentId: number
   telegramPaymentChargeId: number
+  shkeeperInvoiceId: number
+  shkeeperNetwork: number
+  shkeeperAddress: number
+  shkeeperAmountCrypto: number
+  shkeeperReceivedCrypto: number
+  shkeeperLastCheckedAt: number
   orderId: number
   subscribeType: number
   subscribePlan: number
@@ -108,6 +126,12 @@ export type PaymentMinAggregateInputType = {
   cryptoPayInvoiceId?: true
   antilopayPaymentId?: true
   telegramPaymentChargeId?: true
+  shkeeperInvoiceId?: true
+  shkeeperNetwork?: true
+  shkeeperAddress?: true
+  shkeeperAmountCrypto?: true
+  shkeeperReceivedCrypto?: true
+  shkeeperLastCheckedAt?: true
   orderId?: true
   subscribeType?: true
   subscribePlan?: true
@@ -126,6 +150,12 @@ export type PaymentMaxAggregateInputType = {
   cryptoPayInvoiceId?: true
   antilopayPaymentId?: true
   telegramPaymentChargeId?: true
+  shkeeperInvoiceId?: true
+  shkeeperNetwork?: true
+  shkeeperAddress?: true
+  shkeeperAmountCrypto?: true
+  shkeeperReceivedCrypto?: true
+  shkeeperLastCheckedAt?: true
   orderId?: true
   subscribeType?: true
   subscribePlan?: true
@@ -144,6 +174,12 @@ export type PaymentCountAggregateInputType = {
   cryptoPayInvoiceId?: true
   antilopayPaymentId?: true
   telegramPaymentChargeId?: true
+  shkeeperInvoiceId?: true
+  shkeeperNetwork?: true
+  shkeeperAddress?: true
+  shkeeperAmountCrypto?: true
+  shkeeperReceivedCrypto?: true
+  shkeeperLastCheckedAt?: true
   orderId?: true
   subscribeType?: true
   subscribePlan?: true
@@ -249,6 +285,12 @@ export type PaymentGroupByOutputType = {
   cryptoPayInvoiceId: bigint | null
   antilopayPaymentId: string | null
   telegramPaymentChargeId: string | null
+  shkeeperInvoiceId: string | null
+  shkeeperNetwork: string | null
+  shkeeperAddress: string | null
+  shkeeperAmountCrypto: string | null
+  shkeeperReceivedCrypto: string | null
+  shkeeperLastCheckedAt: Date | null
   orderId: string
   subscribeType: $Enums.SubscribeType
   subscribePlan: $Enums.SubscribePlan
@@ -290,6 +332,12 @@ export type PaymentWhereInput = {
   cryptoPayInvoiceId?: Prisma.BigIntNullableFilter<"Payment"> | bigint | number | null
   antilopayPaymentId?: Prisma.StringNullableFilter<"Payment"> | string | null
   telegramPaymentChargeId?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperInvoiceId?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperNetwork?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperAddress?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperAmountCrypto?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperReceivedCrypto?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperLastCheckedAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
   orderId?: Prisma.StringFilter<"Payment"> | string
   subscribeType?: Prisma.EnumSubscribeTypeFilter<"Payment"> | $Enums.SubscribeType
   subscribePlan?: Prisma.EnumSubscribePlanFilter<"Payment"> | $Enums.SubscribePlan
@@ -309,6 +357,12 @@ export type PaymentOrderByWithRelationInput = {
   cryptoPayInvoiceId?: Prisma.SortOrderInput | Prisma.SortOrder
   antilopayPaymentId?: Prisma.SortOrderInput | Prisma.SortOrder
   telegramPaymentChargeId?: Prisma.SortOrderInput | Prisma.SortOrder
+  shkeeperInvoiceId?: Prisma.SortOrderInput | Prisma.SortOrder
+  shkeeperNetwork?: Prisma.SortOrderInput | Prisma.SortOrder
+  shkeeperAddress?: Prisma.SortOrderInput | Prisma.SortOrder
+  shkeeperAmountCrypto?: Prisma.SortOrderInput | Prisma.SortOrder
+  shkeeperReceivedCrypto?: Prisma.SortOrderInput | Prisma.SortOrder
+  shkeeperLastCheckedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   orderId?: Prisma.SortOrder
   subscribeType?: Prisma.SortOrder
   subscribePlan?: Prisma.SortOrder
@@ -326,12 +380,18 @@ export type PaymentWhereUniqueInput = Prisma.AtLeast<{
   cryptoPayInvoiceId?: bigint | number
   antilopayPaymentId?: string
   telegramPaymentChargeId?: string
+  shkeeperInvoiceId?: string
   orderId?: string
   AND?: Prisma.PaymentWhereInput | Prisma.PaymentWhereInput[]
   OR?: Prisma.PaymentWhereInput[]
   NOT?: Prisma.PaymentWhereInput | Prisma.PaymentWhereInput[]
   userId?: Prisma.StringFilter<"Payment"> | string
   provider?: Prisma.EnumPaymentProviderFilter<"Payment"> | $Enums.PaymentProvider
+  shkeeperNetwork?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperAddress?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperAmountCrypto?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperReceivedCrypto?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperLastCheckedAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
   subscribeType?: Prisma.EnumSubscribeTypeFilter<"Payment"> | $Enums.SubscribeType
   subscribePlan?: Prisma.EnumSubscribePlanFilter<"Payment"> | $Enums.SubscribePlan
   amountUsd?: Prisma.StringNullableFilter<"Payment"> | string | null
@@ -341,7 +401,7 @@ export type PaymentWhereUniqueInput = Prisma.AtLeast<{
   paidAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Payment"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-}, "id" | "cryptoPayInvoiceId" | "antilopayPaymentId" | "telegramPaymentChargeId" | "orderId">
+}, "id" | "cryptoPayInvoiceId" | "antilopayPaymentId" | "telegramPaymentChargeId" | "shkeeperInvoiceId" | "orderId">
 
 export type PaymentOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -350,6 +410,12 @@ export type PaymentOrderByWithAggregationInput = {
   cryptoPayInvoiceId?: Prisma.SortOrderInput | Prisma.SortOrder
   antilopayPaymentId?: Prisma.SortOrderInput | Prisma.SortOrder
   telegramPaymentChargeId?: Prisma.SortOrderInput | Prisma.SortOrder
+  shkeeperInvoiceId?: Prisma.SortOrderInput | Prisma.SortOrder
+  shkeeperNetwork?: Prisma.SortOrderInput | Prisma.SortOrder
+  shkeeperAddress?: Prisma.SortOrderInput | Prisma.SortOrder
+  shkeeperAmountCrypto?: Prisma.SortOrderInput | Prisma.SortOrder
+  shkeeperReceivedCrypto?: Prisma.SortOrderInput | Prisma.SortOrder
+  shkeeperLastCheckedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   orderId?: Prisma.SortOrder
   subscribeType?: Prisma.SortOrder
   subscribePlan?: Prisma.SortOrder
@@ -376,6 +442,12 @@ export type PaymentScalarWhereWithAggregatesInput = {
   cryptoPayInvoiceId?: Prisma.BigIntNullableWithAggregatesFilter<"Payment"> | bigint | number | null
   antilopayPaymentId?: Prisma.StringNullableWithAggregatesFilter<"Payment"> | string | null
   telegramPaymentChargeId?: Prisma.StringNullableWithAggregatesFilter<"Payment"> | string | null
+  shkeeperInvoiceId?: Prisma.StringNullableWithAggregatesFilter<"Payment"> | string | null
+  shkeeperNetwork?: Prisma.StringNullableWithAggregatesFilter<"Payment"> | string | null
+  shkeeperAddress?: Prisma.StringNullableWithAggregatesFilter<"Payment"> | string | null
+  shkeeperAmountCrypto?: Prisma.StringNullableWithAggregatesFilter<"Payment"> | string | null
+  shkeeperReceivedCrypto?: Prisma.StringNullableWithAggregatesFilter<"Payment"> | string | null
+  shkeeperLastCheckedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Payment"> | Date | string | null
   orderId?: Prisma.StringWithAggregatesFilter<"Payment"> | string
   subscribeType?: Prisma.EnumSubscribeTypeWithAggregatesFilter<"Payment"> | $Enums.SubscribeType
   subscribePlan?: Prisma.EnumSubscribePlanWithAggregatesFilter<"Payment"> | $Enums.SubscribePlan
@@ -393,6 +465,12 @@ export type PaymentCreateInput = {
   cryptoPayInvoiceId?: bigint | number | null
   antilopayPaymentId?: string | null
   telegramPaymentChargeId?: string | null
+  shkeeperInvoiceId?: string | null
+  shkeeperNetwork?: string | null
+  shkeeperAddress?: string | null
+  shkeeperAmountCrypto?: string | null
+  shkeeperReceivedCrypto?: string | null
+  shkeeperLastCheckedAt?: Date | string | null
   orderId: string
   subscribeType: $Enums.SubscribeType
   subscribePlan: $Enums.SubscribePlan
@@ -412,6 +490,12 @@ export type PaymentUncheckedCreateInput = {
   cryptoPayInvoiceId?: bigint | number | null
   antilopayPaymentId?: string | null
   telegramPaymentChargeId?: string | null
+  shkeeperInvoiceId?: string | null
+  shkeeperNetwork?: string | null
+  shkeeperAddress?: string | null
+  shkeeperAmountCrypto?: string | null
+  shkeeperReceivedCrypto?: string | null
+  shkeeperLastCheckedAt?: Date | string | null
   orderId: string
   subscribeType: $Enums.SubscribeType
   subscribePlan: $Enums.SubscribePlan
@@ -429,6 +513,12 @@ export type PaymentUpdateInput = {
   cryptoPayInvoiceId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   antilopayPaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telegramPaymentChargeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperInvoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperNetwork?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAmountCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperReceivedCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperLastCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   orderId?: Prisma.StringFieldUpdateOperationsInput | string
   subscribeType?: Prisma.EnumSubscribeTypeFieldUpdateOperationsInput | $Enums.SubscribeType
   subscribePlan?: Prisma.EnumSubscribePlanFieldUpdateOperationsInput | $Enums.SubscribePlan
@@ -448,6 +538,12 @@ export type PaymentUncheckedUpdateInput = {
   cryptoPayInvoiceId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   antilopayPaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telegramPaymentChargeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperInvoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperNetwork?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAmountCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperReceivedCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperLastCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   orderId?: Prisma.StringFieldUpdateOperationsInput | string
   subscribeType?: Prisma.EnumSubscribeTypeFieldUpdateOperationsInput | $Enums.SubscribeType
   subscribePlan?: Prisma.EnumSubscribePlanFieldUpdateOperationsInput | $Enums.SubscribePlan
@@ -466,6 +562,12 @@ export type PaymentCreateManyInput = {
   cryptoPayInvoiceId?: bigint | number | null
   antilopayPaymentId?: string | null
   telegramPaymentChargeId?: string | null
+  shkeeperInvoiceId?: string | null
+  shkeeperNetwork?: string | null
+  shkeeperAddress?: string | null
+  shkeeperAmountCrypto?: string | null
+  shkeeperReceivedCrypto?: string | null
+  shkeeperLastCheckedAt?: Date | string | null
   orderId: string
   subscribeType: $Enums.SubscribeType
   subscribePlan: $Enums.SubscribePlan
@@ -483,6 +585,12 @@ export type PaymentUpdateManyMutationInput = {
   cryptoPayInvoiceId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   antilopayPaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telegramPaymentChargeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperInvoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperNetwork?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAmountCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperReceivedCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperLastCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   orderId?: Prisma.StringFieldUpdateOperationsInput | string
   subscribeType?: Prisma.EnumSubscribeTypeFieldUpdateOperationsInput | $Enums.SubscribeType
   subscribePlan?: Prisma.EnumSubscribePlanFieldUpdateOperationsInput | $Enums.SubscribePlan
@@ -501,6 +609,12 @@ export type PaymentUncheckedUpdateManyInput = {
   cryptoPayInvoiceId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   antilopayPaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telegramPaymentChargeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperInvoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperNetwork?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAmountCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperReceivedCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperLastCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   orderId?: Prisma.StringFieldUpdateOperationsInput | string
   subscribeType?: Prisma.EnumSubscribeTypeFieldUpdateOperationsInput | $Enums.SubscribeType
   subscribePlan?: Prisma.EnumSubscribePlanFieldUpdateOperationsInput | $Enums.SubscribePlan
@@ -529,6 +643,12 @@ export type PaymentCountOrderByAggregateInput = {
   cryptoPayInvoiceId?: Prisma.SortOrder
   antilopayPaymentId?: Prisma.SortOrder
   telegramPaymentChargeId?: Prisma.SortOrder
+  shkeeperInvoiceId?: Prisma.SortOrder
+  shkeeperNetwork?: Prisma.SortOrder
+  shkeeperAddress?: Prisma.SortOrder
+  shkeeperAmountCrypto?: Prisma.SortOrder
+  shkeeperReceivedCrypto?: Prisma.SortOrder
+  shkeeperLastCheckedAt?: Prisma.SortOrder
   orderId?: Prisma.SortOrder
   subscribeType?: Prisma.SortOrder
   subscribePlan?: Prisma.SortOrder
@@ -552,6 +672,12 @@ export type PaymentMaxOrderByAggregateInput = {
   cryptoPayInvoiceId?: Prisma.SortOrder
   antilopayPaymentId?: Prisma.SortOrder
   telegramPaymentChargeId?: Prisma.SortOrder
+  shkeeperInvoiceId?: Prisma.SortOrder
+  shkeeperNetwork?: Prisma.SortOrder
+  shkeeperAddress?: Prisma.SortOrder
+  shkeeperAmountCrypto?: Prisma.SortOrder
+  shkeeperReceivedCrypto?: Prisma.SortOrder
+  shkeeperLastCheckedAt?: Prisma.SortOrder
   orderId?: Prisma.SortOrder
   subscribeType?: Prisma.SortOrder
   subscribePlan?: Prisma.SortOrder
@@ -570,6 +696,12 @@ export type PaymentMinOrderByAggregateInput = {
   cryptoPayInvoiceId?: Prisma.SortOrder
   antilopayPaymentId?: Prisma.SortOrder
   telegramPaymentChargeId?: Prisma.SortOrder
+  shkeeperInvoiceId?: Prisma.SortOrder
+  shkeeperNetwork?: Prisma.SortOrder
+  shkeeperAddress?: Prisma.SortOrder
+  shkeeperAmountCrypto?: Prisma.SortOrder
+  shkeeperReceivedCrypto?: Prisma.SortOrder
+  shkeeperLastCheckedAt?: Prisma.SortOrder
   orderId?: Prisma.SortOrder
   subscribeType?: Prisma.SortOrder
   subscribePlan?: Prisma.SortOrder
@@ -662,6 +794,12 @@ export type PaymentCreateWithoutUserInput = {
   cryptoPayInvoiceId?: bigint | number | null
   antilopayPaymentId?: string | null
   telegramPaymentChargeId?: string | null
+  shkeeperInvoiceId?: string | null
+  shkeeperNetwork?: string | null
+  shkeeperAddress?: string | null
+  shkeeperAmountCrypto?: string | null
+  shkeeperReceivedCrypto?: string | null
+  shkeeperLastCheckedAt?: Date | string | null
   orderId: string
   subscribeType: $Enums.SubscribeType
   subscribePlan: $Enums.SubscribePlan
@@ -679,6 +817,12 @@ export type PaymentUncheckedCreateWithoutUserInput = {
   cryptoPayInvoiceId?: bigint | number | null
   antilopayPaymentId?: string | null
   telegramPaymentChargeId?: string | null
+  shkeeperInvoiceId?: string | null
+  shkeeperNetwork?: string | null
+  shkeeperAddress?: string | null
+  shkeeperAmountCrypto?: string | null
+  shkeeperReceivedCrypto?: string | null
+  shkeeperLastCheckedAt?: Date | string | null
   orderId: string
   subscribeType: $Enums.SubscribeType
   subscribePlan: $Enums.SubscribePlan
@@ -726,6 +870,12 @@ export type PaymentScalarWhereInput = {
   cryptoPayInvoiceId?: Prisma.BigIntNullableFilter<"Payment"> | bigint | number | null
   antilopayPaymentId?: Prisma.StringNullableFilter<"Payment"> | string | null
   telegramPaymentChargeId?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperInvoiceId?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperNetwork?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperAddress?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperAmountCrypto?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperReceivedCrypto?: Prisma.StringNullableFilter<"Payment"> | string | null
+  shkeeperLastCheckedAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
   orderId?: Prisma.StringFilter<"Payment"> | string
   subscribeType?: Prisma.EnumSubscribeTypeFilter<"Payment"> | $Enums.SubscribeType
   subscribePlan?: Prisma.EnumSubscribePlanFilter<"Payment"> | $Enums.SubscribePlan
@@ -743,6 +893,12 @@ export type PaymentCreateManyUserInput = {
   cryptoPayInvoiceId?: bigint | number | null
   antilopayPaymentId?: string | null
   telegramPaymentChargeId?: string | null
+  shkeeperInvoiceId?: string | null
+  shkeeperNetwork?: string | null
+  shkeeperAddress?: string | null
+  shkeeperAmountCrypto?: string | null
+  shkeeperReceivedCrypto?: string | null
+  shkeeperLastCheckedAt?: Date | string | null
   orderId: string
   subscribeType: $Enums.SubscribeType
   subscribePlan: $Enums.SubscribePlan
@@ -760,6 +916,12 @@ export type PaymentUpdateWithoutUserInput = {
   cryptoPayInvoiceId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   antilopayPaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telegramPaymentChargeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperInvoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperNetwork?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAmountCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperReceivedCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperLastCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   orderId?: Prisma.StringFieldUpdateOperationsInput | string
   subscribeType?: Prisma.EnumSubscribeTypeFieldUpdateOperationsInput | $Enums.SubscribeType
   subscribePlan?: Prisma.EnumSubscribePlanFieldUpdateOperationsInput | $Enums.SubscribePlan
@@ -777,6 +939,12 @@ export type PaymentUncheckedUpdateWithoutUserInput = {
   cryptoPayInvoiceId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   antilopayPaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telegramPaymentChargeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperInvoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperNetwork?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAmountCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperReceivedCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperLastCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   orderId?: Prisma.StringFieldUpdateOperationsInput | string
   subscribeType?: Prisma.EnumSubscribeTypeFieldUpdateOperationsInput | $Enums.SubscribeType
   subscribePlan?: Prisma.EnumSubscribePlanFieldUpdateOperationsInput | $Enums.SubscribePlan
@@ -794,6 +962,12 @@ export type PaymentUncheckedUpdateManyWithoutUserInput = {
   cryptoPayInvoiceId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   antilopayPaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telegramPaymentChargeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperInvoiceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperNetwork?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperAmountCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperReceivedCrypto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shkeeperLastCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   orderId?: Prisma.StringFieldUpdateOperationsInput | string
   subscribeType?: Prisma.EnumSubscribeTypeFieldUpdateOperationsInput | $Enums.SubscribeType
   subscribePlan?: Prisma.EnumSubscribePlanFieldUpdateOperationsInput | $Enums.SubscribePlan
@@ -814,6 +988,12 @@ export type PaymentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   cryptoPayInvoiceId?: boolean
   antilopayPaymentId?: boolean
   telegramPaymentChargeId?: boolean
+  shkeeperInvoiceId?: boolean
+  shkeeperNetwork?: boolean
+  shkeeperAddress?: boolean
+  shkeeperAmountCrypto?: boolean
+  shkeeperReceivedCrypto?: boolean
+  shkeeperLastCheckedAt?: boolean
   orderId?: boolean
   subscribeType?: boolean
   subscribePlan?: boolean
@@ -833,6 +1013,12 @@ export type PaymentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   cryptoPayInvoiceId?: boolean
   antilopayPaymentId?: boolean
   telegramPaymentChargeId?: boolean
+  shkeeperInvoiceId?: boolean
+  shkeeperNetwork?: boolean
+  shkeeperAddress?: boolean
+  shkeeperAmountCrypto?: boolean
+  shkeeperReceivedCrypto?: boolean
+  shkeeperLastCheckedAt?: boolean
   orderId?: boolean
   subscribeType?: boolean
   subscribePlan?: boolean
@@ -852,6 +1038,12 @@ export type PaymentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   cryptoPayInvoiceId?: boolean
   antilopayPaymentId?: boolean
   telegramPaymentChargeId?: boolean
+  shkeeperInvoiceId?: boolean
+  shkeeperNetwork?: boolean
+  shkeeperAddress?: boolean
+  shkeeperAmountCrypto?: boolean
+  shkeeperReceivedCrypto?: boolean
+  shkeeperLastCheckedAt?: boolean
   orderId?: boolean
   subscribeType?: boolean
   subscribePlan?: boolean
@@ -871,6 +1063,12 @@ export type PaymentSelectScalar = {
   cryptoPayInvoiceId?: boolean
   antilopayPaymentId?: boolean
   telegramPaymentChargeId?: boolean
+  shkeeperInvoiceId?: boolean
+  shkeeperNetwork?: boolean
+  shkeeperAddress?: boolean
+  shkeeperAmountCrypto?: boolean
+  shkeeperReceivedCrypto?: boolean
+  shkeeperLastCheckedAt?: boolean
   orderId?: boolean
   subscribeType?: boolean
   subscribePlan?: boolean
@@ -882,7 +1080,7 @@ export type PaymentSelectScalar = {
   createdAt?: boolean
 }
 
-export type PaymentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "provider" | "cryptoPayInvoiceId" | "antilopayPaymentId" | "telegramPaymentChargeId" | "orderId" | "subscribeType" | "subscribePlan" | "amountUsd" | "amountRub" | "amountStars" | "status" | "paidAt" | "createdAt", ExtArgs["result"]["payment"]>
+export type PaymentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "provider" | "cryptoPayInvoiceId" | "antilopayPaymentId" | "telegramPaymentChargeId" | "shkeeperInvoiceId" | "shkeeperNetwork" | "shkeeperAddress" | "shkeeperAmountCrypto" | "shkeeperReceivedCrypto" | "shkeeperLastCheckedAt" | "orderId" | "subscribeType" | "subscribePlan" | "amountUsd" | "amountRub" | "amountStars" | "status" | "paidAt" | "createdAt", ExtArgs["result"]["payment"]>
 export type PaymentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -905,6 +1103,12 @@ export type $PaymentPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     cryptoPayInvoiceId: bigint | null
     antilopayPaymentId: string | null
     telegramPaymentChargeId: string | null
+    shkeeperInvoiceId: string | null
+    shkeeperNetwork: string | null
+    shkeeperAddress: string | null
+    shkeeperAmountCrypto: string | null
+    shkeeperReceivedCrypto: string | null
+    shkeeperLastCheckedAt: Date | null
     orderId: string
     subscribeType: $Enums.SubscribeType
     subscribePlan: $Enums.SubscribePlan
@@ -1344,6 +1548,12 @@ export interface PaymentFieldRefs {
   readonly cryptoPayInvoiceId: Prisma.FieldRef<"Payment", 'BigInt'>
   readonly antilopayPaymentId: Prisma.FieldRef<"Payment", 'String'>
   readonly telegramPaymentChargeId: Prisma.FieldRef<"Payment", 'String'>
+  readonly shkeeperInvoiceId: Prisma.FieldRef<"Payment", 'String'>
+  readonly shkeeperNetwork: Prisma.FieldRef<"Payment", 'String'>
+  readonly shkeeperAddress: Prisma.FieldRef<"Payment", 'String'>
+  readonly shkeeperAmountCrypto: Prisma.FieldRef<"Payment", 'String'>
+  readonly shkeeperReceivedCrypto: Prisma.FieldRef<"Payment", 'String'>
+  readonly shkeeperLastCheckedAt: Prisma.FieldRef<"Payment", 'DateTime'>
   readonly orderId: Prisma.FieldRef<"Payment", 'String'>
   readonly subscribeType: Prisma.FieldRef<"Payment", 'SubscribeType'>
   readonly subscribePlan: Prisma.FieldRef<"Payment", 'SubscribePlan'>

@@ -444,6 +444,9 @@ export class UserModelService {
         subscribeType: SubscribeType,
         subscribePlan: SubscribePlan,
     ): Promise<{ subscriptionEndsAt: Date }> {
+        // Different orders/providers lock different payments but extend the same subscription.
+        // Lock the shared user before reading expiry so concurrent extensions cannot overwrite it.
+        await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${userId} FOR UPDATE`;
         const user = await tx.user.findUniqueOrThrow({
             where: { id: userId },
         });

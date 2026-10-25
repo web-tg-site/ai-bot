@@ -340,10 +340,9 @@ ${getTariffIncludesText(type, plan, ru)}
 
 Тариф: ${tariffName}
 Период: ${periodName}
-Сумма: ~${amountUsd} USDT (можно оплатить любой криптовалютой)
+Стоимость: ${amountUsd} USD
 
-Нажмите кнопку ниже, чтобы перейти к оплате в @CryptoBot.
-Ссылка действительна 1 час.`,
+Откройте приложение, чтобы выбрать сеть USDT и увидеть точную сумму и адрес перевода (SHKeeper).`,
         invoiceCreatedRub: (amountRub, tariffName, periodName) =>
             `💳 <b>Оплата подписки</b>
 
@@ -376,7 +375,7 @@ ${getTariffIncludesText(type, plan, ru)}
         emailInvalid:
             'Некорректный email. Пример: name@example.com\nОтправьте email ещё раз.',
         notConfigured:
-            'Оплата через @CryptoBot временно недоступна. Обратитесь в поддержку.',
+            'Оплата криптовалютой временно недоступна. Обратитесь в поддержку.',
         rubNotConfigured:
             'Оплата в рублях временно недоступна. Пока вы можете оплатить криптовалютой через кнопку USDT.',
         starsNotConfigured:

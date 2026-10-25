@@ -10,7 +10,7 @@ import {
     ElevenLabsVoicePreviewService,
     ModelFailoverService,
 } from '@/common/services/ai';
-import { CryptoPayService } from '@/common/services/crypto-pay';
+import { ShkeeperService } from '@/common/services/shkeeper';
 import { AntilopayService } from '@/common/services/antilopay';
 import { TelegramStarsService } from '@/common/services/telegram-stars';
 import { RedisService } from '@/common/services/redis';
@@ -25,7 +25,8 @@ export type BotHandlerDeps = {
     tokenBillingService: TokenBillingService;
     aiJobService: AiJobService;
     modelFailoverService: ModelFailoverService;
-    cryptoPayService: CryptoPayService;
+    shkeeperService: ShkeeperService;
+    miniAppUrl?: string;
     antilopayService: AntilopayService;
     telegramStarsService: TelegramStarsService;
     elevenLabsVoicePreviewService: ElevenLabsVoicePreviewService;

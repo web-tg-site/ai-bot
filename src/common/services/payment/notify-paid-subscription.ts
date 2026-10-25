@@ -1,6 +1,6 @@
 import { BotService } from '@/common/services/bot';
 import { UserModelService } from '@/common/models/user';
-import { ProcessInvoicePaidResult } from '@/common/services/crypto-pay';
+import type { ProcessInvoicePaidResult } from './payment.types';
 import { getI18nForUser } from '@/common/services/bot/i18n';
 import { formatDate } from '@/common/services/bot/i18n/format';
 
