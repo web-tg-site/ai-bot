@@ -27,6 +27,7 @@ import { RedisService } from '@/common/services/redis';
 import { ShkeeperService } from '@/common/services/shkeeper';
 import { AntilopayService } from '@/common/services/antilopay';
 import { TelegramStarsService } from '@/common/services/telegram-stars';
+import { setTelegramBotUsername } from './utils/bot-username';
 import { bufferToInputFile } from './utils/download-telegram-file';
 import { deliverVideoBuffer } from './utils/media-delivery';
 import {
@@ -97,6 +98,7 @@ export class BotService implements OnApplicationBootstrap, OnModuleDestroy {
 
         const me = await this.bot.telegram.getMe();
         this.botUsername = me.username;
+        setTelegramBotUsername(me.username);
 
         this.logger.info({ username: me.username }, 'Bot starting');
 

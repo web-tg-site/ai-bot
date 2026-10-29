@@ -283,7 +283,7 @@ Choose a plan below.`,
             return `<b>${en.records.subTypeToText[type]}</b>
 
 Access period: ${en.records.subPlanToPeriod[plan]}
-AI credits: ${formatNum(info.credits)}
+AI tokens: ${formatNum(info.credits)}
 
 ${en.records.subTypeDescription[type]}
 

@@ -285,7 +285,7 @@ export const ru: I18nBundle = {
             return `<b>${ru.records.subTypeToText[type]}</b>
 
 Срок доступа: ${ru.records.subPlanToPeriod[plan]}
-AI-кредиты: ${formatNum(info.credits)}
+AI-токены: ${formatNum(info.credits)}
 
 ${ru.records.subTypeDescription[type]}
 

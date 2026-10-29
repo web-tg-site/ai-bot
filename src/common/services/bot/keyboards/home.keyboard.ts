@@ -1,7 +1,17 @@
 import { Markup } from 'telegraf';
 import { I18nBundle } from '../i18n';
+import { getMainMiniAppLink } from '../utils/bot-username';
 
 type KeyboardRow = any[];
+
+function openAppButton(i18n: I18nBundle, miniAppUrl?: string) {
+    const directLink = getMainMiniAppLink();
+    if (directLink) {
+        return Markup.button.url(i18n.buttons.openApp, directLink);
+    }
+    if (!miniAppUrl) return null;
+    return Markup.button.webApp(i18n.buttons.openApp, miniAppUrl);
+}
 
 export const generateHomeKeyboardNotRegistered = (
     i18n: I18nBundle,
@@ -9,9 +19,10 @@ export const generateHomeKeyboardNotRegistered = (
     miniAppUrl?: string,
 ) => {
     const keyboard: KeyboardRow[] = [];
+    const openApp = openAppButton(i18n, miniAppUrl);
 
-    if (miniAppUrl) {
-        keyboard.push([Markup.button.webApp(i18n.buttons.openApp, miniAppUrl)]);
+    if (openApp) {
+        keyboard.push([openApp]);
     }
 
     if (useFreeSubscription) {
@@ -35,8 +46,9 @@ export const getHomeKeyboardRegistered = (
         [i18n.buttons.settings, i18n.buttons.support],
     ];
 
-    if (miniAppUrl) {
-        rows.unshift([Markup.button.webApp(i18n.buttons.openApp, miniAppUrl)]);
+    const openApp = openAppButton(i18n, miniAppUrl);
+    if (openApp) {
+        rows.unshift([openApp]);
     }
 
     return Markup.keyboard(rows).resize();
