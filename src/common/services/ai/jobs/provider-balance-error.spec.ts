@@ -20,6 +20,7 @@ describe('isProviderBalanceError', () => {
 
         // OpenAI
         'You exceeded your current quota, please check your plan',
+        '429 You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing',
         'insufficient_quota',
         'Billing hard limit has been reached',
         'billing_hard_limit_reached',

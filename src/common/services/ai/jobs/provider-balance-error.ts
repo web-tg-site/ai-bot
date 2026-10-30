@@ -7,7 +7,7 @@
  * - Sharpii: Insufficient corporate funds / credits, Pre-deduction failed → RU remap
  * - OpenRouter: 402, can only afford, payment_required
  * - OpenAI: insufficient_quota, billing_hard_limit_reached, spend/usage limits,
- *   credit_balance_exhausted
+ *   credit_balance_exhausted, "You have no credits remaining" (HTTP 429 billing)
  * - Google: Prepay / prepayment credits depleted, payment_required, HTTP 402
  * - ElevenLabs: insufficient_credits, "does not have enough credits", RU 402 remap
  * - HeyGen: insufficient_credit, usage_limit_reached
@@ -39,6 +39,7 @@ const PROVIDER_BALANCE_ERROR_RE = new RegExp(
         String.raw`not (?:have )?enough balance`,
         String.raw`out of credits`,
         String.raw`no remaining credits`,
+        String.raw`no credits remaining`,
         String.raw`can only afford`,
         String.raw`Pre-deduction failed`,
         String.raw`exceeded your current quota`,
