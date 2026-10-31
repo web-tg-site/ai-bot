@@ -48,6 +48,7 @@ export type I18nBundle = {
     home: {
         notRegistered: string;
         registered: string;
+        sectionsPrompt: string;
     };
     ai: {
         textBots: string;

@@ -1,8 +1,9 @@
 import { UserModelService } from '@/common/models/user';
 import { BotSession } from '@/common/services/ai';
 import { SubscribeType } from '@/generated/prisma/enums';
-import { Context } from 'telegraf';
-import { getI18nForUser } from '../i18n';
+import { Context, Markup } from 'telegraf';
+import { ExtraReplyMessage } from 'node_modules/telegraf/typings/telegram-types';
+import { getI18nForUser, I18nBundle } from '../i18n';
 import {
     generateHomeKeyboardNotRegistered,
     getHomeKeyboardRegistered,
@@ -15,6 +16,32 @@ type BotContext = Context & { session: BotSession };
 function getMiniAppUrl(): string | undefined {
     const url = process.env.MINI_APP_URL?.trim();
     return url || undefined;
+}
+
+async function sendHomeMenu(
+    ctx: Context,
+    filename: string,
+    caption: string,
+    i18n: I18nBundle,
+    replyKeyboard: ExtraReplyMessage,
+    miniAppUrl?: string,
+) {
+    // Reply-keyboard web_app opens without initData on Desktop/iOS.
+    // An inline button is a real Mini App launch, same as the App menu button.
+    if (!miniAppUrl) {
+        await replyMenuPhoto(ctx, filename, caption, replyKeyboard);
+        return;
+    }
+
+    await replyMenuPhoto(
+        ctx,
+        filename,
+        caption,
+        Markup.inlineKeyboard([
+            [Markup.button.webApp(i18n.buttons.openApp, miniAppUrl)],
+        ]),
+    );
+    await ctx.reply(i18n.home.sectionsPrompt, replyKeyboard);
 }
 
 export async function showHome(
@@ -41,7 +68,6 @@ export async function showHome(
         const keyboard = generateHomeKeyboardNotRegistered(
             i18n,
             user ? !user.useFreeSub : true,
-            miniAppUrl,
         );
 
         if (user) {
@@ -50,21 +76,25 @@ export async function showHome(
             );
         }
 
-        await replyMenuPhoto(
+        await sendHomeMenu(
             ctx,
             'main.png',
             i18n.home.notRegistered,
+            i18n,
             keyboard,
+            miniAppUrl,
         );
 
         return;
     }
 
     await userModelService.updateUserLastActivityAt(ctx.from.id.toString());
-    await replyMenuPhoto(
+    await sendHomeMenu(
         ctx,
         'main.png',
         i18n.home.registered,
-        getHomeKeyboardRegistered(i18n, miniAppUrl),
+        i18n,
+        getHomeKeyboardRegistered(i18n),
+        miniAppUrl,
     );
 }

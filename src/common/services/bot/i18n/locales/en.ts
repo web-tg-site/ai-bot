@@ -77,6 +77,7 @@ export const en: I18nBundle = {
         en: '🇬🇧 English',
     },
     home: {
+        sectionsPrompt: 'Choose a section in the menu below.',
         notRegistered: `<b>Welcome to ${BOT_NAME}</b>
 
 An all-in-one AI platform in Telegram for work, business, creativity, and everyday tasks.
