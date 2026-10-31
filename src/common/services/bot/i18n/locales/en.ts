@@ -56,7 +56,6 @@ export const en: I18nBundle = {
         privacyPolicy: 'Personal Data Processing Policy',
         userAgreement: 'User Agreement',
         refundPolicy: 'Refund Policy',
-        openApp: 'Open app',
         sbp: (amount) => `SBP ${amount} ₽`,
         usdt: (amount) => `USDT ${amount} ₮`,
         stars: (amount) => `Stars ${amount} ⭐`,
@@ -77,7 +76,6 @@ export const en: I18nBundle = {
         en: '🇬🇧 English',
     },
     home: {
-        sectionsPrompt: 'Choose a section in the menu below.',
         notRegistered: `<b>Welcome to ${BOT_NAME}</b>
 
 An all-in-one AI platform in Telegram for work, business, creativity, and everyday tasks.

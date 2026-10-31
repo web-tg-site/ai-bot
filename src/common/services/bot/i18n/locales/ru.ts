@@ -56,7 +56,6 @@ export const ru: I18nBundle = {
         privacyPolicy: 'Политика обработки персональных данных',
         userAgreement: 'Пользовательское соглашение',
         refundPolicy: 'Политика возврата денежных средств',
-        openApp: 'Открыть приложение',
         sbp: (amount) => `СБП ${amount} ₽`,
         usdt: (amount) => `USDT ${amount} ₮`,
         stars: (amount) => `Stars ${amount} ⭐`,
@@ -79,7 +78,6 @@ export const ru: I18nBundle = {
         en: '🇬🇧 English',
     },
     home: {
-        sectionsPrompt: 'Выберите раздел в меню ниже.',
         notRegistered: `<b>Добро пожаловать в ${BOT_NAME}</b>
 
 Единая AI-платформа в Telegram для работы, бизнеса, творчества и повседневных задач.
