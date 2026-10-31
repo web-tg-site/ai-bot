@@ -87,4 +87,12 @@ export const registerStartHandler = (
             await showHome(ctx, userModelService);
         },
     );
+
+    registerLocalizedHears(
+        bot,
+        (i18n) => i18n.buttons.openApp,
+        async (ctx) => {
+            await showHome(ctx, userModelService);
+        },
+    );
 };

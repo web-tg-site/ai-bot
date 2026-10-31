@@ -17,6 +17,7 @@ import {
     ElevenLabsVoiceOption,
     mapElevenLabsGender,
     mapElevenLabsUseCase,
+    isRemovedElevenLabsVoice,
     resolveElevenLabsVoiceLabels,
 } from '@/common/config/elevenlabs-voices.config';
 import { stripAttachmentMentionManifest } from '@/common/services/bot/utils/image-references';
@@ -152,7 +153,12 @@ export class ElevenLabsProvider {
             }>('/voices');
 
             const voices = (response.voices ?? [])
-                .filter((voice) => voice.voice_id && voice.name)
+                .filter(
+                    (voice) =>
+                        voice.voice_id &&
+                        voice.name &&
+                        !isRemovedElevenLabsVoice(voice.voice_id),
+                )
                 .map((voice) => {
                     const labels = resolveElevenLabsVoiceLabels(
                         voice.voice_id,
@@ -345,7 +351,10 @@ export class ElevenLabsProvider {
             throw new Error('Отправьте текст для озвучки');
         }
 
-        const voiceId = input.elevenLabsVoiceId ?? this.voiceId;
+        const requestedVoiceId = input.elevenLabsVoiceId ?? this.voiceId;
+        const voiceId = isRemovedElevenLabsVoice(requestedVoiceId)
+            ? this.voiceId
+            : requestedVoiceId;
         const buffer = await this.synthesizeSpeech(voiceId, text);
 
         return {

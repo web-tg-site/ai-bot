@@ -13,7 +13,10 @@ import {
     DEFAULT_VOICE_TOOL_SETTINGS,
     VoiceToolSettings,
 } from '@/common/types/voice-tool-settings.type';
-import { getDefaultElevenLabsVoiceId } from '@/common/config/elevenlabs-voices.config';
+import {
+    getDefaultElevenLabsVoiceId,
+    isRemovedElevenLabsVoice,
+} from '@/common/config/elevenlabs-voices.config';
 
 @Injectable()
 export class UserAiToolSettingsModelService {
@@ -130,7 +133,10 @@ export class UserAiToolSettingsModelService {
         return {
             ...DEFAULT_VOICE_TOOL_SETTINGS,
             elevenLabsVoiceId:
-                stored.elevenLabsVoiceId ?? getDefaultElevenLabsVoiceId(),
+                stored.elevenLabsVoiceId &&
+                !isRemovedElevenLabsVoice(stored.elevenLabsVoiceId)
+                    ? stored.elevenLabsVoiceId
+                    : getDefaultElevenLabsVoiceId(),
             sendAsFile: stored.sendAsFile,
             durationSeconds: stored.durationSeconds,
             sunoGenreId: stored.sunoGenreId,

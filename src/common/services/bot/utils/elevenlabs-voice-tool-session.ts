@@ -5,6 +5,7 @@ import { VoiceToolSettings } from '@/common/types/voice-tool-settings.type';
 import {
     ElevenLabsVoiceOption,
     getDefaultElevenLabsVoiceId,
+    isRemovedElevenLabsVoice,
 } from '@/common/config/elevenlabs-voices.config';
 import {
     normalizeSunoDuration,
@@ -32,7 +33,10 @@ export async function loadVoiceToolSettings(
     const stored = await settingsService.getVoiceSettings(userId, toolId);
     const settings: VoiceToolSettings = {
         elevenLabsVoiceId:
-            stored.elevenLabsVoiceId ?? getDefaultElevenLabsVoiceId(),
+            stored.elevenLabsVoiceId &&
+            !isRemovedElevenLabsVoice(stored.elevenLabsVoiceId)
+                ? stored.elevenLabsVoiceId
+                : getDefaultElevenLabsVoiceId(),
         sendAsFile: stored.sendAsFile,
         durationSeconds: stored.durationSeconds,
     };
@@ -96,7 +100,9 @@ export function buildElevenLabsVoiceMainScreenText(
 export function getSessionAccessibleVoices(
     session: BotSession,
 ): ElevenLabsVoiceOption[] {
-    return session.ai?.accessibleElevenLabsVoices ?? [];
+    return (session.ai?.accessibleElevenLabsVoices ?? []).filter(
+        (voice) => !isRemovedElevenLabsVoice(voice.id),
+    );
 }
 
 export async function ensureAccessibleElevenLabsVoices(

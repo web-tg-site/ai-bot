@@ -25,10 +25,15 @@ export type ElevenLabsVoiceOption = {
 };
 
 /**
- * Каталог голосов: premade + professional из аккаунта.
- * Live API (`listAccessibleVoices`) подставляет preview/gender,
- * а русские подписи с описанием берём отсюда.
+ * Голос отключён владельцем. Каталог и ответ ElevenLabs его больше не показывают:
+ * GET /voices может продолжать отдавать id после удаления в кабинете.
  */
+const REMOVED_ELEVENLABS_VOICE_IDS = new Set(['hRJPpkSVdR2btkZBUz26']);
+
+export function isRemovedElevenLabsVoice(voiceId?: string | null): boolean {
+    return !!voiceId && REMOVED_ELEVENLABS_VOICE_IDS.has(voiceId);
+}
+
 export const ELEVENLABS_VOICE_CATALOG: readonly ElevenLabsVoiceOption[] = [
     // Premade
     {
@@ -227,13 +232,6 @@ export const ELEVENLABS_VOICE_CATALOG: readonly ElevenLabsVoiceOption[] = [
         labelEn: 'Georgy - Clear, Engaging and Confident',
         gender: 'Мужской',
         useCase: 'narrative_story',
-    },
-    {
-        id: 'hRJPpkSVdR2btkZBUz26',
-        labelRu: 'Игорь — дружелюбный',
-        labelEn: 'Igor',
-        gender: 'Мужской',
-        useCase: 'social_media',
     },
     {
         id: '1qd9R09Ljlx9V1Ok0t5S',

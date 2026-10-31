@@ -1,14 +1,9 @@
 import { Markup } from 'telegraf';
 import { I18nBundle } from '../i18n';
-import { getMainMiniAppLink } from '../utils/bot-username';
 
 type KeyboardRow = any[];
 
 function openAppButton(i18n: I18nBundle, miniAppUrl?: string) {
-    const directLink = getMainMiniAppLink();
-    if (directLink) {
-        return Markup.button.url(i18n.buttons.openApp, directLink);
-    }
     if (!miniAppUrl) return null;
     return Markup.button.webApp(i18n.buttons.openApp, miniAppUrl);
 }
