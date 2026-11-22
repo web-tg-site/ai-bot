@@ -60,14 +60,14 @@ const RU: Partial<Record<AiToolId, string>> = {
 Как пользоваться?
 1. Напиши задачу своими словами. Чем подробнее — тем лучше ответ.
 2. Выбери формат ответа: текстом, голосом или текстом и голосом.
-3. При желании прикрепи фото, видео или файлы («Фото, видео, файлы») — всего до 4 файлов в одном запросе. Или нажми «Вставить», если текст уже скопирован.
+3. При желании прикрепи до 10 фото, видео или файлов («Фото, видео, файлы») в одном запросе. Или нажми «Вставить», если текст уже скопирован.
 4. Отправь.
 5. Нужно поправить? Просто напиши, что изменить.
 
 Под готовым изображением появятся кнопки «Отправить в чат» и «Скачать».
 
 Как работать с референсами?
-К запросу можно прикрепить фото, видео или документ — всего до 4 файлов. Чтобы ChatGPT понял, какой файл для чего, у каждого есть своя метка (тег). Теги можно использовать и когда файл один:
+К запросу можно прикрепить до 10 фото, видео или документов. Чтобы ChatGPT понял, какой файл для чего, у каждого есть своя метка (тег). Теги можно использовать и когда файл один:
 • 🖼️ фото → @image1, @image2…
 • 🎬 видео → @video1…
 • 📄 документ → @file1…
@@ -83,7 +83,7 @@ const RU: Partial<Record<AiToolId, string>> = {
 - 📄 Разбирает PDF, Word, Excel и PowerPoint
 - ✍️ Помогает писать и править тексты
 - 💻 Разбирает код и сложные задачи
-- 📎 Можно прикрепить фото и документы (видео Claude не читает)
+- 📎 Можно прикрепить до 10 фото или документов (видео Claude не читает)
 - 🎯 Отвечает спокойно и по делу
 
 Как пользоваться
@@ -396,7 +396,7 @@ A smart chat assistant — answers questions and helps with any task.
 How to use
 1. Describe your task in your own words.
 2. The more detail you provide, the better the answer.
-3. Optionally attach a photo, video or file ("Photos, video, files").
+3. Optionally attach up to 10 photos, videos or files ("Photos, video, files").
 4. Send.
 5. Need changes? Just say what to fix — GPT will continue the conversation.`,
 
@@ -407,7 +407,7 @@ A smart chat assistant — especially good for long texts and complex analysis.
 - 📄 Reads PDF, Word, Excel and PowerPoint
 - ✍️ Helps write and edit texts
 - 💻 Breaks down code and complex tasks
-- 📎 You can attach photos and documents (Claude cannot read video)
+- 📎 You can attach up to 10 photos or documents (Claude cannot read video)
 - 🎯 Responds calmly and to the point
 
 How to use
