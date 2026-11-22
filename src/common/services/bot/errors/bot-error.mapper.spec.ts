@@ -360,6 +360,16 @@ describe('bot-error.mapper', () => {
             expect(result).not.toMatch(/реальных людей/i);
         });
 
+        it('maps Seedance generated-audio copyright blocks separately', () => {
+            const result = toUserFacingError(
+                'The request failed because the output audio may be related to copyright restrictions. Request id: 123',
+                ru,
+            );
+            expect(result).toMatch(/автоматически создаваемый звук/i);
+            expect(result).toMatch(/без звука/i);
+            expect(result).not.toMatch(/фильмов и игр/i);
+        });
+
         it('prefers real-person text when both likeness and IP keywords appear', () => {
             const result = toUserFacingError(
                 'Rejected: real person likeness may violate intellectual property',

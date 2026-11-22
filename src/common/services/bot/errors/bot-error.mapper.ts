@@ -373,6 +373,18 @@ function localizeActionableProviderDetail(
             : 'The model rejects photos of real people for this generation. Try a different frame or describe the character in text.';
     }
 
+    // Seedance can reject audio it intended to generate even when the user did
+    // not attach an audio file. Do not mislabel that as a character/IP block.
+    if (
+        /output audio.{0,80}(?:copyright|intellectual property)|(?:copyright|intellectual property).{0,80}output audio/i.test(
+            detail,
+        )
+    ) {
+        return ru
+            ? 'Seedance отклонил автоматически создаваемый звук из-за возможных ограничений авторских прав. Повторите генерацию без звука или измените описание.'
+            : 'Seedance rejected the automatically generated audio because of possible copyright restrictions. Retry without sound or change the prompt.';
+    }
+
     if (
         /copyright|trademark|intellectual property|ip\s+violation|third[- ]party|franchis|licensed character|famous (?:character|brand|franchise)/i.test(
             detail,
