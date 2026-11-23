@@ -183,7 +183,11 @@ export class LumaProvider {
             throw new Error('Опишите сцену для видео');
         }
 
-        const durationSec = input.durationSeconds ?? 5;
+        const { images } = splitMediaFiles(input.files);
+        // Ray 3.2 rejects 10s together with start_frame/end_frame.
+        // Keep image-to-video at 5s even when an older client sends 10s.
+        const durationSec =
+            images.length > 0 ? 5 : (input.durationSeconds ?? 5);
         const duration = durationSec <= 5 ? '5s' : '10s';
 
         const video: Record<string, unknown> = {
@@ -191,7 +195,6 @@ export class LumaProvider {
             duration,
         };
 
-        const { images } = splitMediaFiles(input.files);
         if (images[0]) {
             video.start_frame = toImageRef(images[0]);
         }

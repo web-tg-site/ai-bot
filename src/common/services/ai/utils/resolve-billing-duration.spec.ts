@@ -92,6 +92,15 @@ describe('resolveBillingDurationSeconds', () => {
         ).toBe(5);
     });
 
+    it('Luma with an image frame forces 5 seconds', () => {
+        expect(
+            resolveBillingDurationSeconds(AiToolId.LUMA_RAY, {
+                durationSeconds: 10,
+                files: [{ mimeType: 'image/jpeg' }],
+            }),
+        ).toBe(5);
+    });
+
     it('Seedance clamps to 4–30', () => {
         expect(
             resolveBillingDurationSeconds(AiToolId.SEEDANCE, {
