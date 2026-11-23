@@ -381,8 +381,8 @@ function localizeActionableProviderDetail(
         )
     ) {
         return ru
-            ? 'Seedance отклонил автоматически создаваемый звук из-за возможных ограничений авторских прав. Повторите генерацию без звука или измените описание.'
-            : 'Seedance rejected the automatically generated audio because of possible copyright restrictions. Retry without sound or change the prompt.';
+            ? 'Seedance сам добавил звук и отклонил его из-за авторских прав. Это ошибка провайдера — попробуйте ещё раз.'
+            : 'Seedance added the audio and then rejected it because of copyright restrictions. This is a provider error — please try again.';
     }
 
     if (

@@ -365,8 +365,10 @@ describe('bot-error.mapper', () => {
                 'The request failed because the output audio may be related to copyright restrictions. Request id: 123',
                 ru,
             );
-            expect(result).toMatch(/автоматически создаваемый звук/i);
-            expect(result).toMatch(/без звука/i);
+            expect(result).toMatch(/сам добавил звук/i);
+            expect(result).toMatch(/провайдер/i);
+            expect(result).toMatch(/отклонил его/i);
+            expect(result).toMatch(/ошибка провайдера/i);
             expect(result).not.toMatch(/фильмов и игр/i);
         });
 
