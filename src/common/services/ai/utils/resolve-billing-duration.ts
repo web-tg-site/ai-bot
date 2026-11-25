@@ -107,8 +107,7 @@ export function resolveBillingDurationSeconds(
             return resolveKlingBillingDuration(input);
         case AiToolId.LUMA_RAY:
             // video_edit / reframe keep source length — don't bill the UI 5/10 picker.
-            // Ray 3.2 image-to-video also only accepts 5s with start/end frames.
-            if (hasVideoFile(input.files) || hasImageFile(input.files)) {
+            if (hasVideoFile(input.files)) {
                 return 5;
             }
             return requested <= 5 ? 5 : 10;

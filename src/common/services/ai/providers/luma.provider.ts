@@ -14,6 +14,7 @@ import { downloadRemoteFile } from '@/common/utils/download-remote-file';
 import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
 
 const LUMA_BASE_URL = 'https://agents.lumalabs.ai/v1';
+const LUMA_KEYFRAME_FPS = 24;
 
 type LumaRayOperation = 'video' | 'video_edit' | 'video_reframe';
 
@@ -184,22 +185,28 @@ export class LumaProvider {
         }
 
         const { images } = splitMediaFiles(input.files);
-        // Ray 3.2 rejects 10s together with start_frame/end_frame.
-        // Keep image-to-video at 5s even when an older client sends 10s.
-        const durationSec =
-            images.length > 0 ? 5 : (input.durationSeconds ?? 5);
-        const duration = durationSec <= 5 ? '5s' : '10s';
+        const durationSeconds = (input.durationSeconds ?? 5) <= 5 ? 5 : 10;
 
         const video: Record<string, unknown> = {
             resolution: input.resolution === '1080p' ? '1080p' : '720p',
-            duration,
+            duration: `${durationSeconds}s`,
         };
 
-        if (images[0]) {
-            video.start_frame = toImageRef(images[0]);
-        }
-        if (images[1]) {
-            video.end_frame = toImageRef(images[1]);
+        if (durationSeconds === 10 && images.length > 0) {
+            const frames = images.slice(0, 2);
+            // Luma uses an inclusive 24 fps timeline for keyframe anchors.
+            video.keyframes = frames.map(toImageRef);
+            video.keyframe_indexes =
+                frames.length === 1
+                    ? [0]
+                    : [0, durationSeconds * LUMA_KEYFRAME_FPS];
+        } else {
+            if (images[0]) {
+                video.start_frame = toImageRef(images[0]);
+            }
+            if (images[1]) {
+                video.end_frame = toImageRef(images[1]);
+            }
         }
 
         return {
