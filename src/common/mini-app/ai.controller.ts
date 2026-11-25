@@ -3,6 +3,7 @@ import {
     Controller,
     Delete,
     Get,
+    Headers,
     HttpException,
     HttpStatus,
     Param,
@@ -16,6 +17,7 @@ import {
     UseGuards,
     UseInterceptors,
 } from '@nestjs/common';
+import { RequestReplay } from './request-replay';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import type { Request, Response } from 'express';
@@ -351,6 +353,8 @@ class SendPromptBodyDto {
 @Controller('api/ai')
 @UseGuards(TelegramJwtGuard)
 export class AiController {
+    private readonly generationReplay = new RequestReplay();
+
     constructor(
         private readonly generationFacade: GenerationFacade,
         private readonly prismaService: PrismaService,
@@ -513,6 +517,17 @@ export class AiController {
         @CurrentUser() current: CurrentUserPayload,
         @Body() body: GenerateBodyDto,
         @UploadedFiles() files?: Express.Multer.File[],
+        @Headers('idempotency-key') requestId?: string,
+    ) {
+        return this.generationReplay.run(current.id, requestId, () =>
+            this.generateOnce(current, body, files),
+        );
+    }
+
+    private async generateOnce(
+        current: CurrentUserPayload,
+        body: GenerateBodyDto,
+        files?: Express.Multer.File[],
     ) {
         const fileInputs: AiFileInput[] | undefined = files?.length
             ? await Promise.all(

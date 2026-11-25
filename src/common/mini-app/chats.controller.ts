@@ -3,6 +3,7 @@ import {
     Controller,
     Delete,
     Get,
+    Headers,
     HttpException,
     HttpStatus,
     Param,
@@ -12,6 +13,7 @@ import {
     UseGuards,
     UseInterceptors,
 } from '@nestjs/common';
+import { RequestReplay } from './request-replay';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { IsEnum, IsIn, IsOptional, IsString } from 'class-validator';
@@ -60,6 +62,8 @@ class SendMessageDto {
 @Controller('api/chats')
 @UseGuards(TelegramJwtGuard)
 export class ChatsController {
+    private readonly createReplay = new RequestReplay();
+
     constructor(
         private readonly gptConversationModelService: GptConversationModelService,
         private readonly generationFacade: GenerationFacade,
@@ -97,15 +101,16 @@ export class ChatsController {
     async create(
         @CurrentUser() current: CurrentUserPayload,
         @Body() body: CreateChatDto,
+        @Headers('idempotency-key') requestId?: string,
     ) {
         this.assertChatTool(body.toolId);
-        const conversation =
-            await this.gptConversationModelService.createConversation(
+        return this.createReplay.run(current.id, requestId, () =>
+            this.gptConversationModelService.createConversation(
                 current.id,
                 body.toolId,
                 body.title,
-            );
-        return conversation;
+            ),
+        );
     }
 
     @Get(':id')
@@ -152,10 +157,10 @@ export class ChatsController {
         // Same createdAt (legacy createMany) can still put assistant before
         // user — keep the request + file chip above the reply.
         const ordered = [...rows].sort((left, right) => {
-            const byTime =
-                left.createdAt.getTime() - right.createdAt.getTime();
+            const byTime = left.createdAt.getTime() - right.createdAt.getTime();
             if (byTime !== 0) return byTime;
-            if (left.role === right.role) return left.id.localeCompare(right.id);
+            if (left.role === right.role)
+                return left.id.localeCompare(right.id);
             return left.role === 'user' ? -1 : 1;
         });
 
