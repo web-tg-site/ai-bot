@@ -7,6 +7,7 @@ import { AiToolId } from '@/common/services/ai/types';
 import {
     DEFAULT_VIDEO_ASPECT_RATIOS,
     DEFAULT_VIDEO_RESOLUTIONS,
+    LUMA_RAY_ASPECT_RATIOS,
     STATIC_VIDEO_DURATIONS,
     STATIC_VIDEO_RESOLUTIONS,
     STATIC_VIDEO_QUALITIES,
@@ -79,7 +80,11 @@ export class VideoCapabilitiesService implements OnModuleInit {
             return [];
         }
 
-        return resolveUiAspectRatios(DEFAULT_VIDEO_ASPECT_RATIOS);
+        return resolveUiAspectRatios(
+            toolId === AiToolId.LUMA_RAY
+                ? [...LUMA_RAY_ASPECT_RATIOS]
+                : DEFAULT_VIDEO_ASPECT_RATIOS,
+        );
     }
 
     getResolutions(toolId: AiToolId): string[] {

@@ -251,11 +251,20 @@ export const STATIC_VIDEO_DURATIONS: Partial<Record<AiToolId, number[]>> = {
     [AiToolId.HEYGEN]: [5, 15],
 };
 
+export const LUMA_RAY_ASPECT_RATIOS: readonly string[] = [
+    '3:4',
+    '9:16',
+    '21:9',
+    '16:9',
+    '4:3',
+    '1:1',
+];
+
 export const STATIC_VIDEO_ASPECT_RATIOS: Partial<Record<AiToolId, string[]>> = {
     [AiToolId.KLING]: [...UI_ASPECT_RATIOS],
     [AiToolId.VEO]: ['16:9', '9:16'],
     [AiToolId.SEEDANCE]: [...UI_ASPECT_RATIOS],
-    [AiToolId.LUMA_RAY]: [...UI_ASPECT_RATIOS],
+    [AiToolId.LUMA_RAY]: [...LUMA_RAY_ASPECT_RATIOS],
     [AiToolId.HIGGSFIELD]: [...UI_ASPECT_RATIOS],
     [AiToolId.HEYGEN]: [],
 };

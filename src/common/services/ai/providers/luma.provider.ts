@@ -10,6 +10,7 @@ import {
     AiJobStatusResult,
 } from '../types';
 import { AiToolId } from '../types';
+import { LUMA_RAY_ASPECT_RATIOS } from '@/common/config/video-editor-capabilities.config';
 import { downloadRemoteFile } from '@/common/utils/download-remote-file';
 import { splitMediaFiles } from '@/common/utils/normalize-upload-mime';
 
@@ -213,7 +214,7 @@ export class LumaProvider {
             model: 'ray-3.2',
             type: 'video',
             prompt,
-            aspect_ratio: input.aspectRatio ?? '16:9',
+            aspect_ratio: this.resolveAspectRatio(input.aspectRatio),
             video,
         };
     }
@@ -240,9 +241,15 @@ export class LumaProvider {
         return {
             model: 'ray-3.2',
             type: 'video_reframe',
-            aspect_ratio: input.aspectRatio ?? '16:9',
+            aspect_ratio: this.resolveAspectRatio(input.aspectRatio),
             source: this.resolveVideoSource(input),
         };
+    }
+
+    private resolveAspectRatio(aspectRatio = '16:9'): string {
+        return LUMA_RAY_ASPECT_RATIOS.includes(aspectRatio)
+            ? aspectRatio
+            : '16:9';
     }
 
     private resolveVideoSource(
