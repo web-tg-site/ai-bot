@@ -20,7 +20,7 @@ import {
 } from '../types';
 
 const NANO_MODEL = 'gemini-3.1-flash-image';
-const VEO_MODEL = 'veo-3.1-generate-preview';
+const VEO_MODEL = 'veo-3.1-generate-001';
 const VEO_ASPECT_RATIOS = new Set(['16:9', '9:16']);
 const VEO_DURATIONS = [4, 6, 8] as const;
 
@@ -33,16 +33,17 @@ type InteractionInputPart =
 export class GoogleProvider {
     private readonly apiKey: string;
     private readonly client: GoogleGenAI | null;
+    private vertexClient?: GoogleGenAI;
 
     constructor(
         private readonly httpService: HttpService,
-        configService: ConfigService,
+        private readonly configService: ConfigService,
         @InjectPinoLogger(GoogleProvider.name)
         private readonly logger: PinoLogger,
     ) {
         this.apiKey = configService.get<string>('GEMINI_API_KEY') ?? '';
         this.client = this.apiKey
-            ? new GoogleGenAI({ apiKey: this.apiKey })
+            ? new GoogleGenAI({ apiKey: this.apiKey, vertexai: false })
             : null;
     }
 
@@ -74,8 +75,6 @@ export class GoogleProvider {
         toolId: AiToolId,
         input: AiGenerationInput,
     ): Promise<AiJobCreateResult> {
-        this.ensureApiKey();
-
         if (toolId !== AiToolId.VEO) {
             throw new Error(
                 `Google async jobs only support Veo, got ${toolId}`,
@@ -85,7 +84,7 @@ export class GoogleProvider {
         try {
             const operation = await this.startVeoGeneration(input);
             if (!operation.name) {
-                throw new Error('Gemini did not return Veo operation name');
+                throw new Error('Vertex AI did not return Veo operation name');
             }
 
             this.logger.info(
@@ -120,8 +119,10 @@ export class GoogleProvider {
     }
 
     async getJobStatus(providerJobId: string): Promise<AiJobStatusResult> {
-        this.ensureApiKey();
-        const client = this.getClient();
+        const isVertexOperation = providerJobId.startsWith('projects/');
+        const client = isVertexOperation
+            ? this.getVertexClient()
+            : this.getClient();
 
         try {
             // SDK requires a real GenerateVideosOperation instance (has _fromAPIResponse),
@@ -183,7 +184,7 @@ export class GoogleProvider {
                 };
             }
 
-            if (generated.uri) {
+            if (generated.uri && !isVertexOperation) {
                 const { buffer, mimeType } = await this.downloadWithApiKey(
                     generated.uri,
                     generated.mimeType ?? 'video/mp4',
@@ -319,6 +320,7 @@ export class GoogleProvider {
     ): Promise<GenerateVideosOperation> {
         const tool = getToolById(AiToolId.VEO);
         const model = tool?.model ?? VEO_MODEL;
+        const client = this.getVertexClient();
         const { images, videos } = splitMediaFiles(input.files);
         const isExtend = input.veoMode === 'extend';
 
@@ -376,16 +378,8 @@ export class GoogleProvider {
             resolution,
             durationSeconds,
             numberOfVideos: 1,
+            generateAudio: true,
         };
-
-        // Gemini Veo personGeneration rules (AI Studio / Gemini API):
-        // - text-to-video: omit or allow_all (allow_adult is rejected)
-        // - image-to-video: allow_adult (or omit)
-        if (hasImageInput) {
-            config.personGeneration = 'allow_adult';
-        } else {
-            config.personGeneration = 'allow_all';
-        }
 
         if (input.negativePrompt?.trim()) {
             config.negativePrompt = input.negativePrompt.trim();
@@ -397,7 +391,6 @@ export class GoogleProvider {
                 aspectRatio,
                 resolution,
                 durationSeconds,
-                personGeneration: config.personGeneration,
                 veoMode: isExtend ? 'extend' : 'create',
                 hasImageInput,
                 hasExplicitRefs,
@@ -408,20 +401,18 @@ export class GoogleProvider {
 
         if (isExtend) {
             const sourceVideo = videos[0];
-            if (!sourceVideo && !input.sourceGenerationId) {
+            if (!sourceVideo) {
                 throw new Error(
                     'Для продления Veo прикрепите исходное видео (720p, до 141 сек)',
                 );
             }
 
-            const videoPayload = sourceVideo
-                ? {
-                      videoBytes: sourceVideo.buffer.toString('base64'),
-                      mimeType: sourceVideo.mimeType || 'video/mp4',
-                  }
-                : undefined;
+            const videoPayload = {
+                videoBytes: sourceVideo.buffer.toString('base64'),
+                mimeType: sourceVideo.mimeType || 'video/mp4',
+            };
 
-            return this.getClient().models.generateVideos({
+            return client.models.generateVideos({
                 model,
                 source: {
                     prompt: prompt || undefined,
@@ -450,7 +441,7 @@ export class GoogleProvider {
                 throw new Error('Для reference images нужен текстовый промпт');
             }
 
-            return this.getClient().models.generateVideos({
+            return client.models.generateVideos({
                 model,
                 source: { prompt },
                 config: {
@@ -475,7 +466,7 @@ export class GoogleProvider {
             config.durationSeconds = 8;
         }
 
-        return this.getClient().models.generateVideos({
+        return client.models.generateVideos({
             model,
             source: {
                 prompt: prompt || undefined,
@@ -628,6 +619,71 @@ export class GoogleProvider {
     private getClient(): GoogleGenAI {
         this.ensureApiKey();
         return this.client!;
+    }
+
+    private getVertexClient(): GoogleGenAI {
+        if (this.vertexClient) {
+            return this.vertexClient;
+        }
+
+        const rawCredentials = this.configService.get<string>(
+            'GOOGLE_VERTEX_CREDENTIALS_JSON',
+        );
+        let credentials:
+            | {
+                  project_id?: string;
+                  client_email: string;
+                  private_key: string;
+              }
+            | undefined;
+        if (rawCredentials?.trim()) {
+            try {
+                const parsed = JSON.parse(rawCredentials) as Record<
+                    string,
+                    unknown
+                > | null;
+                if (
+                    parsed?.type !== 'service_account' ||
+                    typeof parsed.client_email !== 'string' ||
+                    !parsed.client_email ||
+                    typeof parsed.private_key !== 'string' ||
+                    !parsed.private_key
+                ) {
+                    throw new Error();
+                }
+                credentials = {
+                    project_id:
+                        typeof parsed.project_id === 'string'
+                            ? parsed.project_id
+                            : undefined,
+                    client_email: parsed.client_email,
+                    private_key: parsed.private_key,
+                };
+            } catch {
+                throw new Error(
+                    'GOOGLE_VERTEX_CREDENTIALS_JSON must contain a Google service account JSON key',
+                );
+            }
+        }
+
+        const project =
+            this.configService.get<string>('GOOGLE_VERTEX_PROJECT')?.trim() ||
+            credentials?.project_id;
+        if (!project) {
+            throw new Error('GOOGLE_VERTEX_PROJECT is not configured');
+        }
+
+        this.vertexClient = new GoogleGenAI({
+            vertexai: true,
+            apiVersion: 'v1',
+            project,
+            location:
+                this.configService
+                    .get<string>('GOOGLE_VERTEX_LOCATION')
+                    ?.trim() || 'us-central1',
+            googleAuthOptions: credentials ? { credentials } : undefined,
+        });
+        return this.vertexClient;
     }
 
     private formatProviderError(error: unknown): string {

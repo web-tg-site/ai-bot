@@ -147,7 +147,7 @@ export const AI_TOOLS_REGISTRY: AiToolConfig[] = [
         label: 'Veo',
         category: 'video',
         provider: AiProviderId.GOOGLE,
-        model: 'veo-3.1-generate-preview',
+        model: 'veo-3.1-generate-001',
         baseTokenCost: 0,
         perSecondCost: 25,
         defaultDurationSeconds: 4,
