@@ -10,7 +10,10 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { PrismaService } from '@/common/services/prisma';
-import { JobMediaResolverService } from '@/common/services/ai/job-media-resolver.service';
+import {
+    canResolveJobMedia,
+    JobMediaResolverService,
+} from '@/common/services/ai/job-media-resolver.service';
 import { AiToolId } from '@/common/services/ai/types';
 import { JobStatus } from '@/generated/prisma/enums';
 import { toUserFacingError } from '@/common/services/bot/errors/bot-error.mapper';
@@ -40,7 +43,11 @@ export class PublicJobMediaController {
             },
         });
 
-        if (!job?.resultUrl || job.status !== JobStatus.COMPLETED) {
+        if (
+            !job ||
+            job.status !== JobStatus.COMPLETED ||
+            !canResolveJobMedia(job)
+        ) {
             throw new NotFoundException('File not found');
         }
 

@@ -12,6 +12,7 @@ import {
     isElevenLabsDubbingResultUrl,
 } from './providers/elevenlabs.provider';
 import { HiggsfieldProvider } from './providers/higgsfield.provider';
+import { GoogleProvider } from './providers/google.provider';
 import { BytePlusProvider } from './providers/byteplus.provider';
 import { TopazProvider } from './providers/topaz.provider';
 import { TempPublicMediaService } from './temp-public-media.service';
@@ -21,6 +22,18 @@ export type ResolvedJobMedia = {
     buffer: Buffer;
     mimeType: string;
 };
+
+export function canResolveJobMedia(job: {
+    resultUrl: string | null;
+    providerJobId: string | null;
+    toolId: string;
+}): boolean {
+    return Boolean(
+        job.resultUrl ||
+        (job.toolId === String(AiToolId.VEO) &&
+            job.providerJobId?.startsWith('projects/')),
+    );
+}
 
 @Injectable()
 export class JobMediaResolverService {
@@ -38,11 +51,12 @@ export class JobMediaResolverService {
         private readonly higgsfieldProvider: HiggsfieldProvider,
         private readonly tempPublicMedia: TempPublicMediaService,
         private readonly topazProvider: TopazProvider,
+        private readonly googleProvider: GoogleProvider,
     ) {}
 
     async resolveCompletedJobMedia(job: {
         id: string;
-        resultUrl: string;
+        resultUrl: string | null;
         providerJobId: string | null;
         toolId: AiToolId;
     }): Promise<ResolvedJobMedia> {
@@ -57,11 +71,13 @@ export class JobMediaResolverService {
                   buffer: jobLocal.buffer,
                   mimeType: jobLocal.mimeType,
               }
-            : await this.resolveJobMedia(
-                  job.resultUrl,
-                  job.providerJobId,
-                  job.toolId,
-              );
+            : job.resultUrl
+              ? await this.resolveJobMedia(
+                    job.resultUrl,
+                    job.providerJobId,
+                    job.toolId,
+                )
+              : await this.resolveVertexVeoMedia(job.toolId, job.providerJobId);
 
         const media = await this.prepareWebPlayback(job.toolId, raw);
         this.setCachedMedia(job.id, media.buffer, media.mimeType);
@@ -73,6 +89,23 @@ export class JobMediaResolverService {
         });
 
         return media;
+    }
+
+    private async resolveVertexVeoMedia(
+        toolId: AiToolId,
+        providerJobId: string | null,
+    ): Promise<ResolvedJobMedia> {
+        if (toolId === AiToolId.VEO && providerJobId?.startsWith('projects/')) {
+            const { result } =
+                await this.googleProvider.getJobStatus(providerJobId);
+            if (result?.buffer?.length) {
+                return {
+                    buffer: result.buffer,
+                    mimeType: result.mimeType ?? 'video/mp4',
+                };
+            }
+        }
+        throw new Error('Файл не найден');
     }
 
     async resolveJobMedia(
@@ -206,13 +239,13 @@ export class JobMediaResolverService {
         toolId: AiToolId,
         media: ResolvedJobMedia,
     ): Promise<ResolvedJobMedia> {
-        if (media.mimeType.startsWith('image/') || media.mimeType.startsWith('audio/')) {
+        if (
+            media.mimeType.startsWith('image/') ||
+            media.mimeType.startsWith('audio/')
+        ) {
             return media;
         }
-        if (
-            !media.mimeType.startsWith('video/') &&
-            !this.isVideoTool(toolId)
-        ) {
+        if (!media.mimeType.startsWith('video/') && !this.isVideoTool(toolId)) {
             return media;
         }
         try {

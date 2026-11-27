@@ -51,7 +51,10 @@ import {
 import { HiggsfieldProvider } from '@/common/services/ai/providers/higgsfield.provider';
 import { HeyGenProvider } from '@/common/services/ai/providers/heygen.provider';
 import { ElevenLabsProvider } from '@/common/services/ai/providers/elevenlabs.provider';
-import { JobMediaResolverService } from '@/common/services/ai/job-media-resolver.service';
+import {
+    canResolveJobMedia,
+    JobMediaResolverService,
+} from '@/common/services/ai/job-media-resolver.service';
 import { ElevenLabsVoicePreviewService } from '@/common/services/elevenlabs-voice-preview';
 import { GenerationFacade } from './generation.facade';
 import { ModuleRef } from '@nestjs/core';
@@ -1032,7 +1035,11 @@ export class AiController {
             },
         });
 
-        if (!job || job.status !== JobStatus.COMPLETED || !job.resultUrl) {
+        if (
+            !job ||
+            job.status !== JobStatus.COMPLETED ||
+            !canResolveJobMedia(job)
+        ) {
             throw new HttpException(
                 { error: 'Файл не найден' },
                 HttpStatus.NOT_FOUND,
@@ -1200,7 +1207,11 @@ export class AiController {
             },
         });
 
-        if (!job?.resultUrl || job.status !== JobStatus.COMPLETED) {
+        if (
+            !job ||
+            job.status !== JobStatus.COMPLETED ||
+            !canResolveJobMedia(job)
+        ) {
             throw new HttpException(
                 { error: 'Файл не найден' },
                 HttpStatus.NOT_FOUND,
