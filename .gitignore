@@ -61,3 +61,4 @@ src/generated/*
 src/generated/**/*
 
 storage/voice-previews/
+storage/kling-results/

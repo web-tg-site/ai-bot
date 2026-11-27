@@ -1,4 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createHash, randomUUID } from 'node:crypto';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { AiToolId } from './types';
 import { getToolById } from '@/common/config/ai-tools.registry';
 import {
@@ -13,6 +17,7 @@ import {
 } from './providers/elevenlabs.provider';
 import { HiggsfieldProvider } from './providers/higgsfield.provider';
 import { GoogleProvider } from './providers/google.provider';
+import { KlingProvider } from './providers/kling.provider';
 import { BytePlusProvider } from './providers/byteplus.provider';
 import { TopazProvider } from './providers/topaz.provider';
 import { TempPublicMediaService } from './temp-public-media.service';
@@ -44,6 +49,7 @@ export class JobMediaResolverService {
         { buffer: Buffer; mimeType: string; accessedAt: number }
     >();
     private mediaCacheBytes = 0;
+    private readonly klingArchiveDir: string;
 
     constructor(
         private readonly bytePlusProvider: BytePlusProvider,
@@ -52,7 +58,15 @@ export class JobMediaResolverService {
         private readonly tempPublicMedia: TempPublicMediaService,
         private readonly topazProvider: TopazProvider,
         private readonly googleProvider: GoogleProvider,
-    ) {}
+        private readonly klingProvider: KlingProvider,
+        config: ConfigService,
+    ) {
+        const storageRoot =
+            config.get<string>('RAILWAY_VOLUME_MOUNT_PATH') ||
+            config.get<string>('VOICE_PREVIEWS_DIR') ||
+            join(process.cwd(), 'storage');
+        this.klingArchiveDir = join(storageRoot, 'kling-results');
+    }
 
     async resolveCompletedJobMedia(job: {
         id: string;
@@ -65,7 +79,9 @@ export class JobMediaResolverService {
             return cached;
         }
 
-        const jobLocal = this.tempPublicMedia.getByJobId(job.id);
+        const jobLocal = this.isKlingVideo(job.toolId)
+            ? await this.archiveKlingVideo(job)
+            : this.tempPublicMedia.getByJobId(job.id);
         const raw = jobLocal
             ? {
                   buffer: jobLocal.buffer,
@@ -89,6 +105,63 @@ export class JobMediaResolverService {
         });
 
         return media;
+    }
+
+    async archiveKlingVideo(
+        job: {
+            id: string;
+            resultUrl: string | null | undefined;
+            providerJobId: string | null;
+            toolId: AiToolId;
+        },
+        generatedBuffer?: Buffer,
+    ): Promise<ResolvedJobMedia | null> {
+        if (!this.isKlingVideo(job.toolId)) return null;
+
+        const filename = createHash('sha256').update(job.id).digest('hex');
+        const file = join(this.klingArchiveDir, `${filename}.mp4`);
+        const stored = await readFile(file).catch(
+            (error: NodeJS.ErrnoException) => {
+                if (error.code !== 'ENOENT') throw error;
+                return null;
+            },
+        );
+        if (stored?.length) return { buffer: stored, mimeType: 'video/mp4' };
+
+        let buffer = generatedBuffer;
+        if (!buffer?.length && job.resultUrl) {
+            try {
+                ({ buffer } = await this.resolveJobMedia(
+                    job.resultUrl,
+                    job.providerJobId,
+                    job.toolId,
+                ));
+            } catch (error) {
+                if (!job.providerJobId) throw error;
+            }
+        }
+        if (!buffer?.length && job.providerJobId) {
+            const { result } = await this.klingProvider.getJobStatus(
+                job.providerJobId,
+            );
+            buffer = result?.buffer;
+        }
+        if (!buffer?.length)
+            throw new Error('Не удалось сохранить видео Kling');
+
+        await mkdir(this.klingArchiveDir, { recursive: true });
+        const temporary = `${file}.${randomUUID()}.tmp`;
+        try {
+            await writeFile(temporary, buffer);
+            await rename(temporary, file);
+        } finally {
+            await rm(temporary, { force: true });
+        }
+        return { buffer, mimeType: 'video/mp4' };
+    }
+
+    private isKlingVideo(toolId: AiToolId): boolean {
+        return toolId === AiToolId.KLING || toolId === AiToolId.KLING_MOTION;
     }
 
     private async resolveVertexVeoMedia(

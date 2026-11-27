@@ -34,6 +34,7 @@ import {
     getAuthHeadersForUrl,
 } from '@/common/utils/download-remote-file';
 import { TempPublicMediaService } from '../temp-public-media.service';
+import { JobMediaResolverService } from '../job-media-resolver.service';
 import { buildApiframeResultKeyboard } from '@/common/services/bot/keyboards/apiframe-actions.keyboard';
 import type { ApiframeResultJson } from '@/common/config/apiframe.config';
 import { ModelFailoverService } from '../failover/model-failover.service';
@@ -62,6 +63,7 @@ export class AiJobCron {
         private readonly providerBalanceAlert: ProviderBalanceAlertService,
         private readonly userAiToolSettingsModelService: UserAiToolSettingsModelService,
         private readonly tempPublicMedia: TempPublicMediaService,
+        private readonly jobMediaResolver: JobMediaResolverService,
         private readonly moduleRef: ModuleRef,
     ) {}
 
@@ -388,7 +390,17 @@ export class AiJobCron {
 
             const resultJson = resolved.resultJson ?? result.resultJson;
 
-            await this.ensureJobMediaCached(job.id, resolved, resultUrl);
+            const archived = await this.jobMediaResolver.archiveKlingVideo(
+                {
+                    id: job.id,
+                    toolId: job.toolId as AiToolId,
+                    providerJobId: job.providerJobId,
+                    resultUrl,
+                },
+                resolved.buffer,
+            );
+            const delivery = archived ? { ...resolved, ...archived } : resolved;
+            await this.ensureJobMediaCached(job.id, delivery, resultUrl);
 
             // Persist URL first so mini-app polling is not blocked by Telegram delivery.
             await this.aiJobService.updateJobStatus(
@@ -410,7 +422,7 @@ export class AiJobCron {
                 await this.sendApiframeOrDefaultResult(
                     botService,
                     job,
-                    resolved,
+                    delivery,
                     resultJson,
                 );
 

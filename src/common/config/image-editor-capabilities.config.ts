@@ -51,10 +51,10 @@ export const SEEDREAM_RESOLUTIONS = ['2K', '4K'] as const;
 export const BFL_MAX_REFERENCES = 8;
 
 export const DEFAULT_IMAGE_QUALITIES = [
-    'auto',
     'low',
     'medium',
     'high',
+    'auto',
 ] as const;
 
 export type ImageQuality = (typeof DEFAULT_IMAGE_QUALITIES)[number];

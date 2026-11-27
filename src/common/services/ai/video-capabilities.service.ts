@@ -226,6 +226,9 @@ export class VideoCapabilitiesService implements OnModuleInit {
         if (resolution && allowed.includes(resolution)) {
             return resolution;
         }
+        if (toolId === AiToolId.LUMA_RAY) {
+            return '1080p';
+        }
         return allowed[0];
     }
 
